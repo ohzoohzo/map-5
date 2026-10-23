@@ -155,3 +155,58 @@ def test_alternatives_without_catalog_is_unavailable(tmp_path):
         assert TestClient(app).get("/api/weather/alternatives", params=BUSAN).status_code == 503
     finally:
         app.dependency_overrides.clear()
+
+
+def gallery(*items: dict) -> httpx.Response:
+    return httpx.Response(200, json={"response": {"header": {"resultCode": "0000"}, "body": {"items": {"item": list(items)} if items else ""}}})
+
+
+def gallery_item(title: str, url: str = "https://tong.visitkorea.or.kr/a.jpg", tags: str = "") -> dict:
+    return {"galTitle": title, "galWebImageUrl": url, "galPhotographer": "한국관광공사", "galSearchKeyword": tags}
+
+
+@pytest.fixture
+def photo_client(monkeypatch):
+    from backend.app.routers.weather import photos
+    photos._lookup.cache_clear()
+    monkeypatch.setattr(photos, "env", lambda name: KEY)
+    yield TestClient(app), photos
+    photos._lookup.cache_clear()
+
+
+def test_photo_matches_title_or_exact_tag_only(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(
+        gallery_item("부산불꽃축제", "https://x/fireworks.jpg", "부산불꽃축제, 광안리해수욕장"),
+        gallery_item("광안리 야경", "https://x/night.jpg", "광안리"),
+    )))
+    photo = client.get("/api/weather/photo", params={"name": "광안리해수욕장"}).json()["photo"]
+    assert photo["url"] == "https://x/fireworks.jpg"
+
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("다른 해수욕장", "https://x/other.jpg", "해수욕장"))))
+    assert client.get("/api/weather/photo", params={"name": "송정해수욕장"}).json()["photo"] is None
+
+
+def test_photo_rejects_non_https_and_hides_key(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("해운대해수욕장", "http://x/a.jpg"))))
+    response = client.get("/api/weather/photo", params={"name": "해운대해수욕장"})
+    assert response.json()["photo"] is None
+    assert KEY not in response.text
+
+
+def test_photo_failures_are_not_cached(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", Mock(side_effect=httpx.ConnectError("down")))
+    assert client.get("/api/weather/photo", params={"name": "해운대해수욕장"}).json()["photo"] is None
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("해운대해수욕장"))))
+    assert client.get("/api/weather/photo", params={"name": "해운대해수욕장"}).json()["photo"]["title"] == "해운대해수욕장"
+
+
+def test_photo_without_key_skips_upstream(monkeypatch):
+    from backend.app.routers.weather import photos
+    monkeypatch.setattr(photos, "env", lambda name: "")
+    upstream = Mock()
+    monkeypatch.setattr(photos.httpx, "get", upstream)
+    assert TestClient(app).get("/api/weather/photo", params={"name": "해운대해수욕장"}).json() == {"photo": None}
+    upstream.assert_not_called()

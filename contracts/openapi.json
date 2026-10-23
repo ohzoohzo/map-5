@@ -809,6 +809,51 @@
           }
         }
       }
+    },
+    "/api/weather/photo": {
+      "get": {
+        "tags": [
+          "weather"
+        ],
+        "summary": "Weather Photo",
+        "description": "장소 이름과 맞는 한국관광공사 관광사진 한 장. 없으면 photo=null.",
+        "operationId": "weather_photo",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherPhotoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1514,6 +1559,60 @@
           "fetched_at"
         ],
         "title": "WeatherForecast"
+      },
+      "WeatherPhoto": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "photographer": {
+            "type": "string",
+            "title": "Photographer"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "title",
+          "photographer",
+          "source",
+          "source_url"
+        ],
+        "title": "WeatherPhoto"
+      },
+      "WeatherPhotoResponse": {
+        "properties": {
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeatherPhoto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "photo"
+        ],
+        "title": "WeatherPhotoResponse"
       },
       "WeatherSlot": {
         "properties": {

@@ -25,7 +25,9 @@ import type {
   WeatherAlternatives,
   WeatherAlternativesParams,
   WeatherForecast,
-  WeatherForecastParams
+  WeatherForecastParams,
+  WeatherPhotoParams,
+  WeatherPhotoResponse
 } from '../model';
 
 import { apiFetch } from '../../client.ts';
@@ -355,6 +357,114 @@ export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weather
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getWeatherAlternativesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getWeatherPhotoUrl = (params: WeatherPhotoParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/weather/photo?${stringifiedParams}` : `/api/weather/photo`
+}
+
+/**
+ * 장소 이름과 맞는 한국관광공사 관광사진 한 장. 없으면 photo=null.
+ * @summary Weather Photo
+ */
+export const weatherPhoto = async (params: WeatherPhotoParams, options?: Parameters<typeof apiFetch>[1]): Promise<WeatherPhotoResponse> => {
+
+  return apiFetch<WeatherPhotoResponse>(getWeatherPhotoUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getWeatherPhotoQueryKey = (params?: WeatherPhotoParams,) => {
+    return [
+    `/api/weather/photo`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getWeatherPhotoQueryOptions = <TData = Awaited<ReturnType<typeof weatherPhoto>>, TError = ErrorResponse>(params: WeatherPhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWeatherPhotoQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherPhoto>>> = ({ signal }) => weatherPhoto(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type WeatherPhotoQueryResult = NonNullable<Awaited<ReturnType<typeof weatherPhoto>>>
+export type WeatherPhotoQueryError = ErrorResponse
+
+
+export function useWeatherPhoto<TData = Awaited<ReturnType<typeof weatherPhoto>>, TError = ErrorResponse>(
+ params: WeatherPhotoParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherPhoto>>,
+          TError,
+          Awaited<ReturnType<typeof weatherPhoto>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherPhoto<TData = Awaited<ReturnType<typeof weatherPhoto>>, TError = ErrorResponse>(
+ params: WeatherPhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherPhoto>>,
+          TError,
+          Awaited<ReturnType<typeof weatherPhoto>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherPhoto<TData = Awaited<ReturnType<typeof weatherPhoto>>, TError = ErrorResponse>(
+ params: WeatherPhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Weather Photo
+ */
+
+export function useWeatherPhoto<TData = Awaited<ReturnType<typeof weatherPhoto>>, TError = ErrorResponse>(
+ params: WeatherPhotoParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherPhoto>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWeatherPhotoQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -38,3 +38,16 @@ class WeatherAlternatives(StrictModel):
     radius_km: float
     source: str
     source_url: str
+
+
+class WeatherPhoto(StrictModel):
+    url: str
+    title: str
+    photographer: str
+    source: str
+    source_url: str
+
+
+class WeatherPhotoResponse(StrictModel):
+    # None = 이 장소와 맞는 사진이 없음 (키 없음·실패 포함) → 화면은 아이콘으로 대신
+    photo: WeatherPhoto | None

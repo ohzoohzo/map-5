@@ -63,6 +63,9 @@ export const WeatherSection = styled.div`
   .w-visual svg { width: 56px; height: 56px; } .w-visual.small svg { width: 26px; height: 26px; }
   .w-visual.outdoor { background: linear-gradient(160deg, #8fd0f5 0%, #3d8bfd 55%, #e8d5a8 100%); }
   .w-visual.indoor { background: linear-gradient(150deg, #7fd3dc 0%, ${teal} 100%); }
+  .w-visual.photo { position: relative; margin: 0; overflow: hidden; background: ${canvas}; }
+  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .w-visual.photo figcaption { position: absolute; right: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 8px; border-radius: 999px; background: #000000a6; color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .w-visual.neutral { background: linear-gradient(150deg, #c9d3df 0%, #8a97a8 100%); }
 
   .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; word-break: keep-all; font-size: 14px; font-weight: 700; color: ${fg('neutral-strong')}; }

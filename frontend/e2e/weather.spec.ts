@@ -34,6 +34,8 @@ const forecast = (status: WeatherForecast['status'], slots: WeatherForecast['slo
 async function openWeather(page: Page, response: { status: number; body: unknown }, seeded: Trip | null = trip) {
   // 외부 예보는 키·시점에 따라 달라지므로 응답을 고정한다. 대안 장소는 실제 로컬 관광 데이터를 쓴다.
   await page.route('**/api/weather/forecast?**', (route) => route.fulfill({ status: response.status, json: response.body }));
+  // 관광사진도 외부 데이터라 기본은 '사진 없음'으로 고정한다 (사진 표시는 아래 전용 테스트에서)
+  await page.route('**/api/weather/photo?**', (route) => route.fulfill({ json: { photo: null } }));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.evaluate((value) => {
     if (value) localStorage.setItem('pinday.trip.v1', JSON.stringify(value));
@@ -134,4 +136,27 @@ test('another stop of the day can be picked from the place selector', async ({ p
   await page.getByRole('option', { name: `3. ${night.name}` }).click();
   await expect(page).toHaveURL(/\/weather\?day=2&item=2$/);
   await expect(page.getByRole('article', { name: '원래 일정' }).getByRole('heading')).toHaveText(night.name);
+});
+
+test('a matching tourism photo replaces the icon, with its credit, and a broken image falls back', async ({ page }) => {
+  const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.route('https://photo.test/**', (route) => (route.request().url().endsWith('broken.jpg')
+    ? route.fulfill({ status: 404, body: '' })
+    : route.fulfill({ contentType: 'image/png', body: pixel })));
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  // openWeather 의 기본 '사진 없음'보다 나중에 등록한 route 가 먼저 쓰인다
+  await page.route('**/api/weather/photo?**', (route) => {
+    const name = new URL(route.request().url()).searchParams.get('name');
+    const photo = (url: string) => ({ url, title: name, photographer: '한국관광공사 테스트', source: '한국관광공사 관광사진', source_url: 'https://www.data.go.kr/' });
+    if (name === beach.name) return route.fulfill({ json: { photo: photo('https://photo.test/beach.png') } });
+    if (name === night.name) return route.fulfill({ json: { photo: photo('https://photo.test/broken.jpg') } });
+    return route.fulfill({ json: { photo: null } });
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  const original = page.getByRole('article', { name: '원래 일정' });
+  await expect(original.getByRole('img', { name: `${beach.name} 사진` })).toBeVisible();
+  await expect(original).toContainText('사진: 한국관광공사 테스트 · 한국관광공사 관광사진');
+  const preview = page.getByRole('region', { name: '교체 후 미리보기' });
+  await expect(preview.getByRole('img', { name: `${night.name} 사진` })).toHaveCount(0);
 });

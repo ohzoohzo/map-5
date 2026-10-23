@@ -41,6 +41,14 @@ const photoSourceUrl = (id: string) => `https://gallery.visitkorea.or.kr/fixture
 
 async function installPhotos(page: Page, setup: PhotoSetup) {
   const requests = new Map<string, URL[]>();
+  const successfulResponses = new Map<string, number>();
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    const id = url.searchParams.get('place_id');
+    if (url.pathname === '/api/docent/photos' && id && response.status() === 200) {
+      successfulResponses.set(id, (successfulResponses.get(id) ?? 0) + 1);
+    }
+  });
   const stateOf = (id: string) => setup.states?.get(id) ?? setup.defaultState ?? 'empty';
   const legacyRequests: string[] = [];
   await page.route('**/api/weather/photo?**', (route) => {
@@ -68,7 +76,7 @@ async function installPhotos(page: Page, setup: PhotoSetup) {
     };
     return route.fulfill({ json: body });
   });
-  return { requests, legacyRequests };
+  return { requests, successfulResponses, legacyRequests };
 }
 
 async function expectPhoto(scope: Locator, target: Place) {
@@ -208,8 +216,9 @@ test('날씨 비교·대안·미리보기는 같은 TourAPI 사진 계약과 출
   }
   for (const target of [beach, first, cafe, night]) {
     const requests = loaded.requests.get(target.id)!;
-    expect(requests, '같은 장소의 사진은 비교 카드와 미리보기에서 한 번만 조회한다').toHaveLength(1);
-    expect(Object.fromEntries(requests[0]!.searchParams)).toEqual({
+    // StrictMode가 마운트 중 취소한 요청은 재사용 가능한 성공 응답이 아니다.
+    expect(loaded.successfulResponses.get(target.id), '같은 장소의 성공 사진 응답은 비교 카드와 미리보기에서 한 번만 받는다').toBe(1);
+    for (const request of requests) expect(Object.fromEntries(request.searchParams)).toEqual({
       place_id: target.id, name: target.name, latitude: String(target.latitude), longitude: String(target.longitude),
     });
   }
@@ -233,7 +242,7 @@ test('390px 날씨 사진은 비율을 유지하고 이용조건은 푸터 출�
   await expect(page.locator(`a[href="${photoUrl(first.id)}"]`)).toBeVisible();
   await expect(page.locator(`a[href="${photoSourceUrl(first.id)}"]`)).toHaveAttribute('target', '_blank');
   expect(await page.evaluate(() => localStorage.getItem('pinday.trip.v1'))).toBe(before);
-  expect(loaded.requests.get(first.id)).toHaveLength(1);
+  expect(loaded.successfulResponses.get(first.id)).toBe(1);
   await noHorizontalOverflow(page);
 });
 

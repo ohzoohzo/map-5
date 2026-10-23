@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import app
 from backend.app.routers import docent
-from backend.app.routers.docent import sources, writer
+from backend.app.routers.docent import news, sources, writer
 from backend.app.routers.docent.sources import Evidence
 
 PARAMS = {"place_id": "kakao:1", "name": "검증 장소", "address": "부산광역시 검증구", "latitude": 35.1, "longitude": 129.0}
@@ -87,44 +87,110 @@ def test_tour_title_match_prefers_exact_name_nearby(monkeypatch):
     assert calls[-1] == "2"
 
 
-def news_payload(items, sources):
-    return {"output": [
-        {"type": "web_search_call", "action": {"type": "search", "sources": [{"type": "url", "url": url} for url in sources]}},
-        {"type": "message", "content": [{"type": "output_text", "text": json.dumps({"items": items})}]},
-    ]}
+def rss(*entries):
+    items = "".join(
+        f"<item><title>{title} - {source}</title><link>{link}</link><pubDate>{date}</pubDate><source url=\"https://x\">{source}</source></item>"
+        for title, link, date, source in entries
+    )
+    return f"<rss><channel>{items}</channel></rss>"
 
 
-def news_item(url, published_date):
-    return {"title": "제목", "summary": "요약", "published_date": published_date, "source_name": "검증일보", "url": url}
-
-
-def test_news_keeps_only_searched_urls_with_recent_valid_dates(monkeypatch):
+def test_news_uses_trusted_sites_and_keeps_recent_titled_items(monkeypatch):
     docent._news_cache.clear()
-    monkeypatch.setattr(docent, "env", lambda name: "test-key")
-    monkeypatch.setattr(writer, "env", lambda name: "test-key" if name == "OPENAI_API_KEY" else "")
-    today = docent.datetime.now(docent.KST).date().isoformat()
-    items = [
-        news_item("https://news.example/a", today),           # 유지
-        news_item("https://invented.example/b", today),       # 검색 출처에 없음 → 제외
-        news_item("https://news.example/c", "2020-01-01"),    # 오래됨 → 제외
-        news_item("https://news.example/d", "모름"),           # 날짜 형식 오류 → 제외
-    ]
-    post = Mock(return_value=httpx.Response(200, json=news_payload(items, ["https://news.example/a", "https://news.example/c", "https://news.example/d"])))
-    monkeypatch.setattr(writer.httpx, "post", post)
+    from email.utils import format_datetime
+    now = docent.datetime.now(docent.KST)
+    recent = format_datetime(now - docent.timedelta(days=1))
+    older = format_datetime(now - docent.timedelta(days=3))
+    old = format_datetime(now - docent.timedelta(days=400))
+    body = rss(
+        ("검증 장소 축제 개최", "https://news.google.com/a", older, "국제신문"),
+        ("검증 장소 새 전시", "https://news.google.com/b", recent, "부산일보"),
+        ("다른 동네 소식", "https://news.google.com/c", recent, "부산일보"),        # 제목에 장소명 없음 → 제외
+        ("검증 장소 옛 기사", "https://news.google.com/d", old, "KNN"),            # 오래됨 → 제외
+        ("검증장소 소식 하나 더", "https://news.google.com/e", older, "부산시청"),
+        ("검증 장소 네번째", "https://news.google.com/f", older, "국제신문"),         # 3건 초과 → 제외
+    )
+    calls = []
+
+    def fake_get(url, params, timeout, follow_redirects):
+        calls.append(params["q"])
+        return httpx.Response(200, text=body, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(news.httpx, "get", fake_get)
     client = TestClient(app)
-    params = {"place_id": "kakao:1", "name": "검증 장소"}
-    data = client.get("/api/docent/news", params=params).json()
-    assert [item["url"] for item in data["items"]] == ["https://news.example/a"]
-    assert post.call_args.kwargs["json"]["tools"][0]["type"] == "web_search"
-    client.get("/api/docent/news", params=params)
-    assert post.call_count == 1  # 캐시
+    data = client.get("/api/docent/news", params={"place_id": "kakao:1", "name": "검증 장소"}).json()
+    assert len(data["items"]) == 3
+    assert data["items"][0]["title"] == "검증 장소 새 전시" and data["items"][0]["source_name"] == "부산일보"
+    assert all("다른" not in item["title"] and "옛" not in item["title"] for item in data["items"])
+    assert "site:busan.go.kr" in calls[0] and "site:kookje.co.kr" in calls[0]
+    client.get("/api/docent/news", params={"place_id": "kakao:1", "name": "검증 장소"})
+    assert len(calls) == 1  # 캐시
 
 
-def test_news_without_key_does_not_search(monkeypatch):
+@pytest.mark.parametrize("failure_kind,status", [
+    ("network", 503),
+    ("timeout", 504),
+    ("http", 502),
+    ("xml", 502),
+    ("unexpected_xml", 502),
+])
+def test_news_failure_can_be_retried_without_caching(monkeypatch, failure_kind, status):
     docent._news_cache.clear()
-    monkeypatch.setattr(docent, "env", lambda name: "")
-    post = Mock()
-    monkeypatch.setattr(writer.httpx, "post", post)
-    data = TestClient(app).get("/api/docent/news", params={"place_id": "kakao:2", "name": "검증"}).json()
-    assert data["ready"] is False and data["items"] == []
-    post.assert_not_called()
+    from email.utils import format_datetime
+    request = httpx.Request("GET", news.RSS_URL)
+    failures = {
+        "network": httpx.ConnectError("upstream-secret", request=request),
+        "timeout": httpx.ReadTimeout("upstream-secret", request=request),
+        "http": httpx.Response(503, text="upstream-secret", request=request),
+        "xml": httpx.Response(200, text="<rss>upstream-secret", request=request),
+        "unexpected_xml": httpx.Response(200, text="<html>upstream-secret</html>", request=request),
+    }
+    body = rss(("검증 장소 새 전시", "https://news.google.com/recovered", format_datetime(docent.datetime.now(docent.KST)), "부산일보"))
+    get = Mock(side_effect=[failures[failure_kind], httpx.Response(200, text=body, request=request)])
+    monkeypatch.setattr(news.httpx, "get", get)
+    client = TestClient(app)
+    params = {"place_id": "kakao:2", "name": "검증 장소"}
+
+    failed = client.get("/api/docent/news", params=params)
+    assert failed.status_code == status
+    assert set(failed.json()) == {"detail"}
+    assert "upstream-secret" not in failed.text
+    assert params["place_id"] not in docent._news_cache
+
+    recovered = client.get("/api/docent/news", params=params)
+    assert recovered.status_code == 200
+    assert recovered.json()["items"][0]["title"] == "검증 장소 새 전시"
+    client.get("/api/docent/news", params=params)
+    assert get.call_count == 2
+
+
+def test_news_successful_empty_result_is_cached(monkeypatch):
+    docent._news_cache.clear()
+    get = Mock(return_value=httpx.Response(200, text=rss(), request=httpx.Request("GET", news.RSS_URL)))
+    monkeypatch.setattr(news.httpx, "get", get)
+    client = TestClient(app)
+    params = {"place_id": "kakao:empty", "name": "검증 장소"}
+    response = client.get("/api/docent/news", params=params)
+    assert response.status_code == 200
+    assert response.json()["ready"] is True and response.json()["items"] == []
+    client.get("/api/docent/news", params=params)
+    assert get.call_count == 1
+
+
+def test_photos_keep_only_licensed_https_images(monkeypatch):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    search = {"response": {"body": {"items": {"item": [
+        {"contentid": "2", "title": "검증 장소", "mapx": "129.0", "mapy": "35.1",
+         "firstimage": "https://img.example/first.jpg", "firstimage2": "https://img.example/first_s.jpg", "cpyrhtDivCd": "Type1"},
+    ]}}}}
+    images = {"response": {"body": {"items": {"item": [
+        {"originimgurl": "https://img.example/a.jpg", "smallimageurl": "https://img.example/a_s.jpg", "imgname": "A", "cpyrhtDivCd": "Type3"},
+        {"originimgurl": "https://img.example/b.jpg", "imgname": "B", "cpyrhtDivCd": ""},           # 라이선스 불명 → 제외
+        {"originimgurl": "http://img.example/c.jpg", "imgname": "C", "cpyrhtDivCd": "Type1"},       # http → 제외
+        {"originimgurl": "https://img.example/first.jpg", "imgname": "dup", "cpyrhtDivCd": "Type1"},  # 중복
+    ]}}}}
+    monkeypatch.setattr(sources.httpx, "get", lambda url, params, timeout: httpx.Response(200, json=search if url.endswith("searchKeyword2") else images))
+    data = TestClient(app).get("/api/docent/photos", params={"place_id": "p:1", "name": "검증 장소", "latitude": 35.1, "longitude": 129.0}).json()
+    assert [photo["url"] for photo in data["photos"]] == ["https://img.example/first.jpg", "https://img.example/a.jpg"]
+    assert data["photos"][1]["license"].startswith("공공누리 제3유형")

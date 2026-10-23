@@ -34,7 +34,30 @@ export const Picker = styled(Card)`
   .state { margin-top: 16px; font-size: 13px; color: ${color.textMuted}; }
 `;
 
+export const Slides = styled.div`
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  &:has(> .hero-text:only-child) { grid-template-columns: 1fr; }
+  .slide-box { min-width: 0; }
+  .slide-frame { position: relative; width: 100%; aspect-ratio: 3 / 2; border-radius: ${radius.md}; overflow: hidden; background: ${color.navy}; }
+  .slide-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s ease; }
+  .slide-frame img.active { opacity: 1; }
+  .slide-caption { position: absolute; left: 10px; right: 10px; bottom: 10px; margin: 0; padding: 6px 12px; border-radius: ${radius.pill}; background: ${color.navy}bf; color: ${color.surface}; font-size: 12px; text-align: center; }
+  .slide-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: ${color.textMuted}; }
+  .hero-text { font-size: 17px; line-height: 1.7; font-weight: 600; letter-spacing: -0.4px; color: ${color.navy}; word-break: keep-all; }
+  .hero-text.muted, .hero-text .muted { font-size: 16px; font-weight: 500; color: ${color.textSub}; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  @container docent-panel (min-width: 680px) {
+    grid-template-columns: 420px minmax(0, 1fr);
+    .hero-text { font-size: 20px; }
+  }
+`;
+
 export const Panel = styled(Card)`
+  min-width: 0;
+  container: docent-panel / inline-size;
   .tabs { display: flex; gap: 24px; border-bottom: 1px solid ${color.border}; }
   .tabs button { display: flex; align-items: center; gap: 6px; padding: 10px 2px; font-weight: 600; color: ${color.textMuted}; border-bottom: 2px solid transparent; }
   .tabs button[aria-selected='true'] { color: ${color.primary}; border-bottom-color: ${color.primary}; }

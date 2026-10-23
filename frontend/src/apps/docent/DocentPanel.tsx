@@ -6,6 +6,7 @@ import { ApiError, request, type Place } from '../../api/client';
 import { getDocentNewsUrl, getDocentStoryUrl } from '../../api/generated/docent/docent';
 import type { DocentNews, DocentStory } from '../../api/generated/model';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
+import PhotoSlideshow from './PhotoSlideshow';
 import { Panel } from './styles';
 
 type Tab = 'story' | 'news';
@@ -26,16 +27,14 @@ function useStory(place: Place | null) {
   });
 }
 
-// 웹 검색은 20~30초 걸리고 비용이 들어서 '최근 소식' 탭을 열었을 때만 조회한다
+// 부산 지역 출처 RSS 조회(1초 내외). '최근 소식' 탭을 열었을 때만 조회한다
 function useNews(place: Place | null, enabled: boolean) {
   return useQuery({
     queryKey: ['docent', 'news', place?.id],
     enabled: enabled && place !== null,
-    staleTime: 6 * 60 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
     retry: false,
-    queryFn: ({ signal }) => request<DocentNews>(getDocentNewsUrl({
-      place_id: place!.id, name: place!.name, address: place!.address,
-    }), signal),
+    queryFn: ({ signal }) => request<DocentNews>(getDocentNewsUrl({ place_id: place!.id, name: place!.name }), signal),
   });
 }
 
@@ -50,6 +49,10 @@ export default function DocentPanel({ place }: { place: Place | null }) {
   const news = useNews(place, tab === 'news');
   const saved = useTrip((trip) => (place ? trip.candidateIds.includes(place.id) : false));
   const data = story.data;
+  // 사진 오른쪽 간단 설명: AI 요약이 있으면 그것, 없으면 공공데이터 소개
+  const heroText = data?.ready && data.summary
+    ? <p>{data.summary}</p>
+    : place?.description ? <p className="muted">{place.description}</p> : null;
 
   return (
     <Panel aria-label={t('menu')}>
@@ -65,6 +68,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="address">{[place.category, place.address].filter(Boolean).join(' · ')}</p>
+          <PhotoSlideshow place={place} caption={story.isLoading ? t('storyLoadingCaption', { name: place.name }) : undefined}>{heroText}</PhotoSlideshow>
 
           {story.isLoading && <p className="loading"><Sparkles size={14} /> {t('storyLoading')}</p>}
           {story.isError && (
@@ -76,7 +80,6 @@ export default function DocentPanel({ place }: { place: Place | null }) {
 
           {data?.ready ? (
             <>
-              <p className="summary">{data.summary}</p>
               <div className="sections">
                 {data.sections.map((section) => {
                   const Icon = SECTION_ICONS[section.key];
@@ -129,6 +132,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="news">{t('newsNotice')}</p>
+          <PhotoSlideshow place={place} caption={news.isLoading ? t('newsLoadingCaption', { name: place.name }) : undefined}>{heroText}</PhotoSlideshow>
           {news.isLoading && <p className="loading"><Sparkles size={14} /> {t('newsLoading')}</p>}
           {news.isError && (
             <div className="error">
@@ -145,13 +149,13 @@ export default function DocentPanel({ place }: { place: Place | null }) {
                     <a href={item.url} target="_blank" rel="noreferrer">
                       <strong>{item.title}<ArrowUpRight size={14} /></strong>
                       <span className="news-meta">{item.source_name} · {t('publishedDate', { date: item.published_date })}</span>
-                      <span className="news-summary">{item.summary}</span>
+                      {item.summary && <span className="news-summary">{item.summary}</span>}
                     </a>
                   </li>
                 ))}
               </ul>
               {news.data.searched_at && (
-                <p className="ai-note"><Sparkles size={12} /> {t('newsNote', { model: news.data.model, time: news.data.searched_at.slice(0, 16).replace('T', ' ') })}</p>
+                <p className="ai-note">{t('newsNote', { time: news.data.searched_at.slice(0, 16).replace('T', ' ') })}</p>
               )}
             </>
           )}

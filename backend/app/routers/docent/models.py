@@ -20,6 +20,20 @@ class DocentSection(StrictModel):
     reference_indexes: list[int]
 
 
+class DocentPhoto(StrictModel):
+    url: str
+    thumbnail_url: str
+    title: str
+    license: str              # 공공누리 유형 (출처표시 필수)
+
+
+class DocentPhotos(StrictModel):
+    place_id: str
+    photos: list[DocentPhoto]
+    source: str
+    source_url: str
+
+
 class DocentNewsItem(StrictModel):
     title: str
     summary: str

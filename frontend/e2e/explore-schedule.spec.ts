@@ -116,3 +116,33 @@ test('홈에서 시작한 여행(짧은 목적지 이름)도 어디 갈까?에 �
   await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(busan.total));
   await expect(page.getByRole('heading', { name: '부산의 어디를 담아볼까요?' })).toBeVisible();
 });
+
+test('어디 갈까?: 지역 카탈로그 실패를 보여주고 재시도로 저장한 여행과 후보를 복구한다', async ({ page }) => {
+  const busan = await startTrip(page);
+  const place = busan.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+
+  let unavailable = true;
+  await page.route('**/api/travel/catalog?**', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('region') === '' && unavailable) {
+      await route.fulfill({ status: 503, json: { detail: '지역 정보를 일시적으로 불러올 수 없습니다.' } });
+      return;
+    }
+    await route.continue();
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByText('여행 지역을 불러오지 못했어요')).toBeVisible();
+  await expect(page.getByText('지역 정보를 일시적으로 불러올 수 없습니다.')).toBeVisible();
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+  await expect(page.getByTestId(IDS.CANDIDATE_TRAY)).toContainText(place.name);
+
+  unavailable = false;
+  const recovered = catalogResponse(page, '부산광역시');
+  await page.getByRole('button', { name: '다시 시도', exact: true }).click();
+  const catalog = await readCatalog(await recovered);
+  await expect(page.getByRole('heading', { name: '부산의 어디를 담아볼까요?' })).toBeVisible();
+  await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(catalog.total));
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+  await expect(page.getByText('여행 지역을 불러오지 못했어요')).toHaveCount(0);
+});

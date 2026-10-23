@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def requirement_lines(path: Path) -> set[str]:
-    return {line.strip() for line in path.read_text().splitlines() if line.strip() and not line.startswith("#")}
+    return {line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")}
 
 
 def test_vercel_requirements_are_a_subset_of_backend_requirements():

@@ -8,9 +8,9 @@ import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import { color, font, layout, radius } from '../../shared/design/tokens';
 
 // 시안: design/pinday-home-v3.png
-// 사진이 생기면 아래 경로만 채우면 된다 (예: '/images/home-hero.jpg'). 비어 있으면 색 배경으로 자리만 잡는다.
-const HERO_IMAGE = '';
-const TRAIN_IMAGE = '';
+// 홈 장식용 생성 일러스트. 실제 관광지 사진과 구분한다.
+const HERO_IMAGE = '/images/pinday/busan-hero.png';
+const TRAIN_IMAGE = '/images/pinday/coastal-train.png';
 
 // 화면에는 짧은 이름(i18n), 저장은 카탈로그 region 과 같은 시·도 전체 이름 (TripBar 와 같은 약속)
 const DESTINATIONS = [{ id: 'busan', value: '부산광역시' }] as const;

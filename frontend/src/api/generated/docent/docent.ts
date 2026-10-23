@@ -22,6 +22,8 @@ import type {
 import type {
   DocentNews,
   DocentNewsParams,
+  DocentPhotos,
+  DocentPhotosParams,
   DocentStory,
   DocentStoryParams,
   ErrorResponse,
@@ -273,6 +275,7 @@ export const getDocentNewsUrl = (params: DocentNewsParams,) => {
 }
 
 /**
+ * 부산시·부산관광공사·지역 언론 보도 중 장소명이 제목에 들어간 최신 3건.
  * @summary Docent News
  */
 export const docentNews = async (params: DocentNewsParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentNews> => {
@@ -353,6 +356,114 @@ export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getDocentNewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getDocentPhotosUrl = (params: DocentPhotosParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/docent/photos?${stringifiedParams}` : `/api/docent/photos`
+}
+
+/**
+ * 한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록.
+ * @summary Docent Photos
+ */
+export const docentPhotos = async (params: DocentPhotosParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentPhotos> => {
+
+  return apiFetch<DocentPhotos>(getDocentPhotosUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDocentPhotosQueryKey = (params?: DocentPhotosParams,) => {
+    return [
+    `/api/docent/photos`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDocentPhotosQueryOptions = <TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDocentPhotosQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentPhotos>>> = ({ signal }) => docentPhotos(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DocentPhotosQueryResult = NonNullable<Awaited<ReturnType<typeof docentPhotos>>>
+export type DocentPhotosQueryError = ErrorResponse
+
+
+export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
+ params: DocentPhotosParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof docentPhotos>>,
+          TError,
+          Awaited<ReturnType<typeof docentPhotos>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
+ params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof docentPhotos>>,
+          TError,
+          Awaited<ReturnType<typeof docentPhotos>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
+ params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Docent Photos
+ */
+
+export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
+ params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDocentPhotosQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

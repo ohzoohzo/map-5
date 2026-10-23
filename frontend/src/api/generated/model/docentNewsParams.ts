@@ -16,8 +16,4 @@ place_id: string;
  * @maxLength 100
  */
 name: string;
-/**
- * @maxLength 200
- */
-address?: string;
 };

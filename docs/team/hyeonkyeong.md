@@ -18,3 +18,4 @@
 - 2026-10-23 실내 대안 = `GET /api/weather/alternatives` — 관광 데이터(clean.csv)에서 **이름에 박물관·미술관·전시관 등이 들어간 곳**을 직선 30km 안에서 가까운 순 8곳. 분류가 모두 '관광지'라 이름으로만 추정 → 화면에 '운영정보 확인 필요' 표시. 카카오 REST 키가 생기면 카카오 카테고리 검색(문화시설 CT1)으로 보강 가능.
 - 화면은 `/weather?day=2&item=1` 로 특정 방문 항목을 바로 열 수 있다 (day 1부터, item 0부터) → 언제 갈까?(여원)에서 링크 걸 때 사용.
 - 일정에 시각 정보가 없어서 시안의 '14:00' 대신 그날 비 예상 시간대 전체를 보여 준다.
+- 2026-10-23 #17 의 공통 틀에 맞춤: `PinDayPage` + `TripBar`(상단 여행 바), DAY 탭은 언제 갈까?와 같은 색, 버튼·안내는 Montage(`Button`, `SectionMessage`, `FallbackView`, `Loading`). `TripBar` 의 `page` 가 explore/schedule 만 받아서 '일정' 칩이 강조된다 (날씨 대안은 일정의 하위 흐름이라 그대로 둠).

@@ -17,14 +17,19 @@ function isPhoto(value: unknown): value is DocentPhoto {
     && 'license' in value && nonEmptyString(value.license);
 }
 
-function readPhotos(value: unknown, placeId: string): DocentPhotos {
+export function isPlacePhotos(value: unknown, placeId: string): value is DocentPhotos {
   if (typeof value !== 'object' || value === null
     || !('place_id' in value) || value.place_id !== placeId
     || !('photos' in value) || !Array.isArray(value.photos) || !value.photos.every(isPhoto)
     || !('source' in value) || !nonEmptyString(value.source)
     || !('source_url' in value) || !httpUrl(value.source_url)) {
-    throw new Error('Invalid place photo response');
+    return false;
   }
+  return true;
+}
+
+function readPhotos(value: unknown, placeId: string): DocentPhotos {
+  if (!isPlacePhotos(value, placeId)) throw new Error('Invalid place photo response');
   return { place_id: placeId, photos: value.photos, source: value.source, source_url: value.source_url };
 }
 

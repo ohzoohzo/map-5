@@ -8,7 +8,7 @@ const INTERVAL_MS = 3500;
 
 export { usePlacePhotos as usePhotos } from '../../shared/media/usePlacePhotos';
 
-/** 한국관광공사 사진 슬라이드. 공공누리 제3유형(변경금지)이 있어 사진을 자르지 않고(contain) 출처·유형을 함께 표시한다. */
+/** 사진 원본 비율을 유지한다. 출처·사진별 이용조건은 데이터·사진 출처 페이지에서 확인한다. */
 export default function PhotoSlideshow({ place, caption, children }: { place: Place | null; caption?: string; children?: ReactNode }) {
   const { t } = useTranslation('docent');
   const photos = usePlacePhotos(place).data?.photos ?? [];
@@ -23,7 +23,6 @@ export default function PhotoSlideshow({ place, caption, children }: { place: Pl
   }, [count]);
 
   if (count === 0) return children ? <Slides><div className="hero-text">{children}</div></Slides> : null;
-  const photo = photos[Math.min(index, count - 1)]!;
   return (
     <Slides>
       <div className="slide-box" aria-roledescription="carousel" aria-label={t('photosLabel', { name: place?.name })}>
@@ -34,7 +33,6 @@ export default function PhotoSlideshow({ place, caption, children }: { place: Pl
           {caption && <p className="slide-caption">{caption}</p>}
         </div>
         <div className="slide-meta">
-          <span>{t('photoCredit', { license: photo.license })}</span>
           <span>{index + 1} / {count}</span>
         </div>
       </div>

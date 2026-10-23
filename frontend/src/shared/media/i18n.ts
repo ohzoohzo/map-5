@@ -8,6 +8,5 @@ export default {
     photoEmpty: '제공되는 사진이 없어요.',
     photoError: '사진을 불러오지 못했어요.',
     photoBroken: '사진 파일을 표시할 수 없어요.',
-    photoCredit: '사진: {{source}} · {{license}}',
   },
 };

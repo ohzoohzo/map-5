@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { AppDefinition } from './shared/app';
 import { Link, usePathname } from './shared/router';
 import { globalStyles, Shell } from './styles';
+import SourceFooter from './apps/sources/SourceFooter';
 
 // 기능 등록은 apps/<기능>/app.config.tsx 로만 한다. 이 파일은 공통 영역(여원 리뷰).
 const modules = import.meta.glob<{ default: AppDefinition }>('./apps/*/app.config.tsx', { eager: true });
@@ -36,6 +37,7 @@ export default function App() {
         </div>
       </header>
       <main id="main-content">{ActiveComponent && <ActiveComponent />}</main>
+      <SourceFooter />
     </Shell>
   );
 }

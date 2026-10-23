@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 
 import httpx
+from fastapi import HTTPException
 
 RSS_URL = "https://news.google.com/rss/search"
 SOURCE_URL = "https://news.google.com/"
@@ -27,9 +28,19 @@ def search_news(place_name: str, now: datetime) -> list[dict]:
     try:
         response = httpx.get(RSS_URL, params={"q": query, "hl": "ko", "gl": "KR", "ceid": "KR:ko"}, timeout=8.0, follow_redirects=True)
         response.raise_for_status()
-        entries = ET.fromstring(response.content).findall("./channel/item")
-    except (httpx.HTTPError, ET.ParseError):
-        return []
+        root = ET.fromstring(response.content)
+    except httpx.TimeoutException:
+        raise HTTPException(504, "최근 소식 응답이 늦어요. 잠시 후 다시 시도해 주세요.") from None
+    except httpx.RequestError:
+        raise HTTPException(503, "최근 소식 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.") from None
+    except httpx.HTTPStatusError:
+        raise HTTPException(502, "최근 소식을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.") from None
+    except ET.ParseError:
+        raise HTTPException(502, "최근 소식 응답 형식이 올바르지 않아요.") from None
+    channel = root.find("channel")
+    if root.tag != "rss" or channel is None:
+        raise HTTPException(502, "최근 소식 응답 형식이 올바르지 않아요.")
+    entries = channel.findall("item")
 
     target = _normalize(place_name)
     oldest = now - timedelta(days=RECENT_DAYS)

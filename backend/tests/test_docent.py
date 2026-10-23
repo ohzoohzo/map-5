@@ -127,13 +127,54 @@ def test_news_uses_trusted_sites_and_keeps_recent_titled_items(monkeypatch):
     assert len(calls) == 1  # 캐시
 
 
-def test_news_network_error_returns_empty(monkeypatch):
+@pytest.mark.parametrize("failure_kind,status", [
+    ("network", 503),
+    ("timeout", 504),
+    ("http", 502),
+    ("xml", 502),
+    ("unexpected_xml", 502),
+])
+def test_news_failure_can_be_retried_without_caching(monkeypatch, failure_kind, status):
     docent._news_cache.clear()
-    def boom(*args, **kwargs):
-        raise httpx.ConnectError("down")
-    monkeypatch.setattr(news.httpx, "get", boom)
-    data = TestClient(app).get("/api/docent/news", params={"place_id": "kakao:2", "name": "검증"}).json()
-    assert data["ready"] is True and data["items"] == []
+    from email.utils import format_datetime
+    request = httpx.Request("GET", news.RSS_URL)
+    failures = {
+        "network": httpx.ConnectError("upstream-secret", request=request),
+        "timeout": httpx.ReadTimeout("upstream-secret", request=request),
+        "http": httpx.Response(503, text="upstream-secret", request=request),
+        "xml": httpx.Response(200, text="<rss>upstream-secret", request=request),
+        "unexpected_xml": httpx.Response(200, text="<html>upstream-secret</html>", request=request),
+    }
+    body = rss(("검증 장소 새 전시", "https://news.google.com/recovered", format_datetime(docent.datetime.now(docent.KST)), "부산일보"))
+    get = Mock(side_effect=[failures[failure_kind], httpx.Response(200, text=body, request=request)])
+    monkeypatch.setattr(news.httpx, "get", get)
+    client = TestClient(app)
+    params = {"place_id": "kakao:2", "name": "검증 장소"}
+
+    failed = client.get("/api/docent/news", params=params)
+    assert failed.status_code == status
+    assert set(failed.json()) == {"detail"}
+    assert "upstream-secret" not in failed.text
+    assert params["place_id"] not in docent._news_cache
+
+    recovered = client.get("/api/docent/news", params=params)
+    assert recovered.status_code == 200
+    assert recovered.json()["items"][0]["title"] == "검증 장소 새 전시"
+    client.get("/api/docent/news", params=params)
+    assert get.call_count == 2
+
+
+def test_news_successful_empty_result_is_cached(monkeypatch):
+    docent._news_cache.clear()
+    get = Mock(return_value=httpx.Response(200, text=rss(), request=httpx.Request("GET", news.RSS_URL)))
+    monkeypatch.setattr(news.httpx, "get", get)
+    client = TestClient(app)
+    params = {"place_id": "kakao:empty", "name": "검증 장소"}
+    response = client.get("/api/docent/news", params=params)
+    assert response.status_code == 200
+    assert response.json()["ready"] is True and response.json()["items"] == []
+    client.get("/api/docent/news", params=params)
+    assert get.call_count == 1
 
 
 def test_photos_keep_only_licensed_https_images(monkeypatch):

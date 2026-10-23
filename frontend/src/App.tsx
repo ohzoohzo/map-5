@@ -1,5 +1,5 @@
 import { Global } from '@emotion/react';
-import { MapPinned, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AppDefinition } from './shared/app';
 import { Link, usePathname } from './shared/router';
@@ -22,7 +22,7 @@ export default function App() {
       <header className="site-header">
         <div className="header-inner">
           <Link href="/" className="brand" aria-label={t('brand')}>
-            <span className="brand-mark"><MapPinned size={23} strokeWidth={1.8} /></span>
+            <img className="brand-mark" src="/brand/pinday-logo.png" alt="" width={38} height={38} />
             <span>{t('brand')}<span className="brand-dot">.</span></span>
           </Link>
           <nav className="main-nav" aria-label={t('appTitle')}>

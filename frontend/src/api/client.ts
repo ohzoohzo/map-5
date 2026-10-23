@@ -8,8 +8,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, { signal });
+/**
+ * 모든 API 호출의 단일 경로. orval 생성 함수(mutator)와 request() 가 함께 쓴다:
+ * 4xx/5xx 는 서버의 detail 문구로 ApiError 를 던져 react-query 의 isError 로 이어진다.
+ */
+export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, options);
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const detail = typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string'
@@ -17,8 +21,11 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<T>
       : `HTTP ${response.status}`;
     throw new ApiError(detail, response.status);
   }
+  if ([204, 205, 304].includes(response.status)) return null as T;
   return response.json() as Promise<T>;
 }
+
+export const request = <T>(path: string, signal?: AbortSignal) => apiFetch<T>(path, { signal });
 
 export const getConfig = (signal?: AbortSignal) => request<ConfigResponse>('/api/config', signal);
 export const getCatalog = (region: string, query: string, signal?: AbortSignal) => {

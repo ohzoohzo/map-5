@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { request, type Place } from '../../api/client';
-import { getWeatherAlternativesUrl, getWeatherForecastUrl } from '../../api/generated/weather/weather';
-import type { WeatherAlternatives, WeatherForecast, WeatherSlot } from '../../api/generated/model';
+import type { Place } from '../../api/client';
+import { weatherAlternatives, weatherForecast } from '../../api/generated/weather/weather';
+import type { WeatherSlot } from '../../api/generated/model';
 
-// 생성된 fetch 함수는 4xx/5xx 도 성공으로 돌려주므로, URL 만 쓰고 요청은 공통 request() 로 보낸다 (실패 시 ApiError)
+// 생성 함수는 4xx/5xx 에서 ApiError 를 던진다 (#26). 장소가 정해지기 전엔 요청하지 않도록 enabled 로 막는다.
 export function useForecast(place: Place | undefined, date: string | undefined) {
   return useQuery({
     queryKey: ['weather', 'forecast', place?.latitude, place?.longitude, date],
-    queryFn: ({ signal }) => request<WeatherForecast>(getWeatherForecastUrl({ latitude: place!.latitude, longitude: place!.longitude, date: date! }), signal),
+    queryFn: ({ signal }) => weatherForecast({ latitude: place!.latitude, longitude: place!.longitude, date: date! }, { signal }),
     enabled: place !== undefined && Boolean(date),
     staleTime: 10 * 60_000,
   });
@@ -16,7 +16,7 @@ export function useForecast(place: Place | undefined, date: string | undefined) 
 export function useAlternatives(place: Place | undefined) {
   return useQuery({
     queryKey: ['weather', 'alternatives', place?.id],
-    queryFn: ({ signal }) => request<WeatherAlternatives>(getWeatherAlternativesUrl({ latitude: place!.latitude, longitude: place!.longitude, name: place!.name }), signal),
+    queryFn: ({ signal }) => weatherAlternatives({ latitude: place!.latitude, longitude: place!.longitude, name: place!.name }, { signal }),
     enabled: place !== undefined,
     staleTime: Infinity,
   });

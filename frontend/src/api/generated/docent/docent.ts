@@ -28,7 +28,10 @@ import type {
   FeatureStatus
 } from '../model';
 
+import { apiFetch } from '../../client.ts';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -58,23 +61,16 @@ export const getDocentStatusUrl = () => {
 /**
  * @summary Docent Status
  */
-export const docentStatus = async ( options?: RequestInit): Promise<FeatureStatus> => {
+export const docentStatus = async ( options?: Parameters<typeof apiFetch>[1]): Promise<FeatureStatus> => {
 
-  const res = await fetch(getDocentStatusUrl(),
+  return apiFetch<FeatureStatus>(getDocentStatusUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: FeatureStatus = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -87,16 +83,16 @@ export const getDocentStatusQueryKey = () => {
     }
 
 
-export const getDocentStatusQueryOptions = <TData = Awaited<ReturnType<typeof docentStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, fetch?: RequestInit}
+export const getDocentStatusQueryOptions = <TData = Awaited<ReturnType<typeof docentStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getDocentStatusQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentStatus>>> = ({ signal }) => docentStatus({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentStatus>>> = ({ signal }) => docentStatus({ signal, ...requestOptions });
 
 
 
@@ -116,7 +112,7 @@ export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>
           TError,
           Awaited<ReturnType<typeof docentStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>, TError = ErrorResponse>(
@@ -126,11 +122,11 @@ export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>
           TError,
           Awaited<ReturnType<typeof docentStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -138,7 +134,7 @@ export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>
  */
 
 export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -172,23 +168,16 @@ export const getDocentStoryUrl = (params: DocentStoryParams,) => {
 /**
  * @summary Docent Story
  */
-export const docentStory = async (params: DocentStoryParams, options?: RequestInit): Promise<DocentStory> => {
+export const docentStory = async (params: DocentStoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentStory> => {
 
-  const res = await fetch(getDocentStoryUrl(params),
+  return apiFetch<DocentStory>(getDocentStoryUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: DocentStory = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -201,16 +190,16 @@ export const getDocentStoryQueryKey = (params?: DocentStoryParams,) => {
     }
 
 
-export const getDocentStoryQueryOptions = <TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+export const getDocentStoryQueryOptions = <TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getDocentStoryQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentStory>>> = ({ signal }) => docentStory(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentStory>>> = ({ signal }) => docentStory(params, { signal, ...requestOptions });
 
 
 
@@ -230,7 +219,7 @@ export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, 
           TError,
           Awaited<ReturnType<typeof docentStory>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
@@ -240,11 +229,11 @@ export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, 
           TError,
           Awaited<ReturnType<typeof docentStory>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
- params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -252,7 +241,7 @@ export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, 
  */
 
 export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
- params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -286,23 +275,16 @@ export const getDocentNewsUrl = (params: DocentNewsParams,) => {
 /**
  * @summary Docent News
  */
-export const docentNews = async (params: DocentNewsParams, options?: RequestInit): Promise<DocentNews> => {
+export const docentNews = async (params: DocentNewsParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentNews> => {
 
-  const res = await fetch(getDocentNewsUrl(params),
+  return apiFetch<DocentNews>(getDocentNewsUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: DocentNews = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -315,16 +297,16 @@ export const getDocentNewsQueryKey = (params?: DocentNewsParams,) => {
     }
 
 
-export const getDocentNewsQueryOptions = <TData = Awaited<ReturnType<typeof docentNews>>, TError = ErrorResponse>(params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, fetch?: RequestInit}
+export const getDocentNewsQueryOptions = <TData = Awaited<ReturnType<typeof docentNews>>, TError = ErrorResponse>(params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getDocentNewsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentNews>>> = ({ signal }) => docentNews(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentNews>>> = ({ signal }) => docentNews(params, { signal, ...requestOptions });
 
 
 
@@ -344,7 +326,7 @@ export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TE
           TError,
           Awaited<ReturnType<typeof docentNews>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TError = ErrorResponse>(
@@ -354,11 +336,11 @@ export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TE
           TError,
           Awaited<ReturnType<typeof docentNews>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TError = ErrorResponse>(
- params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -366,7 +348,7 @@ export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TE
  */
 
 export function useDocentNews<TData = Awaited<ReturnType<typeof docentNews>>, TError = ErrorResponse>(
- params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentNewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentNews>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

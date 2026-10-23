@@ -51,7 +51,9 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   expect(alternatives.alternatives.length, 'The real catalog must have indoor places near Haeundae').toBeGreaterThan(1);
   const [first, second] = alternatives.alternatives;
 
-  await expect(page.getByRole('region', { name: '비 예보' })).toContainText('15–18시 사이 · 강수확률 최대 70%');
+  await expect(page.getByRole('region', { name: '오후 비 예보' })).toContainText('15 – 18시 · 강수확률 70%');
+  await expect(page.getByRole('combobox', { name: '날짜' })).toContainText('DAY 2 · 10.25 (일)');
+  await expect(page.getByRole('combobox', { name: '확인할 장소' })).toContainText(`2. ${beach.name}`);
   const original = page.getByRole('article', { name: '원래 일정' });
   await expect(original.getByRole('heading')).toHaveText(beach.name);
   await expect(original).toContainText('야외일 수 있어요');
@@ -62,7 +64,7 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   await page.getByRole('button', { name: `${second!.place.name}을(를) 바꿀 장소로 보기` }).click();
   await expect(chosen.getByRole('heading')).toHaveText(second!.place.name);
   const preview = page.getByRole('region', { name: '교체 후 미리보기' });
-  await expect(preview.getByRole('listitem')).toHaveText([`이전 일정 (그대로)${cafe.name}`, `교체될 장소${second!.place.name}`, `이후 일정 (그대로)${night.name}`]);
+  await expect(preview.getByRole('listitem')).toHaveText([`1번째이전 일정 (그대로)${cafe.name}`, `2번째교체될 장소${second!.place.name}`, `3번째이후 일정 (그대로)${night.name}`]);
 
   await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
   await expect(page.getByRole('status').filter({ hasText: '바꿨어요' })).toContainText(`DAY 2의 ${beach.name}을(를) ${second!.place.name}(으)로 바꿨어요.`);
@@ -73,7 +75,7 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
     { placeId: night.id, memo: '', visited: false },
   ]);
   expect(saved.places[second!.place.id]?.name).toBe(second!.place.name);
-  await expect(page.getByRole('button', { name: new RegExp(second!.place.name) }).first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('combobox', { name: '확인할 장소' })).toContainText(`2. ${second!.place.name}`);
 });
 
 test('a day beyond the forecast window is shown as undecided instead of a guessed forecast', async ({ page }) => {
@@ -100,8 +102,36 @@ test('a day carried over without a date asks for travel dates instead of request
   page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/weather/forecast') forecastCalls += 1; });
   const undated: Trip = { ...trip, startDate: '', endDate: '', days: trip.days.map((day) => ({ ...day, date: '' })) };
   await openWeather(page, { status: 200, body: forecast('ok', []) }, undated);
-  await expect(page.getByRole('tab', { name: 'DAY 2 장소 3곳' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('combobox', { name: '날짜' })).toContainText('DAY 2 · 장소 3곳');
   await expect(page.getByRole('region', { name: '여행 날짜가 아직 없어요' })).toBeVisible();
   await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
   expect(forecastCalls).toBe(0);
+});
+
+test('the chosen alternative can be explained by the AI docent only when asked', async ({ page }) => {
+  const docentCalls: string[] = [];
+  await page.route('**/api/docent/**', (route) => {
+    docentCalls.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 503, json: { detail: '해설 테스트용 응답' } });
+  });
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const name = alternatives.alternatives[0]!.place.name;
+  await expect(page.getByRole('article', { name: '바꿔볼 장소' }).getByRole('heading')).toHaveText(name);
+  expect(docentCalls, 'AI 해설은 사용자가 열기 전엔 호출하지 않는다').toEqual([]);
+
+  await page.getByRole('button', { name: `${name} 해설 보기` }).click();
+  await expect(page.getByRole('region', { name: `${name} 해설` })).toBeVisible();
+  await expect.poll(() => docentCalls.length).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: '해설 닫기' }).click();
+  await expect(page.getByRole('region', { name: `${name} 해설` })).toHaveCount(0);
+});
+
+test('another stop of the day can be picked from the place selector', async ({ page }) => {
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  await page.getByRole('combobox', { name: '확인할 장소' }).click();
+  await page.getByRole('option', { name: `3. ${night.name}` }).click();
+  await expect(page).toHaveURL(/\/weather\?day=2&item=2$/);
+  await expect(page.getByRole('article', { name: '원래 일정' }).getByRole('heading')).toHaveText(night.name);
 });

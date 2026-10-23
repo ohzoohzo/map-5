@@ -128,3 +128,22 @@ def test_news_without_key_does_not_search(monkeypatch):
     data = TestClient(app).get("/api/docent/news", params={"place_id": "kakao:2", "name": "검증"}).json()
     assert data["ready"] is False and data["items"] == []
     post.assert_not_called()
+
+
+def test_photos_keep_only_licensed_https_images(monkeypatch):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    search = {"response": {"body": {"items": {"item": [
+        {"contentid": "2", "title": "검증 장소", "mapx": "129.0", "mapy": "35.1",
+         "firstimage": "https://img.example/first.jpg", "firstimage2": "https://img.example/first_s.jpg", "cpyrhtDivCd": "Type1"},
+    ]}}}}
+    images = {"response": {"body": {"items": {"item": [
+        {"originimgurl": "https://img.example/a.jpg", "smallimageurl": "https://img.example/a_s.jpg", "imgname": "A", "cpyrhtDivCd": "Type3"},
+        {"originimgurl": "https://img.example/b.jpg", "imgname": "B", "cpyrhtDivCd": ""},           # 라이선스 불명 → 제외
+        {"originimgurl": "http://img.example/c.jpg", "imgname": "C", "cpyrhtDivCd": "Type1"},       # http → 제외
+        {"originimgurl": "https://img.example/first.jpg", "imgname": "dup", "cpyrhtDivCd": "Type1"},  # 중복
+    ]}}}}
+    monkeypatch.setattr(sources.httpx, "get", lambda url, params, timeout: httpx.Response(200, json=search if url.endswith("searchKeyword2") else images))
+    data = TestClient(app).get("/api/docent/photos", params={"place_id": "p:1", "name": "검증 장소", "latitude": 35.1, "longitude": 129.0}).json()
+    assert [photo["url"] for photo in data["photos"]] == ["https://img.example/first.jpg", "https://img.example/a.jpg"]
+    assert data["photos"][1]["license"].startswith("공공누리 제3유형")

@@ -34,6 +34,18 @@ export const Picker = styled(Card)`
   .state { margin-top: 16px; font-size: 13px; color: ${color.textMuted}; }
 `;
 
+export const Slides = styled.div`
+  margin-top: 16px;
+  .slide-frame { position: relative; height: 300px; border-radius: ${radius.md}; overflow: hidden; background: ${color.navy}; }
+  .slide-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s ease; }
+  .slide-frame img.active { opacity: 1; }
+  .slide-caption { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 12px; border-radius: ${radius.pill}; background: ${color.navy}bf; color: ${color.surface}; font-size: 13px; }
+  .slide-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: ${color.surface}d9; color: ${color.navy}; }
+  .slide-nav.prev { left: 10px; } .slide-nav.next { right: 10px; }
+  .slide-meta { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: ${color.textMuted}; }
+  @media (max-width: 700px) { .slide-frame { height: 220px; } }
+`;
+
 export const Panel = styled(Card)`
   .tabs { display: flex; gap: 24px; border-bottom: 1px solid ${color.border}; }
   .tabs button { display: flex; align-items: center; gap: 6px; padding: 10px 2px; font-weight: 600; color: ${color.textMuted}; border-bottom: 2px solid transparent; }

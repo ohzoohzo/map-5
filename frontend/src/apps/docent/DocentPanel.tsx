@@ -6,6 +6,7 @@ import { ApiError, request, type Place } from '../../api/client';
 import { getDocentNewsUrl, getDocentStoryUrl } from '../../api/generated/docent/docent';
 import type { DocentNews, DocentStory } from '../../api/generated/model';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
+import PhotoSlideshow from './PhotoSlideshow';
 import { Panel } from './styles';
 
 type Tab = 'story' | 'news';
@@ -65,6 +66,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="address">{[place.category, place.address].filter(Boolean).join(' · ')}</p>
+          <PhotoSlideshow place={place} caption={story.isLoading ? t('storyLoadingCaption', { name: place.name }) : undefined} />
 
           {story.isLoading && <p className="loading"><Sparkles size={14} /> {t('storyLoading')}</p>}
           {story.isError && (
@@ -129,6 +131,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="news">{t('newsNotice')}</p>
+          <PhotoSlideshow place={place} caption={news.isLoading ? t('newsLoadingCaption', { name: place.name }) : undefined} />
           {news.isLoading && <p className="loading"><Sparkles size={14} /> {t('newsLoading')}</p>}
           {news.isError && (
             <div className="error">

@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, Query
 from ...models import ErrorResponse, FeatureStatus
 from ...services.catalog import read_catalog
 from ...settings import Settings, env, get_settings
-from .models import DocentNews, DocentNewsItem, DocentReference, DocentSection, DocentStory
+from .models import DocentNews, DocentNewsItem, DocentPhoto, DocentPhotos, DocentReference, DocentSection, DocentStory
 from .news import search_news
-from .sources import Evidence, clean, nearby_heritage, tour_overview
+from .sources import TOUR_SOURCE_URL, Evidence, clean, nearby_heritage, tour_overview, tour_photos
 from .writer import model_name, write_story
 
 router = APIRouter(prefix="/api/docent", tags=["docent"])
@@ -19,6 +19,7 @@ KST = timezone(timedelta(hours=9))
 _cache: dict[str, DocentStory] = {}  # 같은 장소 반복 과금 방지 (서버 재시작 시 초기화)
 _news_cache: dict[str, tuple[datetime, DocentNews]] = {}
 NEWS_TTL = timedelta(hours=6)
+_photo_cache: dict[str, DocentPhotos] = {}
 
 
 @router.get("/status", response_model=FeatureStatus, operation_id="docent_status")
@@ -115,3 +116,22 @@ def docent_news(
     if items:  # 못 찾은 결과는 캐시하지 않아 다시 시도할 수 있게
         _news_cache[place_id] = (now, news)
     return news
+
+
+@router.get("/photos", response_model=DocentPhotos, operation_id="docent_photos")
+def docent_photos(
+    place_id: Annotated[str, Query(min_length=1, max_length=120)],
+    name: Annotated[str, Query(min_length=1, max_length=100)],
+    latitude: Annotated[float, Query(ge=33.0, le=39.0)],
+    longitude: Annotated[float, Query(ge=124.0, le=132.0)],
+) -> DocentPhotos:
+    """한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록."""
+    if place_id in _photo_cache:
+        return _photo_cache[place_id]
+    result = DocentPhotos(
+        place_id=place_id, photos=[DocentPhoto(**photo) for photo in tour_photos(name, latitude, longitude)],
+        source="한국관광공사 TourAPI", source_url=TOUR_SOURCE_URL,
+    )
+    if result.photos:
+        _photo_cache[place_id] = result
+    return result

@@ -23,4 +23,6 @@
 - 2026-10-23 최근 소식 API `GET /api/docent/news` (routers/docent/news.py): OpenAI web_search + JSON 스키마.
   검증: 실제 검색 출처 목록(`web_search_call.action.sources`)에 있는 URL만, 발행일 YYYY-MM-DD 이고 6개월 이내만 남김.
   결과 있으면 6시간 캐시, 0건이면 캐시 안 함. 응답 20~40초라 탭을 열 때만 조회.
+- 2026-10-23 사진 `GET /api/docent/photos`: TourAPI 대표 이미지 + detailImage2, 공공누리 유형 확인된 https 사진만 (최대 8장, 약 0.5초).
+  `PhotoSlideshow` 를 두 탭에 표시, 해설·소식 로딩 중엔 "둘러보기" 캡션. 제3유형(변경금지)이라 object-fit: contain + 출처 표기.
 - 다음 후보: 주변 추천 장소·미니 지도(시안 왼쪽), 해설 결과 영구 캐시(재시작 시 재과금 방지).

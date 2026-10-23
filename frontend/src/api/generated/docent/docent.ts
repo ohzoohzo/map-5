@@ -385,23 +385,16 @@ export const getDocentPhotosUrl = (params: DocentPhotosParams,) => {
  * 한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록.
  * @summary Docent Photos
  */
-export const docentPhotos = async (params: DocentPhotosParams, options?: RequestInit): Promise<DocentPhotos> => {
+export const docentPhotos = async (params: DocentPhotosParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentPhotos> => {
 
-  const res = await fetch(getDocentPhotosUrl(params),
+  return apiFetch<DocentPhotos>(getDocentPhotosUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: DocentPhotos = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -414,16 +407,16 @@ export const getDocentPhotosQueryKey = (params?: DocentPhotosParams,) => {
     }
 
 
-export const getDocentPhotosQueryOptions = <TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, fetch?: RequestInit}
+export const getDocentPhotosQueryOptions = <TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getDocentPhotosQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentPhotos>>> = ({ signal }) => docentPhotos(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentPhotos>>> = ({ signal }) => docentPhotos(params, { signal, ...requestOptions });
 
 
 
@@ -443,7 +436,7 @@ export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>
           TError,
           Awaited<ReturnType<typeof docentPhotos>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
@@ -453,11 +446,11 @@ export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>
           TError,
           Awaited<ReturnType<typeof docentPhotos>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
- params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -465,7 +458,7 @@ export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>
  */
 
 export function useDocentPhotos<TData = Awaited<ReturnType<typeof docentPhotos>>, TError = ErrorResponse>(
- params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, fetch?: RequestInit}
+ params: DocentPhotosParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentPhotos>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

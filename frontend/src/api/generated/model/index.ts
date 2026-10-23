@@ -33,4 +33,8 @@ export * from './weatherAlternativesParams.ts';
 export * from './weatherForecast.ts';
 export * from './weatherForecastParams.ts';
 export * from './weatherForecastStatus.ts';
+export * from './weatherPhoto.ts';
+export * from './weatherPhotoMatch.ts';
+export * from './weatherPhotoParams.ts';
+export * from './weatherPhotoResponse.ts';
 export * from './weatherSlot.ts';

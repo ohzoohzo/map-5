@@ -6,6 +6,7 @@ import { ApiError, request, type Place } from '../../api/client';
 import { getDocentNewsUrl, getDocentStoryUrl } from '../../api/generated/docent/docent';
 import type { DocentNews, DocentStory } from '../../api/generated/model';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
+import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import PhotoSlideshow from './PhotoSlideshow';
 import { Panel } from './styles';
 
@@ -62,7 +63,10 @@ export default function DocentPanel({ place }: { place: Place | null }) {
       </div>
 
       {!place ? (
-        <p className="empty">{t('noSelection')}</p>
+        <div className="empty">
+          <EmptyStateArt kind="docent" size={160} />
+          <p>{t('noSelection')}</p>
+        </div>
       ) : tab === 'story' ? (
         <div role="tabpanel">
           <span className="label">{t('nowViewing')}</span>

@@ -97,5 +97,5 @@ export const Panel = styled(Card)`
   .button:disabled { opacity: 0.6; }
   .news { margin-top: 20px; padding: 18px; border-radius: ${radius.md}; background: ${color.bg}; color: ${color.textSub}; font-size: 14px; line-height: 1.7; }
   .status { margin-top: 10px; font-size: 12px; color: ${color.textMuted}; }
-  .empty { padding: 40px 10px; text-align: center; color: ${color.textMuted}; }
+  .empty { display: grid; justify-items: center; gap: 12px; padding: 24px 10px; text-align: center; color: ${color.textMuted}; }
 `;

@@ -28,7 +28,10 @@ import type {
   WeatherForecastParams
 } from '../model';
 
+import { apiFetch } from '../../client.ts';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -58,23 +61,16 @@ export const getWeatherStatusUrl = () => {
 /**
  * @summary Weather Status
  */
-export const weatherStatus = async ( options?: RequestInit): Promise<FeatureStatus> => {
+export const weatherStatus = async ( options?: Parameters<typeof apiFetch>[1]): Promise<FeatureStatus> => {
 
-  const res = await fetch(getWeatherStatusUrl(),
+  return apiFetch<FeatureStatus>(getWeatherStatusUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: FeatureStatus = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -87,16 +83,16 @@ export const getWeatherStatusQueryKey = () => {
     }
 
 
-export const getWeatherStatusQueryOptions = <TData = Awaited<ReturnType<typeof weatherStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, fetch?: RequestInit}
+export const getWeatherStatusQueryOptions = <TData = Awaited<ReturnType<typeof weatherStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getWeatherStatusQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherStatus>>> = ({ signal }) => weatherStatus({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherStatus>>> = ({ signal }) => weatherStatus({ signal, ...requestOptions });
 
 
 
@@ -116,7 +112,7 @@ export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus
           TError,
           Awaited<ReturnType<typeof weatherStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus>>, TError = ErrorResponse>(
@@ -126,11 +122,11 @@ export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus
           TError,
           Awaited<ReturnType<typeof weatherStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -138,7 +134,7 @@ export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus
  */
 
 export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -173,23 +169,16 @@ export const getWeatherForecastUrl = (params: WeatherForecastParams,) => {
  * 장소 좌표의 그 날짜(한국 시간) 3시간 단위 예보. 5일 범위 밖이면 status=out_of_range.
  * @summary Weather Forecast
  */
-export const weatherForecast = async (params: WeatherForecastParams, options?: RequestInit): Promise<WeatherForecast> => {
+export const weatherForecast = async (params: WeatherForecastParams, options?: Parameters<typeof apiFetch>[1]): Promise<WeatherForecast> => {
 
-  const res = await fetch(getWeatherForecastUrl(params),
+  return apiFetch<WeatherForecast>(getWeatherForecastUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: WeatherForecast = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -202,16 +191,16 @@ export const getWeatherForecastQueryKey = (params?: WeatherForecastParams,) => {
     }
 
 
-export const getWeatherForecastQueryOptions = <TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+export const getWeatherForecastQueryOptions = <TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getWeatherForecastQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherForecast>>> = ({ signal }) => weatherForecast(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherForecast>>> = ({ signal }) => weatherForecast(params, { signal, ...requestOptions });
 
 
 
@@ -231,7 +220,7 @@ export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherFore
           TError,
           Awaited<ReturnType<typeof weatherForecast>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
@@ -241,11 +230,11 @@ export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherFore
           TError,
           Awaited<ReturnType<typeof weatherForecast>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
- params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+ params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -253,7 +242,7 @@ export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherFore
  */
 
 export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
- params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+ params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -288,23 +277,16 @@ export const getWeatherAlternativesUrl = (params: WeatherAlternativesParams,) =>
  * 원래 장소 근처(직선 30km)에서 이름으로 실내로 보이는 관광지를 가까운 순으로.
  * @summary Weather Alternatives
  */
-export const weatherAlternatives = async (params: WeatherAlternativesParams, options?: RequestInit): Promise<WeatherAlternatives> => {
+export const weatherAlternatives = async (params: WeatherAlternativesParams, options?: Parameters<typeof apiFetch>[1]): Promise<WeatherAlternatives> => {
 
-  const res = await fetch(getWeatherAlternativesUrl(params),
+  return apiFetch<WeatherAlternatives>(getWeatherAlternativesUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: WeatherAlternatives = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -317,16 +299,16 @@ export const getWeatherAlternativesQueryKey = (params?: WeatherAlternativesParam
     }
 
 
-export const getWeatherAlternativesQueryOptions = <TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+export const getWeatherAlternativesQueryOptions = <TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getWeatherAlternativesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherAlternatives>>> = ({ signal }) => weatherAlternatives(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherAlternatives>>> = ({ signal }) => weatherAlternatives(params, { signal, ...requestOptions });
 
 
 
@@ -346,7 +328,7 @@ export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weather
           TError,
           Awaited<ReturnType<typeof weatherAlternatives>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
@@ -356,11 +338,11 @@ export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weather
           TError,
           Awaited<ReturnType<typeof weatherAlternatives>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
- params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+ params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -368,7 +350,7 @@ export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weather
  */
 
 export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
- params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+ params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

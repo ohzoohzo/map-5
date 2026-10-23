@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { Button, Typography } from '@montage-ui/core';
 import { MapPin, RefreshCw } from 'lucide-react';
 import type { Place } from '../../api/client';
+import type { TransportRoute, TransportStep } from '../../api/generated/model';
+import { color } from '../../shared/design/tokens';
 
 const foreground = (name: string) => `var(--semantic-foreground-${name})`;
 const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
 const brand = 'var(--semantic-foreground-brand-primary)';
+const STEP_COLORS: Record<TransportStep['mode'], string> = { walk: color.textMuted, bus: color.primary, subway: color.teal };
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
@@ -78,6 +81,7 @@ const MapFrame = styled.div`
     bottom: 12px;
     left: 12px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 10px;
     padding: 10px 12px;
@@ -93,10 +97,13 @@ const MapFrame = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .map-legend .line {
     width: 24px;
+    flex: 0 0 24px;
     border-top: 3px dashed ${brand};
   }
 `;
@@ -172,6 +179,7 @@ interface Props {
   keyError: boolean;
   departure: Place;
   arrival: Place;
+  route?: TransportRoute;
   labels: {
     mapLabel: string;
     loading: string;
@@ -182,7 +190,10 @@ interface Props {
     retry: string;
     departure: string;
     arrival: string;
-    examplePath: string;
+    walkLine: string;
+    busLine: string;
+    subwayLine: string;
+    markersOnly: string;
   };
   onRetryKey: () => void;
 }
@@ -195,6 +206,7 @@ export default function RouteMap({
   keyError,
   departure,
   arrival,
+  route,
   labels,
   onRetryKey,
 }: Props) {
@@ -237,7 +249,7 @@ export default function RouteMap({
     };
   }, [apiKey, attempt, departure.latitude, departure.longitude, keyError, loadingKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (status !== 'ready' || !map.current || !sdk.current) return;
     const loadedSdk = sdk.current;
     const origin = new loadedSdk.LatLng(departure.latitude, departure.longitude);
@@ -245,28 +257,31 @@ export default function RouteMap({
     const bounds = new loadedSdk.LatLngBounds();
     bounds.extend(origin);
     bounds.extend(destination);
+    const paths = route?.steps.map((step) => ({
+      mode: step.mode,
+      points: step.path.map((point) => new loadedSdk.LatLng(point.latitude, point.longitude)),
+    })) ?? [];
+    paths.forEach((path) => path.points.forEach((point) => bounds.extend(point)));
     map.current.setBounds(bounds, 64, 48, 64, 48);
 
     const markers = [
       new loadedSdk.Marker({ position: origin, map: map.current, title: departure.name }),
       new loadedSdk.Marker({ position: destination, map: map.current, title: arrival.name }),
     ];
-    const line = new loadedSdk.Polyline({
-      map: map.current,
-      path: [origin, destination],
+    const lines = paths.filter((path) => path.points.length >= 2).map((path) => new loadedSdk.Polyline({
+      map: map.current!,
+      path: path.points,
       strokeWeight: 4,
-      strokeColor: getComputedStyle(document.documentElement)
-        .getPropertyValue('--semantic-foreground-brand-primary')
-        .trim(),
+      strokeColor: STEP_COLORS[path.mode],
       strokeOpacity: 0.9,
-      strokeStyle: 'shortdash',
-    });
+      strokeStyle: path.mode === 'walk' ? 'shortdash' : 'solid',
+    }));
 
     return () => {
       markers.forEach((marker) => marker.setMap(null));
-      line.setMap(null);
+      lines.forEach((line) => line.setMap(null));
     };
-  }, [arrival.latitude, arrival.longitude, arrival.name, departure.latitude, departure.longitude, departure.name, status]);
+  }, [arrival.latitude, arrival.longitude, arrival.name, departure.latitude, departure.longitude, departure.name, route, status]);
 
   useEffect(() => {
     if (!container.current || status !== 'ready') return;
@@ -321,9 +336,12 @@ export default function RouteMap({
           <Typography className="map-legend-item" variant="caption1">
             <MapPin size={15} aria-hidden="true" />{departure.name} → {arrival.name}
           </Typography>
-          <Typography className="map-legend-item" variant="caption1">
-            <i className="line" />{labels.examplePath}
-          </Typography>
+          {route ? (['walk', 'bus', 'subway'] as const).filter((mode) => route.steps.some((step) => step.mode === mode && step.path.length >= 2)).map((mode) => (
+            <Typography key={mode} className="map-legend-item" variant="caption1">
+              <i className="line" style={{ borderTopColor: STEP_COLORS[mode], borderTopStyle: mode === 'walk' ? 'dashed' : 'solid' }} />
+              {labels[`${mode}Line`]}
+            </Typography>
+          )) : <Typography variant="caption1">{labels.markersOnly}</Typography>}
         </div>
       )}
     </MapFrame>

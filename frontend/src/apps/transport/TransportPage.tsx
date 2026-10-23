@@ -2,9 +2,11 @@ import { useState } from 'react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from '@montage-ui/core';
-import { ArrowRight, Bus, CalendarDays, Car, ExternalLink, Footprints, MapPin, Route } from 'lucide-react';
+import { ArrowRight, Bus, CalendarDays, Car, ExternalLink, Footprints, MapPin, Route, TrainFront } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getConfig, type Place } from '../../api/client';
+import { transportRoutes } from '../../api/generated/transport/transport';
+import type { TransportRoute, TransportRoutesParams } from '../../api/generated/model';
 import { useTrip } from '../../shared/trip/tripStore';
 import RouteMap from './RouteMap';
 
@@ -238,21 +240,50 @@ const MapNote = styled.p`
   line-height: 1.6;
 `;
 
+const Guidance = styled.section`
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  min-width: 0;
+
+  .route-options { display: grid; grid-auto-rows: max-content; gap: 8px; max-height: 240px; overflow-y: auto; padding: 2px 6px 2px 2px; }
+  .route-option { text-align: left; white-space: normal; }
+  .route-option > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .route-option-copy { display: grid; gap: 3px; }
+  .route-metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .route-duration { color: ${brand}; }
+  .route-steps { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
+  .route-steps li { padding-left: 4px; min-width: 0; overflow-wrap: anywhere; }
+  .step-mode { display: inline-flex; align-items: center; gap: 5px; color: ${foreground('neutral-secondary')}; }
+  .step-instruction { display: block; margin: 4px 0; }
+  .route-source { color: ${foreground('neutral-tertiary')}; }
+`;
+
 interface ScheduledPlace {
   place?: Place;
 }
 
 type TravelMode = 'transit' | 'car' | 'walk';
 
-function kakaoDirectionsUrl(departure: Place, arrival: Place) {
+function kakaoDirectionsUrl(departure: Place, arrival: Place, mode: TravelMode) {
   const from = `${encodeURIComponent(departure.name)},${departure.latitude},${departure.longitude}`;
   const to = `${encodeURIComponent(arrival.name)},${arrival.latitude},${arrival.longitude}`;
-  return `https://map.kakao.com/link/from/${from}/to/${to}`;
+  return `https://map.kakao.com/link/by/${mode === 'transit' ? 'traffic' : mode}/${from}/${to}`;
 }
 
+function formatDistance(meters: number) {
+  return meters >= 1000
+    ? `${new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 }).format(meters / 1000)} km`
+    : `${new Intl.NumberFormat('ko-KR').format(Math.round(meters))} m`;
+}
+
+const STEP_ICONS = { walk: Footprints, bus: Bus, subway: TrainFront };
+
 function formatDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const [year, month, day] = date.split('-').map(Number);
   const value = new Date(year!, month! - 1, day!);
+  if (!Number.isFinite(value.getTime())) return null;
   const weekday = new Intl.DateTimeFormat('ko-KR', { weekday: 'short' }).format(value);
   return `${month}.${day} (${weekday})`;
 }
@@ -279,6 +310,30 @@ export default function TransportPage() {
     : null;
   const departure = selectedSegment?.[0]?.place;
   const arrival = selectedSegment?.[1]?.place;
+  const routeMode = travelMode === 'car' ? null : travelMode;
+  const routeParams: TransportRoutesParams | null = departure && arrival && routeMode ? {
+    mode: routeMode,
+    start_latitude: departure.latitude,
+    start_longitude: departure.longitude,
+    end_latitude: arrival.latitude,
+    end_longitude: arrival.longitude,
+  } : null;
+  const routes = useQuery({
+    queryKey: ['transport', 'routes', routeParams],
+    enabled: routeParams !== null,
+    staleTime: 5 * 60_000,
+    retry: false,
+    queryFn: ({ signal }) => {
+      if (routeParams === null) throw new Error('Select a walking or transit segment first');
+      return transportRoutes(routeParams, { signal });
+    },
+  });
+  const routeSelectionKey = JSON.stringify([selectedDay?.date, selectedSegmentIndex, travelMode, routeParams]);
+  const [routeChoice, setRouteChoice] = useState<{ key: string; index: number } | null>(null);
+  const alternatives = travelMode !== 'car' && routes.isSuccess && routes.data.status === 'ok' ? routes.data.routes : [];
+  const requestedRouteIndex = routeChoice?.key === routeSelectionKey ? routeChoice.index : 0;
+  const routeIndex = requestedRouteIndex >= 0 && requestedRouteIndex < alternatives.length ? requestedRouteIndex : 0;
+  const activeRoute = alternatives[routeIndex];
 
   return (
     <Page>
@@ -302,10 +357,11 @@ export default function TransportPage() {
               onClick={() => {
                 setSelectedDayIndex(index);
                 setSelectedSegmentIndex(0);
+                setRouteChoice(null);
               }}
               leadingContent={<CalendarDays size={16} aria-hidden="true" />}
             >
-              DAY {index + 1} · {formatDate(day.date)}
+              DAY {index + 1} · {formatDate(day.date) ?? t('dateUnknown')}
             </Button>
           ))}
         </DayTabs>
@@ -338,7 +394,7 @@ export default function TransportPage() {
                         variant="outlined"
                         color={index === selectedSegmentIndex ? 'primary' : 'assistive'}
                         aria-pressed={index === selectedSegmentIndex}
-                        onClick={() => setSelectedSegmentIndex(index)}
+                        onClick={() => { setSelectedSegmentIndex(index); setRouteChoice(null); }}
                         trailingContent={<ArrowRight size={17} aria-hidden="true" />}
                       >
                         <span className="segment-label">
@@ -408,7 +464,7 @@ export default function TransportPage() {
                     variant={travelMode === mode ? 'solid' : 'outlined'}
                     color={travelMode === mode ? 'primary' : 'assistive'}
                     aria-pressed={travelMode === mode}
-                    onClick={() => setTravelMode(mode)}
+                    onClick={() => { setTravelMode(mode); setRouteChoice(null); }}
                     leadingContent={<Icon size={18} aria-hidden="true" />}
                   >
                     {t(`mode.${mode}`)}
@@ -416,8 +472,33 @@ export default function TransportPage() {
                 ))}
               </ModeTabs>
               <MapNote>{t(`modeNote.${travelMode}`)}</MapNote>
+              {travelMode !== 'car' && (
+                <Guidance aria-label={t('guidanceLabel')}>
+                  {routes.isPending ? <MapNote role="status">{t('routesLoading')}</MapNote>
+                    : routes.isError ? <div role="alert">
+                      <Typography as="p" variant="body2">{t('routesError')}</Typography>
+                      <Button size="small" variant="outlined" color="primary" onClick={() => { void routes.refetch(); }}>{t('retryRoutes')}</Button>
+                    </div>
+                      : !activeRoute ? <MapNote role="status">{t('noRoutes')}</MapNote>
+                        : <>
+                          {alternatives.length > 1 && <div className="route-options" role="group" aria-label={t('routeOptions')}>
+                            {alternatives.map((option, index) => <Button key={index} className="route-option" fullWidth size="small"
+                              variant={index === routeIndex ? 'solid' : 'outlined'} color={index === routeIndex ? 'primary' : 'assistive'}
+                              aria-pressed={index === routeIndex} onClick={() => setRouteChoice({ key: routeSelectionKey, index })}>
+                              <span className="route-option-copy">
+                                <span>{t('routeOption', { number: index + 1, minutes: Math.ceil(option.duration_seconds / 60), distance: formatDistance(option.distance_m) })}</span>
+                                <Typography variant="caption1">{t(`routeType.${option.type}`)}</Typography>
+                              </span>
+                            </Button>)}
+                          </div>}
+                          <RouteGuidance route={activeRoute} />
+                          <Typography as="p" variant="caption1" className="route-source">{t('routeSource', { source: routes.data?.source })}</Typography>
+                          <Typography as="p" variant="caption1" color="semantic.foreground.neutral.secondary">{t('routeCaveat')}</Typography>
+                        </>}
+                </Guidance>
+              )}
               <Button
-                href={kakaoDirectionsUrl(departure, arrival)}
+                href={kakaoDirectionsUrl(departure, arrival, travelMode)}
                 as="a"
                 className="directions-button"
                 target="_blank"
@@ -439,11 +520,13 @@ export default function TransportPage() {
           {selectedSegment && departure && arrival ? (
             <>
               <RouteMap
+                key={routeSelectionKey}
                 apiKey={config.data?.js_key}
                 loadingKey={config.isLoading}
                 keyError={config.isError}
                 departure={departure}
                 arrival={arrival}
+                route={activeRoute}
                 labels={{
                   mapLabel: t('mapTitle'),
                   loading: t('mapLoading'),
@@ -454,7 +537,10 @@ export default function TransportPage() {
                   retry: t('retry'),
                   departure: t('departure'),
                   arrival: t('arrival'),
-                  examplePath: t('examplePath'),
+                  walkLine: t('walkLine'),
+                  busLine: t('busLine'),
+                  subwayLine: t('subwayLine'),
+                  markersOnly: t('markersOnly'),
                 }}
                 onRetryKey={() => { void config.refetch(); }}
               />
@@ -469,4 +555,26 @@ export default function TransportPage() {
       </Content>
     </Page>
   );
+}
+
+function RouteGuidance({ route }: { route: TransportRoute }) {
+  const { t } = useTranslation('transport');
+  return <>
+    <div className="route-metrics">
+      <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
+      <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
+      {route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
+      {route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
+    </div>
+    <ol className="route-steps" aria-label={t('stepsLabel')}>
+      {route.steps.map((step, index) => {
+        const Icon = STEP_ICONS[step.mode];
+        return <li key={index}>
+          <Typography className="step-mode" variant="caption1"><Icon size={15} aria-hidden="true" />{t(`stepMode.${step.mode}`)}</Typography>
+          <Typography className="step-instruction" variant="body2" weight="bold">{step.instruction}</Typography>
+          <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{t('stepMetrics', { minutes: Math.ceil(step.duration_seconds / 60), distance: formatDistance(step.distance_m) })}</Typography>
+        </li>;
+      })}
+    </ol>
+  </>;
 }

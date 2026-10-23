@@ -11,4 +11,5 @@ export type TransportRoutesMode = typeof TransportRoutesMode[keyof typeof Transp
 export const TransportRoutesMode = {
   transit: 'transit',
   walk: 'walk',
+  car: 'car',
 } as const;

@@ -22,5 +22,5 @@ def transport_routes(
     end_latitude: Annotated[float, Query(ge=33.0, le=39.0, allow_inf_nan=False)],
     end_longitude: Annotated[float, Query(ge=124.0, le=132.0, allow_inf_nan=False)],
 ) -> TransportRoutesResponse:
-    """카카오맵의 도보·대중교통 경로를 공급자 순서와 실제 경로 좌표 그대로 반환한다."""
+    """카카오맵 도보·대중교통 및 카카오모빌리티 자동차 경로의 실제 경로 좌표를 반환한다."""
     return get_routes(mode, start_latitude, start_longitude, end_latitude, end_longitude, settings)

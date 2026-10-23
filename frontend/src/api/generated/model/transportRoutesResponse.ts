@@ -6,12 +6,13 @@
  */
 import type { TransportRoute } from './transportRoute.ts';
 import type { TransportRoutesResponseMode } from './transportRoutesResponseMode.ts';
+import type { TransportRoutesResponseSource } from './transportRoutesResponseSource.ts';
 import type { TransportRoutesResponseStatus } from './transportRoutesResponseStatus.ts';
 
 export interface TransportRoutesResponse {
   mode: TransportRoutesResponseMode;
   status: TransportRoutesResponseStatus;
   routes: TransportRoute[];
-  source: '카카오맵';
+  source: TransportRoutesResponseSource;
   source_url: string;
 }

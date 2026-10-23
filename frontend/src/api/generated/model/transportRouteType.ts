@@ -13,4 +13,5 @@ export const TransportRouteType = {
   bus: 'bus',
   subway: 'subway',
   mixed: 'mixed',
+  car: 'car',
 } as const;

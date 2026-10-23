@@ -63,7 +63,7 @@ export const getTransportRoutesUrl = (params: TransportRoutesParams,) => {
 }
 
 /**
- * 카카오맵의 도보·대중교통 경로를 공급자 순서와 실제 경로 좌표 그대로 반환한다.
+ * 카카오맵 도보·대중교통 및 카카오모빌리티 자동차 경로의 실제 경로 좌표를 반환한다.
  * @summary Transport Routes
  */
 export const transportRoutes = async (params: TransportRoutesParams, options?: Parameters<typeof apiFetch>[1]): Promise<TransportRoutesResponse> => {

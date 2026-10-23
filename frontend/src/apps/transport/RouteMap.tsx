@@ -11,7 +11,7 @@ const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
 const brand = 'var(--semantic-foreground-brand-primary)';
-const STEP_COLORS: Record<TransportStep['mode'], string> = { walk: color.textMuted, bus: color.primary, subway: color.teal };
+const STEP_COLORS: Record<TransportStep['mode'], string> = { walk: color.textMuted, bus: color.primary, subway: color.teal, car: color.navyDeep };
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
@@ -214,6 +214,7 @@ interface Props {
     walkLine: string;
     busLine: string;
     subwayLine: string;
+    carLine: string;
     markersOnly: string;
   };
   onRetryKey: () => void;
@@ -359,7 +360,7 @@ export default function RouteMap({
           <Typography className="map-legend-item" variant="caption1">
             <MapPin size={15} aria-hidden="true" />{departure.name} → {arrival.name}
           </Typography>
-          {route ? (['walk', 'bus', 'subway'] as const).filter((mode) => route.steps.some((step) => step.mode === mode && step.path.length >= 2)).map((mode) => (
+          {route ? (['walk', 'bus', 'subway', 'car'] as const).filter((mode) => route.steps.some((step) => step.mode === mode && step.path.length >= 2)).map((mode) => (
             <Typography key={mode} className="map-legend-item" variant="caption1">
               <i className="line" style={{ borderTopColor: STEP_COLORS[mode], borderTopStyle: mode === 'walk' ? 'dashed' : 'solid' }} />
               {labels[`${mode}Line`]}

@@ -31,7 +31,6 @@ function loadedPhotoSources(client: QueryClient): PhotoSource[] {
 const providers = [
   { key: 'catalog', url: 'https://www.data.go.kr/data/15021141/standard.do' },
   { key: 'tour', url: 'https://www.data.go.kr/data/15101578/openapi.do' },
-  { key: 'gallery', url: 'https://www.data.go.kr/data/15101914/openapi.do' },
   { key: 'map', url: 'https://apis.map.kakao.com/web/' },
   { key: 'local', url: 'https://developers.kakao.com/docs/latest/ko/local/dev-guide#search-by-keyword' },
   { key: 'weather', url: 'https://openweathermap.org/api/forecast5' },

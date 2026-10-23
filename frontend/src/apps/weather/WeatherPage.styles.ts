@@ -67,13 +67,11 @@ export const WeatherSection = styled.div`
   .w-photo-state { display: grid; justify-items: center; gap: 8px; padding: 8px; font-size: 12px; line-height: 1.4; text-align: center; }
   .w-visual.small .w-photo-state { gap: 4px; padding: 4px; font-size: 10px; }
   .w-visual.small .w-photo-state svg { width: 20px; height: 20px; }
-  .w-visual.photo { margin: 0; overflow: hidden; background: ${canvas}; grid-template-rows: minmax(0, 1fr) auto; justify-items: stretch; }
+  .w-visual.photo { margin: 0; overflow: hidden; background: ${canvas}; grid-template-rows: minmax(0, 1fr); justify-items: stretch; }
   .w-photo-frame { position: relative; align-self: stretch; min-height: 160px; width: 100%; }
   .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-  .w-visual.photo figcaption { padding: 6px 8px; color: ${fg('neutral-secondary')}; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
   .w-visual.photo.small { height: auto; }
   .w-visual.photo.small .w-photo-frame { min-height: 64px; }
-  .w-visual.photo.small figcaption { padding: 4px; font-size: 10px; }
   .w-visual.neutral { background: linear-gradient(150deg, #c9d3df 0%, #8a97a8 100%); }
 
   .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 16px; text-align: center; word-break: keep-all; font-size: 14px; font-weight: 700; color: ${fg('neutral-strong')}; transition: background .15s; }

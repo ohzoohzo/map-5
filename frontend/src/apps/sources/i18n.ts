@@ -8,8 +8,6 @@ export default {
     catalogDescription: '관광지 위치·주소와 공공 여행지 정보',
     tourName: '한국관광공사 TourAPI',
     tourDescription: '관광 정보와 장소 사진',
-    galleryName: '한국관광공사 관광사진 갤러리',
-    galleryDescription: '날씨 대안 화면의 관광 사진',
     mapName: 'Kakao Maps',
     mapDescription: '지도 표시와 장소 마커',
     localName: 'Kakao Local API',

@@ -79,8 +79,8 @@ async function expectPhoto(scope: Locator, target: Place) {
   await expect(image).toHaveAttribute('src', photoUrl(target.id));
   await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
   await expect(image).toHaveCSS('object-fit', 'contain');
-  await expect(scope).toContainText(`사진: ${PHOTO_SOURCE} · ${PHOTO_LICENSE}`);
-  await expect(scope.locator('figcaption')).toHaveAttribute('title', `사진: ${PHOTO_SOURCE} · ${PHOTO_LICENSE} · ${photoSourceUrl(target.id)}`);
+  await expect(scope.locator('figcaption')).toHaveCount(0);
+  await expect(scope.getByText(PHOTO_LICENSE, { exact: true })).toHaveCount(0);
   return image;
 }
 
@@ -216,7 +216,7 @@ test('날씨 비교·대안·미리보기는 같은 TourAPI 사진 계약과 출
   expect(loaded.legacyRequests, '날씨 페이지도 공용 TourAPI 사진을 사용해야 한다').toEqual([]);
 });
 
-test('390px에서도 TourAPI 사진 비율·출처·이용조건과 교체 미리보기가 화면 안에 남는다', async ({ page }) => {
+test('390px 날씨 사진은 비율을 유지하고 이용조건은 푸터 출처 페이지에서 확인한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
   const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
@@ -225,9 +225,15 @@ test('390px에서도 TourAPI 사진 비율·출처·이용조건과 교체 미�
   await expectPhoto(page.getByRole('article', { name: '바꿔볼 장소' }), first);
   const stop = page.getByRole('region', { name: '교체 후 미리보기' }).getByRole('listitem').filter({ has: page.locator('.w-stop-copy strong', { hasText: first.name }) });
   await expectPhoto(stop, first);
-  const credit = stop.locator('figcaption');
-  await expect(credit).toBeVisible();
-  expect(await credit.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await noHorizontalOverflow(page);
+  const before = await page.evaluate(() => localStorage.getItem('pinday.trip.v1'));
+  await page.getByRole('contentinfo').getByRole('link', { name: '데이터·사진 출처', exact: true }).click();
+  await expect(page).toHaveURL(/\/sources$/);
+  await expect(page.getByText(PHOTO_LICENSE, { exact: true }).first()).toBeVisible();
+  await expect(page.locator(`a[href="${photoUrl(first.id)}"]`)).toBeVisible();
+  await expect(page.locator(`a[href="${photoSourceUrl(first.id)}"]`)).toHaveAttribute('target', '_blank');
+  expect(await page.evaluate(() => localStorage.getItem('pinday.trip.v1'))).toBe(before);
+  expect(loaded.requests.get(first.id)).toHaveLength(1);
   await noHorizontalOverflow(page);
 });
 

@@ -225,7 +225,7 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
   );
 }
 
-/** 장소 카드·도슨트와 동일한 TourAPI 사진과 출처·이용조건을 표시한다. */
+/** 공통 TourAPI 사진을 표시하고 사진별 이용조건은 푸터 출처 페이지로 연결한다. */
 type VisualKind = 'indoor' | 'outdoor' | 'neutral';
 const VISUAL_ICON = { indoor: Landmark, outdoor: Trees, neutral: MapPin };
 function PlaceVisual({ place, kind, large = false, small = false }: { place: Place; kind: VisualKind; large?: boolean; small?: boolean }) {
@@ -239,11 +239,9 @@ function PlaceVisual({ place, kind, large = false, small = false }: { place: Pla
     const state = photo && broken === photo.url ? 'photoBroken' : photos.isError ? 'photoError' : photos.isSuccess ? 'photoEmpty' : 'photoLoading';
     return <div className={className} role="status" aria-label={t('photoLabel', { name: place.name })}><span className="w-photo-state"><Icon aria-hidden="true" /><span>{t(state)}</span></span></div>;
   }
-  const credit = t('photoCredit', { source: photos.data!.source, license: photo.license });
   return (
     <figure className={`${className} photo`}>
       <span className="w-photo-frame"><img src={photo.url} alt={t('photoAlt', { name: place.name, title: photo.title })} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={photo.title} /></span>
-      <figcaption title={`${credit} · ${photos.data!.source_url}`}>{credit}</figcaption>
     </figure>
   );
 }

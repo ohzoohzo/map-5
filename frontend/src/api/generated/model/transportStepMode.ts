@@ -12,4 +12,5 @@ export const TransportStepMode = {
   walk: 'walk',
   bus: 'bus',
   subway: 'subway',
+  car: 'car',
 } as const;

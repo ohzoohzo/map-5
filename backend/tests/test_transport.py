@@ -45,6 +45,19 @@ def transit_payload():
     ]}
 
 
+def car_payload():
+    return {"routes": [{
+        "result_code": 0, "result_msg": "길찾기 성공",
+        "summary": {"distance": 5100, "duration": 700, "fare": {"taxi": 12900, "toll": 1200}},
+        "sections": [{"roads": [
+            {"name": "해운대로", "distance": 3100, "duration": 500,
+             "vertexes": [129.1604, 35.1587, 129.1611, 35.1592, 129.1620, 35.1600]},
+            {"name": "", "distance": 2000, "duration": 200,
+             "vertexes": [129.1630, 35.1620, 129.1635, 35.1633]},
+        ]}],
+    }]}
+
+
 @pytest.fixture
 def client():
     service = sys.modules.get("backend.app.routers.transport.service")
@@ -116,6 +129,134 @@ def test_transit_keeps_all_alternatives_order_and_only_provider_steps(client, mo
     assert routes[0]["distance_m"] == 1800
     assert routes[0]["steps"][0]["instruction"] == "100번 버스로 이동"
     assert upstream.call_args.args[0] == "https://dapi.kakao.com/v2/routing/publictraffic"
+
+
+def test_car_uses_recommended_mobility_route_all_roads_and_toll_not_taxi_fare(client, monkeypatch):
+    payload = car_payload()
+    payload["routes"][0]["sections"].append({"roads": [
+        {"name": "마지막 도로", "distance": 150, "duration": 60, "vertexes": [129.1635, 35.1633, 129.1640, 35.1640]},
+    ]})
+    upstream = Mock(return_value=httpx.Response(200, json=payload))
+    monkeypatch.setattr(httpx, "get", upstream)
+
+    response = client.get("/api/transport/routes", params={**PARAMS, "mode": "car"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["mode"] == "car" and data["status"] == "ok"
+    assert data["source"] == "카카오모빌리티"
+    assert data["source_url"] == "https://developers.kakaomobility.com/guide/navi-api/directions"
+    assert len(data["routes"]) == 1
+    route = data["routes"][0]
+    assert (route["type"], route["distance_m"], route["duration_seconds"], route["toll_won"]) == ("car", 5100, 700, 1200)
+    assert route["fare_won"] is None and route["transfers"] is None
+    assert [step["mode"] for step in route["steps"]] == ["car", "car", "car"]
+    assert [step["distance_m"] for step in route["steps"]] == [3100, 2000, 150]
+    assert [step["duration_seconds"] for step in route["steps"]] == [500, 200, 60]
+    assert "해운대로" in route["steps"][0]["instruction"]
+    assert route["steps"][0]["path"] == [
+        {"longitude": 129.1604, "latitude": 35.1587},
+        {"longitude": 129.1611, "latitude": 35.1592},
+        {"longitude": 129.1620, "latitude": 35.1600},
+    ]
+    # 서로 떨어진 도로의 좌표를 이어 붙여 제공되지 않은 직선을 만들지 않는다.
+    assert route["steps"][1]["path"][0] == {"longitude": 129.1630, "latitude": 35.1620}
+    assert all(step["instruction"] for step in route["steps"])
+    assert upstream.call_args.args[0] == "https://apis-navi.kakaomobility.com/v1/directions"
+    assert upstream.call_args.kwargs["headers"] == {"Authorization": f"KakaoAK {REST_KEY}"}
+    assert upstream.call_args.kwargs["params"] == {
+        "origin": "129.1604,35.1587", "destination": "129.1635,35.1633",
+        "priority": "RECOMMEND", "alternatives": "false", "summary": "false",
+    }
+
+
+@pytest.mark.parametrize("fare", [None, {"taxi": 9000}])
+def test_missing_car_toll_is_unknown_and_never_uses_taxi_quote(client, monkeypatch, fare):
+    payload = car_payload()
+    payload["routes"][0]["summary"]["fare"] = fare
+    monkeypatch.setattr(httpx, "get", Mock(return_value=httpx.Response(200, json=payload)))
+
+    response = client.get("/api/transport/routes", params={**PARAMS, "mode": "car"})
+
+    assert response.status_code == 200
+    assert response.json()["routes"][0]["toll_won"] is None
+    assert response.json()["routes"][0]["fare_won"] is None
+
+
+@pytest.mark.parametrize("code", [1, 101, 102, 103, 104, 105, 106, 107])
+def test_documented_car_no_route_codes_are_success_and_not_cached(client, monkeypatch, code):
+    upstream = Mock(return_value=httpx.Response(200, json={"routes": [{"result_code": code, "result_msg": REST_KEY}]}))
+    monkeypatch.setattr(httpx, "get", upstream)
+
+    response = client.get("/api/transport/routes", params={**PARAMS, "mode": "car"})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_route" and response.json()["routes"] == []
+    assert response.json()["source"] == "카카오모빌리티"
+    assert REST_KEY not in response.text
+    client.get("/api/transport/routes", params={**PARAMS, "mode": "car"})
+    assert upstream.call_count == 2
+
+
+@pytest.mark.parametrize("code", [-1, 201, 204, 999, "0", True])
+def test_unknown_or_invalid_car_result_code_is_an_error(client, monkeypatch, code):
+    payload = car_payload()
+    payload["routes"][0]["result_code"] = code
+    monkeypatch.setattr(httpx, "get", Mock(return_value=httpx.Response(200, json=payload)))
+
+    assert client.get("/api/transport/routes", params={**PARAMS, "mode": "car"}).status_code == 502
+
+
+@pytest.mark.parametrize("vertices", [[], [129.0, 35.0], [129.0, 35.0, 129.1], [129.0, 35.0, 129.1, 35.1, 129.2],
+                                          [35.0, 129.0, 35.1, 129.1], [129.0, float("nan"), 129.1, 35.1],
+                                          [129.0, 35.0, 129.1, float("inf")], [129.0, 35.0, "129.1", 35.1]])
+def test_car_invalid_road_geometry_is_an_error_not_a_straight_line(client, monkeypatch, vertices):
+    payload = car_payload()
+    payload["routes"][0]["sections"][0]["roads"][1]["vertexes"] = vertices
+    upstream_response = Mock(status_code=200)
+    upstream_response.json.return_value = payload
+    monkeypatch.setattr(httpx, "get", Mock(return_value=upstream_response))
+
+    assert client.get("/api/transport/routes", params={**PARAMS, "mode": "car"}).status_code == 502
+
+
+@pytest.mark.parametrize("sections", [None, [], [{"roads": []}], [{"distance": 200}]])
+def test_car_success_without_road_geometry_is_an_error(client, monkeypatch, sections):
+    payload = car_payload()
+    payload["routes"][0]["sections"] = sections
+    monkeypatch.setattr(httpx, "get", Mock(return_value=httpx.Response(200, json=payload)))
+
+    assert client.get("/api/transport/routes", params={**PARAMS, "mode": "car"}).status_code == 502
+
+
+def test_car_failure_can_recover_and_success_uses_existing_five_minute_cache(client, monkeypatch):
+    from backend.app.routers.transport import service
+
+    clock = [1000.0]
+    monkeypatch.setattr(service, "monotonic", lambda: clock[0])
+    upstream = Mock(side_effect=[httpx.ReadTimeout(REST_KEY), httpx.Response(200, json=car_payload()), httpx.Response(200, json=car_payload())])
+    monkeypatch.setattr(httpx, "get", upstream)
+    params = {**PARAMS, "mode": "car"}
+
+    failed = client.get("/api/transport/routes", params=params)
+    assert failed.status_code == 504 and REST_KEY not in failed.text
+    assert client.get("/api/transport/routes", params=params).json()["status"] == "ok"
+    clock[0] += 299
+    assert client.get("/api/transport/routes", params=params).status_code == 200
+    assert upstream.call_count == 2
+    clock[0] += 2
+    assert client.get("/api/transport/routes", params=params).status_code == 200
+    assert upstream.call_count == 3
+
+
+@pytest.mark.parametrize("status,expected", [(401, 503), (403, 503), (429, 429), (500, 502)])
+def test_car_provider_http_errors_are_sanitized(client, monkeypatch, status, expected):
+    monkeypatch.setattr(httpx, "get", Mock(return_value=httpx.Response(status, text=REST_KEY)))
+
+    response = client.get("/api/transport/routes", params={**PARAMS, "mode": "car"})
+
+    assert response.status_code == expected
+    assert REST_KEY not in response.text
 
 
 @pytest.mark.parametrize("mode,status", [
@@ -257,7 +398,7 @@ def test_different_segments_can_load_while_another_provider_call_is_pending(clie
 
 
 @pytest.mark.parametrize("field,value", [
-    ("mode", "car"), ("start_latitude", 32.9), ("start_latitude", 39.1),
+    ("mode", "bike"), ("start_latitude", 32.9), ("start_latitude", 39.1),
     ("end_latitude", "nan"), ("end_latitude", "inf"), ("start_longitude", 123.9),
     ("end_longitude", 132.1), ("end_longitude", "invalid"),
 ])

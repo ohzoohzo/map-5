@@ -5,12 +5,13 @@ from typing import Annotated, Literal
 
 import httpx
 from fastapi import HTTPException
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from ...settings import Settings, valid_key
-from .models import TRANSPORT_SOURCE_URL, TransportMode, TransportNonnegativeInt, TransportPoint, TransportRoute, TransportRoutesResponse, TransportStep
+from .models import TRANSPORT_CAR_SOURCE_URL, TRANSPORT_SOURCE_URL, TransportMode, TransportNonnegativeInt, TransportPoint, TransportRoute, TransportRoutesResponse, TransportStep
 
 ROUTING_API = "https://dapi.kakao.com/v2/routing"
+DRIVING_API = "https://apis-navi.kakaomobility.com/v1/directions"
 CACHE_TTL_SECONDS = 300
 CACHE_MAX_SIZE = 128
 _cache: OrderedDict[tuple[TransportMode, float, float, float, float], tuple[float, TransportRoutesResponse]] = OrderedDict()
@@ -21,6 +22,8 @@ NO_ROUTE_STATUSES = {
 }
 STEP_MODES = {"WALKING": "walk", "BUS": "bus", "SUBWAY": "subway"}
 ROUTE_TYPES = {"BUS": "bus", "SUBWAY": "subway", "BUS_AND_SUBWAY": "mixed"}
+# https://developers.kakaomobility.com/guide/navi-api/reference 의 단일 경로 결과 코드.
+CAR_NO_ROUTE_CODES = {1, 101, 102, 103, 104, 105, 106, 107}
 
 
 class _ProviderModel(BaseModel):
@@ -87,6 +90,47 @@ class _TransitPayload(_ProviderModel):
     routes: Annotated[list[_TransitRoute], Field(min_length=1)]
 
 
+class _DrivingResult(_ProviderModel):
+    result_code: int
+
+
+class _DrivingPayload(_ProviderModel):
+    routes: Annotated[list[_DrivingResult], Field(min_length=1)]
+
+
+class _DrivingFare(_ProviderModel):
+    toll: TransportNonnegativeInt | None = None
+
+
+class _DrivingSummary(_ProviderModel):
+    distance: TransportNonnegativeInt
+    duration: TransportNonnegativeInt
+    fare: _DrivingFare | None = None
+
+
+class _DrivingRoad(_ProviderModel):
+    name: str
+    distance: TransportNonnegativeInt
+    duration: TransportNonnegativeInt
+    vertexes: Annotated[list[float], Field(min_length=4)]
+
+    @field_validator("vertexes")
+    @classmethod
+    def coordinate_pairs(cls, value: list[float]) -> list[float]:
+        if len(value) % 2:
+            raise ValueError("도로 좌표가 경도·위도 쌍이 아니에요.")
+        return value
+
+
+class _DrivingSection(_ProviderModel):
+    roads: Annotated[list[_DrivingRoad], Field(min_length=1)]
+
+
+class _DrivingRoute(_ProviderModel):
+    summary: _DrivingSummary
+    sections: Annotated[list[_DrivingSection], Field(min_length=1)]
+
+
 def _step(item: _Step, mode: str) -> TransportStep:
     return TransportStep(
         mode=mode, instruction=item.properties.guidance,
@@ -96,6 +140,8 @@ def _step(item: _Step, mode: str) -> TransportStep:
 
 
 def _parse_routes(mode: TransportMode, payload: dict) -> TransportRoutesResponse:
+    if mode == "car":
+        return _parse_driving_route(payload)
     status = payload.get("status")
     if not isinstance(status, str):
         raise HTTPException(502, "카카오 경로 데이터 형식이 올바르지 않아요.")
@@ -124,11 +170,43 @@ def _parse_routes(mode: TransportMode, payload: dict) -> TransportRoutesResponse
     return TransportRoutesResponse(mode=mode, status="ok", routes=routes, source="카카오맵", source_url=TRANSPORT_SOURCE_URL)
 
 
+def _parse_driving_route(payload: dict) -> TransportRoutesResponse:
+    try:
+        result_code = _DrivingPayload.model_validate(payload).routes[0].result_code
+        if result_code in CAR_NO_ROUTE_CODES:
+            return TransportRoutesResponse(mode="car", status="no_route", routes=[],
+                                           source="카카오모빌리티", source_url=TRANSPORT_CAR_SOURCE_URL)
+        if result_code != 0:
+            raise ValueError("알 수 없는 자동차 경로 결과 코드예요.")
+        # alternatives=false로 요청한 기본 추천 경로 하나만 사용한다.
+        route = _DrivingRoute.model_validate(payload["routes"][0])
+        steps = [TransportStep(
+            mode="car", instruction=f"{road.name} 주행" if road.name.strip() else "이름 없는 도로로 이동",
+            distance_m=road.distance, duration_seconds=road.duration,
+            path=[TransportPoint(longitude=road.vertexes[index], latitude=road.vertexes[index + 1])
+                  for index in range(0, len(road.vertexes), 2)],
+        ) for section in route.sections for road in section.roads]
+        converted = TransportRoute(
+            type="car", distance_m=route.summary.distance, duration_seconds=route.summary.duration,
+            transfers=None, fare_won=None,
+            toll_won=route.summary.fare.toll if route.summary.fare is not None else None,
+            steps=steps,
+        )
+    except (ValidationError, ValueError, TypeError):
+        raise HTTPException(502, "카카오모빌리티 자동차 경로 데이터 형식이 올바르지 않아요.") from None
+    return TransportRoutesResponse(mode="car", status="ok", routes=[converted],
+                                   source="카카오모빌리티", source_url=TRANSPORT_CAR_SOURCE_URL)
+
+
 def _request_routes(mode: TransportMode, params: dict[str, float | str], settings: Settings) -> dict:
-    endpoint = "walk" if mode == "walk" else "publictraffic"
+    if mode == "car":
+        url = DRIVING_API
+    else:
+        endpoint = "walk" if mode == "walk" else "publictraffic"
+        url = f"{ROUTING_API}/{endpoint}"
     try:
         response = httpx.get(
-            f"{ROUTING_API}/{endpoint}", params=params,
+            url, params=params,
             headers={"Authorization": f"KakaoAK {settings.rest_key}"},
             timeout=10.0, follow_redirects=False,
         )
@@ -164,11 +242,18 @@ def get_routes(mode: TransportMode, start_latitude: float, start_longitude: floa
                 return cached[1]
             del _cache[cache_key]
     # 외부 통신은 잠금 밖에서 실행해 서로 다른 구간 조회를 직렬화하지 않는다.
-    result = _parse_routes(mode, _request_routes(mode, {
-        "start_x": start_longitude, "start_y": start_latitude,
-        "end_x": end_longitude, "end_y": end_latitude,
-        "input_coord": "WGS84", "output_coord": "WGS84",
-    }, settings))
+    if mode == "car":
+        params = {
+            "origin": f"{start_longitude},{start_latitude}", "destination": f"{end_longitude},{end_latitude}",
+            "priority": "RECOMMEND", "alternatives": "false", "summary": "false",
+        }
+    else:
+        params = {
+            "start_x": start_longitude, "start_y": start_latitude,
+            "end_x": end_longitude, "end_y": end_latitude,
+            "input_coord": "WGS84", "output_coord": "WGS84",
+        }
+    result = _parse_routes(mode, _request_routes(mode, params, settings))
     if result.status == "ok":
         with _cache_lock:
             _cache[cache_key] = (monotonic() + CACHE_TTL_SECONDS, result)

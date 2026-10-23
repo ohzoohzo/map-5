@@ -15,6 +15,7 @@ export interface TransportRoute {
   duration_seconds: number;
   transfers: number | null;
   fare_won: number | null;
+  toll_won?: number | null;
   /** @minItems 1 */
   steps: TransportStep[];
 }

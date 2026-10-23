@@ -441,7 +441,7 @@
           "transport"
         ],
         "summary": "Transport Routes",
-        "description": "카카오맵의 도보·대중교통 경로를 공급자 순서와 실제 경로 좌표 그대로 반환한다.",
+        "description": "카카오맵 도보·대중교통 및 카카오모빌리티 자동차 경로의 실제 경로 좌표를 반환한다.",
         "operationId": "transport_routes",
         "parameters": [
           {
@@ -451,7 +451,8 @@
             "schema": {
               "enum": [
                 "transit",
-                "walk"
+                "walk",
+                "car"
               ],
               "type": "string",
               "title": "Mode"
@@ -1630,7 +1631,8 @@
               "walk",
               "bus",
               "subway",
-              "mixed"
+              "mixed",
+              "car"
             ],
             "title": "Type"
           },
@@ -1668,6 +1670,18 @@
             ],
             "title": "Fare Won"
           },
+          "toll_won": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toll Won"
+          },
           "steps": {
             "items": {
               "$ref": "#/components/schemas/TransportStep"
@@ -1695,7 +1709,8 @@
             "type": "string",
             "enum": [
               "transit",
-              "walk"
+              "walk",
+              "car"
             ],
             "title": "Mode"
           },
@@ -1716,7 +1731,10 @@
           },
           "source": {
             "type": "string",
-            "const": "카카오맵",
+            "enum": [
+              "카카오맵",
+              "카카오모빌리티"
+            ],
             "title": "Source"
           },
           "source_url": {
@@ -1742,7 +1760,8 @@
             "enum": [
               "walk",
               "bus",
-              "subway"
+              "subway",
+              "car"
             ],
             "title": "Mode"
           },

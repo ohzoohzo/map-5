@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DocentStory,
+  DocentStoryParams,
   ErrorResponse,
   FeatureStatus
 } from '../model';
@@ -139,6 +141,120 @@ export function useDocentStatus<TData = Awaited<ReturnType<typeof docentStatus>>
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getDocentStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getDocentStoryUrl = (params: DocentStoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/docent/story?${stringifiedParams}` : `/api/docent/story`
+}
+
+/**
+ * @summary Docent Story
+ */
+export const docentStory = async (params: DocentStoryParams, options?: RequestInit): Promise<DocentStory> => {
+
+  const res = await fetch(getDocentStoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: DocentStory = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getDocentStoryQueryKey = (params?: DocentStoryParams,) => {
+    return [
+    `/api/docent/story`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDocentStoryQueryOptions = <TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDocentStoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof docentStory>>> = ({ signal }) => docentStory(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DocentStoryQueryResult = NonNullable<Awaited<ReturnType<typeof docentStory>>>
+export type DocentStoryQueryError = ErrorResponse
+
+
+export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
+ params: DocentStoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof docentStory>>,
+          TError,
+          Awaited<ReturnType<typeof docentStory>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
+ params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof docentStory>>,
+          TError,
+          Awaited<ReturnType<typeof docentStory>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
+ params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Docent Story
+ */
+
+export function useDocentStory<TData = Awaited<ReturnType<typeof docentStory>>, TError = ErrorResponse>(
+ params: DocentStoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof docentStory>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDocentStoryQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

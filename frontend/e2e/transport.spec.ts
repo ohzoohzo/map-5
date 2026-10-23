@@ -1,4 +1,5 @@
 import { expect, test } from './support';
+import type { Page } from '@playwright/test';
 
 const places = {
   harbor: {
@@ -70,10 +71,13 @@ const trip = {
   selectedPlaceId: null,
 };
 
-test.beforeEach(async ({ page }) => {
+async function seedTrip(page: Page, savedTrip = trip) {
   await page.addInitScript((savedTrip) => {
     localStorage.setItem('pinday.trip.v1', JSON.stringify(savedTrip));
-  }, trip);
+  }, savedTrip);
+}
+
+test.beforeEach(async ({ page }) => {
   await page.route('**/api/config', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -82,6 +86,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('selecting a segment updates the Kakao directions link and transport mode', async ({ page }) => {
+  await seedTrip(page);
   await page.goto('/transport', { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('button', { name: /DAY 1/ })).toHaveAttribute('aria-pressed', 'true');
@@ -104,6 +109,7 @@ test('selecting a segment updates the Kakao directions link and transport mode',
 });
 
 test('changing the day resets the segment to the first consecutive pair', async ({ page }) => {
+  await seedTrip(page);
   await page.goto('/transport', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: /국제시장 → 감천문화마을/ }).click();
 
@@ -115,4 +121,30 @@ test('changing the day resets the segment to the first consecutive pair', async 
       'href',
       'https://map.kakao.com/link/from/%EA%B0%90%EC%B2%9C%EB%AC%B8%ED%99%94%EB%A7%88%EC%9D%84,35.0975,129.0106/to/%EB%B6%80%EC%82%B0%ED%95%AD,35.1028,129.0403',
     );
+});
+
+test('long segment names stay selectable without horizontal overflow on mobile', async ({ page }) => {
+  const departureName = '국립부산과학관 어린이과학관';
+  const arrivalName = '국립일제강제동원역사관';
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedTrip(page, {
+    ...trip,
+    places: {
+      ...places,
+      market: { ...places.market, name: departureName },
+      village: { ...places.village, name: arrivalName },
+    },
+  });
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+
+  const segment = page.getByRole('button', { name: `${departureName} → ${arrivalName}`, exact: true });
+  await expect(segment).toHaveAttribute('aria-pressed', 'false');
+  await segment.click();
+  await expect(segment).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('link', { name: '카카오맵에서 이 구간 길찾기' })).toHaveAttribute(
+    'href',
+    `https://map.kakao.com/link/from/${encodeURIComponent(departureName)},35.1014,129.0287/to/${encodeURIComponent(arrivalName)},35.0975,129.0106`,
+  );
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
+    .toBeLessThanOrEqual(1);
 });

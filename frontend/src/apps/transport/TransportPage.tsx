@@ -142,6 +142,15 @@ const SegmentRow = styled.div<{ selected: boolean }>`
     text-align: left;
   }
 
+  .segment-button > span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .segment-button svg {
+    flex-shrink: 0;
+  }
+
   .segment-label {
     display: flex;
     align-items: center;

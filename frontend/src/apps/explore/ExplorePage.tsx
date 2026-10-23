@@ -78,10 +78,14 @@ export default function ExplorePage() {
     document.getElementById(`place-${pick.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
   const errorMessage = result.error instanceof ApiError ? result.error.message : t('networkError');
+  const regionErrorMessage = regions.error instanceof ApiError ? regions.error.message : t('networkError');
 
   return (
     <PinDayPage>
       <TripBar page="explore" />
+      {regions.isPending ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
+        : regions.isError ? <Fallback title={t('regionsLoadError')} description={regionErrorMessage} action={<Button size="small" variant="outlined" onClick={() => { void regions.refetch(); }}>{t('retry')}</Button>} />
+        : null}
       {province !== '' && <>
         <header className="page-head">
           <div>

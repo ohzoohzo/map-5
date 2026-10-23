@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
+import { Button, Typography } from '@montage-ui/core';
 import { MapPin, RefreshCw } from 'lucide-react';
 import type { Place } from '../../api/client';
-import { color, radius } from '../../shared/design/tokens';
+
+const foreground = (name: string) => `var(--semantic-foreground-${name})`;
+const surface = 'var(--semantic-background-neutral-primary)';
+const canvas = 'var(--semantic-background-neutral-secondary)';
+const line = 'var(--semantic-line-neutral-primary)';
+const brand = 'var(--semantic-foreground-brand-primary)';
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
@@ -34,9 +40,9 @@ const MapFrame = styled.div`
   position: relative;
   height: clamp(300px, 42vw, 520px);
   overflow: hidden;
-  background: ${color.bg};
-  border: 1px solid ${color.border};
-  border-radius: ${radius.lg};
+  background: ${canvas};
+  border: 1px solid ${line};
+  border-radius: 12px;
 
   .map-canvas {
     width: 100%;
@@ -51,30 +57,19 @@ const MapFrame = styled.div`
     justify-items: center;
     gap: 10px;
     padding: 24px;
-    color: ${color.textSub};
-    background: ${color.bg};
+    color: ${foreground('neutral-secondary')};
+    background: ${canvas};
     text-align: center;
   }
 
   .map-status p {
     max-width: 420px;
     margin: 0;
-    font-size: 14px;
     line-height: 1.6;
   }
 
-  .map-status button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    min-height: 40px;
-    padding: 8px 14px;
-    color: ${color.primary};
-    background: ${color.surface};
-    border: 1px solid ${color.borderStrong};
-    border-radius: ${radius.md};
-    cursor: pointer;
-    font: inherit;
+  .map-retry {
+    margin-top: 8px;
   }
 
   .map-legend {
@@ -86,10 +81,10 @@ const MapFrame = styled.div`
     justify-content: space-between;
     gap: 10px;
     padding: 10px 12px;
-    color: ${color.navy};
-    background: ${color.surface};
-    border: 1px solid ${color.border};
-    border-radius: ${radius.md};
+    color: ${foreground('neutral-primary')};
+    background: ${surface};
+    border: 1px solid ${line};
+    border-radius: 8px;
     font-size: 13px;
     pointer-events: none;
   }
@@ -102,7 +97,7 @@ const MapFrame = styled.div`
 
   .map-legend .line {
     width: 24px;
-    border-top: 3px dashed ${color.primary};
+    border-top: 3px dashed ${brand};
   }
 `;
 
@@ -260,7 +255,9 @@ export default function RouteMap({
       map: map.current,
       path: [origin, destination],
       strokeWeight: 4,
-      strokeColor: color.primary,
+      strokeColor: getComputedStyle(document.documentElement)
+        .getPropertyValue('--semantic-foreground-brand-primary')
+        .trim(),
       strokeOpacity: 0.9,
       strokeStyle: 'shortdash',
     });
@@ -295,28 +292,38 @@ export default function RouteMap({
       {message && (
         <div className="map-status" role={status === 'error' || keyError ? 'alert' : 'status'}>
           <MapPin size={32} aria-hidden="true" />
-          <strong>{message}</strong>
+          <Typography variant="body1" weight="bold">{message}</Typography>
           {(missingKey || keyError || status === 'error') && (
-            <p>{missingKey ? labels.missingKeyDescription : labels.failedDescription}</p>
+            <Typography as="p" variant="caption1">
+              {missingKey ? labels.missingKeyDescription : labels.failedDescription}
+            </Typography>
           )}
           {(keyError || (status === 'error' && !missingKey)) && (
-            <button
+            <Button
               type="button"
+              className="map-retry"
+              size="small"
+              variant="outlined"
+              color="primary"
               onClick={() => {
                 if (keyError) onRetryKey();
                 else setAttempt((value) => value + 1);
               }}
+              leadingContent={<RefreshCw size={15} aria-hidden="true" />}
             >
-              <RefreshCw size={15} aria-hidden="true" />
               {labels.retry}
-            </button>
+            </Button>
           )}
         </div>
       )}
       {status === 'ready' && (
         <div className="map-legend">
-          <span><MapPin size={15} aria-hidden="true" />{departure.name} → {arrival.name}</span>
-          <span><i className="line" />{labels.examplePath}</span>
+          <Typography className="map-legend-item" variant="caption1">
+            <MapPin size={15} aria-hidden="true" />{departure.name} → {arrival.name}
+          </Typography>
+          <Typography className="map-legend-item" variant="caption1">
+            <i className="line" />{labels.examplePath}
+          </Typography>
         </div>
       )}
     </MapFrame>

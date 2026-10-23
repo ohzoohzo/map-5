@@ -21,7 +21,11 @@ import type {
 
 import type {
   ErrorResponse,
-  FeatureStatus
+  FeatureStatus,
+  WeatherAlternatives,
+  WeatherAlternativesParams,
+  WeatherForecast,
+  WeatherForecastParams
 } from '../model';
 
 
@@ -139,6 +143,236 @@ export function useWeatherStatus<TData = Awaited<ReturnType<typeof weatherStatus
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getWeatherStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getWeatherForecastUrl = (params: WeatherForecastParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/weather/forecast?${stringifiedParams}` : `/api/weather/forecast`
+}
+
+/**
+ * 장소 좌표의 그 날짜(한국 시간) 3시간 단위 예보. 5일 범위 밖이면 status=out_of_range.
+ * @summary Weather Forecast
+ */
+export const weatherForecast = async (params: WeatherForecastParams, options?: RequestInit): Promise<WeatherForecast> => {
+
+  const res = await fetch(getWeatherForecastUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: WeatherForecast = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getWeatherForecastQueryKey = (params?: WeatherForecastParams,) => {
+    return [
+    `/api/weather/forecast`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getWeatherForecastQueryOptions = <TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWeatherForecastQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherForecast>>> = ({ signal }) => weatherForecast(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type WeatherForecastQueryResult = NonNullable<Awaited<ReturnType<typeof weatherForecast>>>
+export type WeatherForecastQueryError = ErrorResponse
+
+
+export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
+ params: WeatherForecastParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherForecast>>,
+          TError,
+          Awaited<ReturnType<typeof weatherForecast>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
+ params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherForecast>>,
+          TError,
+          Awaited<ReturnType<typeof weatherForecast>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
+ params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Weather Forecast
+ */
+
+export function useWeatherForecast<TData = Awaited<ReturnType<typeof weatherForecast>>, TError = ErrorResponse>(
+ params: WeatherForecastParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherForecast>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWeatherForecastQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getWeatherAlternativesUrl = (params: WeatherAlternativesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/weather/alternatives?${stringifiedParams}` : `/api/weather/alternatives`
+}
+
+/**
+ * 원래 장소 근처(직선 30km)에서 이름으로 실내로 보이는 관광지를 가까운 순으로.
+ * @summary Weather Alternatives
+ */
+export const weatherAlternatives = async (params: WeatherAlternativesParams, options?: RequestInit): Promise<WeatherAlternatives> => {
+
+  const res = await fetch(getWeatherAlternativesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: WeatherAlternatives = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+
+
+export const getWeatherAlternativesQueryKey = (params?: WeatherAlternativesParams,) => {
+    return [
+    `/api/weather/alternatives`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getWeatherAlternativesQueryOptions = <TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWeatherAlternativesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof weatherAlternatives>>> = ({ signal }) => weatherAlternatives(params, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type WeatherAlternativesQueryResult = NonNullable<Awaited<ReturnType<typeof weatherAlternatives>>>
+export type WeatherAlternativesQueryError = ErrorResponse
+
+
+export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
+ params: WeatherAlternativesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherAlternatives>>,
+          TError,
+          Awaited<ReturnType<typeof weatherAlternatives>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
+ params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof weatherAlternatives>>,
+          TError,
+          Awaited<ReturnType<typeof weatherAlternatives>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
+ params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Weather Alternatives
+ */
+
+export function useWeatherAlternatives<TData = Awaited<ReturnType<typeof weatherAlternatives>>, TError = ErrorResponse>(
+ params: WeatherAlternativesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof weatherAlternatives>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWeatherAlternativesQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

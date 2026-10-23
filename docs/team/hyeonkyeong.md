@@ -5,9 +5,16 @@
 - 시안: `design/` 의 pinday-weather-v2.png
 
 ## 할 일
-- [ ] 예보 API 결정·연동 (OpenWeather 또는 기상청 단기예보, 키는 `.env`)
-- [ ] 야외 일정 → 실내 대안 비교 화면
-- [ ] 교체 → `tripActions.replaceItem` (날짜·순서 유지)
+- [x] 예보 API 결정·연동 (OpenWeather 또는 기상청 단기예보, 키는 `.env`)
+- [x] 야외 일정 → 실내 대안 비교 화면
+- [x] 교체 → `tripActions.replaceItem` (날짜·순서 유지)
 
 ## 메모
 (진행 상황·결정 사항은 이 파일에만 적는다 — 본인 파일이라 충돌 없음)
+
+- 2026-10-23 예보 API = **OpenWeather 5 Day / 3 Hour** (기획안과 동일, 위경도 그대로 사용). 키: `.env` 의 `OPENWEATHER_API_KEY` (발급 후 활성화까지 최대 몇 시간).
+- `GET /api/weather/forecast?latitude&longitude&date=YYYY-MM-DD` → 그 날짜(KST) 3시간 단위 칸. 5일 범위 밖이면 `status: out_of_range`(= '날씨 미확정'), 키 없음/실패는 503·502·504.
+- 비 판단: 강수확률 60% 이상이면 `rain_expected` (기획안 초기 정책, 응답의 `rain_threshold`).
+- 2026-10-23 실내 대안 = `GET /api/weather/alternatives` — 관광 데이터(clean.csv)에서 **이름에 박물관·미술관·전시관 등이 들어간 곳**을 직선 30km 안에서 가까운 순 8곳. 분류가 모두 '관광지'라 이름으로만 추정 → 화면에 '운영정보 확인 필요' 표시. 카카오 REST 키가 생기면 카카오 카테고리 검색(문화시설 CT1)으로 보강 가능.
+- 화면은 `/weather?day=2&item=1` 로 특정 방문 항목을 바로 열 수 있다 (day 1부터, item 0부터) → 언제 갈까?(여원)에서 링크 걸 때 사용.
+- 일정에 시각 정보가 없어서 시안의 '14:00' 대신 그날 비 예상 시간대 전체를 보여 준다.

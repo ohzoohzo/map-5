@@ -232,7 +232,7 @@ test('390px에서도 TourAPI 사진 비율·출처·이용조건과 교체 미�
 });
 
 for (const [state, message] of [
-  ['empty', '등록된 사진이 없어요'],
+  ['empty', '장소 사진을 찾지 못했어요'],
   ['unavailable', '사진을 불러오지 못했어요'],
   ['broken', '사진을 표시할 수 없어요'],
 ] as const) {

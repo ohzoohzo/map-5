@@ -53,9 +53,9 @@ async function expectPhoto(scope: Locator, place: Place, slideshow = false) {
   await image.scrollIntoViewIfNeeded();
   await expect(image).toHaveAttribute('src', photoUrl(place.id));
   await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
-  await expect(scope).toContainText('한국관광공사');
-  await expect(scope).toContainText('공공누리 제3유형');
-  if (!slideshow) await expect(scope.locator('.photo-credit')).toHaveAttribute('title', new RegExp(sourceUrl(place.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  await expect(scope.locator('.photo-credit')).toHaveCount(0);
+  await expect(scope.getByRole('button', { name: /이용조건/ })).toHaveCount(0);
+  await expect(scope.getByText(LICENSE, { exact: true })).toHaveCount(0);
   return image;
 }
 
@@ -191,4 +191,80 @@ test('목록의 화면 밖 장소는 스크롤해서 볼 때 사진을 조회한
   await placeCard(page, last).scrollIntoViewIfNeeded();
   await expectPhoto(placeCard(page, last), last);
   expect(requests.get(last.id)).toBe(1);
+});
+
+
+
+test('카드 출처는 푸터의 별도 출처 페이지에서 사진별 원본과 이용조건으로 확인한다', async ({ page }, testInfo) => {
+  const requests = await installPhotos(page);
+  const catalog = await startTrip(page);
+  const place = catalog.places[0]!;
+  const card = placeCard(page, place);
+  await expectPhoto(card, place);
+  const before = await page.evaluate(() => localStorage.getItem('pinday.trip.v1'));
+  const sourceLink = page.getByRole('contentinfo').getByRole('link', { name: '데이터·사진 출처', exact: true });
+  await sourceLink.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/sources$/);
+  await expect(page.getByRole('heading', { name: '데이터·사진 출처', exact: true })).toBeVisible();
+  await expect(page.getByText(`${place.name} 원본`, { exact: true })).toBeVisible();
+  await expect(page.getByText('한국관광공사 TourAPI', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(LICENSE, { exact: true }).first()).toBeVisible();
+  for (const href of [photoUrl(place.id), sourceUrl(place.id)]) {
+    const link = page.locator(`a[href="${href}"]`);
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener/);
+  }
+  expect(requests.get(place.id)).toBe(1);
+  expect(requests.get(catalog.places.at(-1)!.id) ?? 0, '출처 확인을 위해 화면 밖 사진까지 추가로 조회하지 않는다').toBe(0);
+  await page.screenshot({ path: testInfo.outputPath('photo-sources-desktop.png') });
+  await page.goBack({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/explore$/);
+  await expectPhoto(placeCard(page, place), place);
+  expect(await page.evaluate(() => localStorage.getItem('pinday.trip.v1'))).toBe(before);
+  expect(requests.get(place.id)).toBe(1);
+  await expect(page.locator('button button, button a, button [role="button"]')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('photo-credit-free-desktop.png') });
+});
+
+test.describe('터치로 확인하는 사진 출처', () => {
+  test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+  test('390px 일정에서 푸터로 사진 출처를 확인하고 돌아와도 후보와 일정이 유지된다', async ({ page }, testInfo) => {
+    await installPhotos(page);
+    const catalog = await startTrip(page);
+    const place = catalog.places[0]!;
+    await expectPhoto(placeCard(page, place), place);
+    await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).tap();
+    await page.getByRole('button', { name: '날짜별 일정 짜기' }).tap();
+    await page.getByRole('button', { name: `${place.name} DAY 1에 추가` }).tap();
+    const visit = page.getByTestId(IDS.ITINERARY_LIST).locator('li').filter({ hasText: place.name });
+    await expectPhoto(visit, place);
+    const before = await page.evaluate(() => localStorage.getItem('pinday.trip.v1'));
+    await page.getByRole('contentinfo').getByRole('link', { name: '데이터·사진 출처', exact: true }).tap();
+    await expect(page).toHaveURL(/\/sources$/);
+    const title = page.getByText(`${place.name} 원본`, { exact: true });
+    await title.scrollIntoViewIfNeeded();
+    await expect(title).toBeVisible();
+    await expect(page.locator(`a[href="${photoUrl(place.id)}"]`)).toBeVisible();
+    await noHorizontalOverflow(page);
+    await page.screenshot({ path: testInfo.outputPath('photo-sources-mobile.png') });
+    await page.locator('.main-nav a[href="/schedule"]').tap();
+    await expect(page).toHaveURL(/\/schedule$/);
+    await expectNames(page, IDS.ITINERARY_LIST, [place.name]);
+    expect(await page.evaluate(() => localStorage.getItem('pinday.trip.v1'))).toBe(before);
+    await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+    await expect(page.getByTestId(IDS.SCHEDULED_COUNT)).toHaveText('1');
+    await noHorizontalOverflow(page);
+    await page.screenshot({ path: testInfo.outputPath('photo-credit-free-mobile.png') });
+  });
+});
+
+test('출처 페이지에 직접 방문해도 제공 데이터의 링크와 사진 조회 전 안내를 보여준다', async ({ page }) => {
+  await page.goto('/sources', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: '데이터·사진 출처', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: '전국관광지정보표준데이터', exact: true })).toHaveAttribute('href', 'https://www.data.go.kr/data/15021141/standard.do');
+  await expect(page.locator('.main-nav a[href="/sources"]')).toHaveCount(0);
+  await expect(page.locator('main')).toContainText(/사진.*조회/);
 });

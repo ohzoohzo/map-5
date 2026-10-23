@@ -5,7 +5,7 @@ import { IconBookmark, IconCalendar, IconLocation, IconPencil } from '@montage-u
 import { useTranslation } from 'react-i18next';
 import { getCatalog } from '../../api/client';
 import { TRAVEL_TEST_IDS } from '../testIds';
-import { addDays, formatDay, provincesOf, shortProvince, todayIso, tripLengthLabel } from '../regions';
+import { addDays, formatDay, provincesOf, resolveProvince, shortProvince, todayIso, tripLengthLabel } from '../regions';
 import { navigate } from '../router';
 import { scheduledCount, tripActions, useTrip, useTripStorageIssue } from './tripStore';
 
@@ -20,8 +20,11 @@ export default function TripBar({ page }: { page: 'explore' | 'schedule' }) {
   const { t } = useTranslation('trip');
   const trip = useTrip((current) => current);
   const storageIssue = useTripStorageIssue();
+  const regions = useQuery(regionsQuery);
   const [editing, setEditing] = useState(false);
-  const open = editing || trip.destination === '';
+  // 홈이 저장한 짧은 이름('부산')도 받는다. 시·도를 특정할 수 없을 때만(목록을 받은 뒤) 조건 폼을 연다.
+  const unresolved = trip.destination !== '' && regions.isSuccess && resolveProvince(trip.destination, provincesOf(regions.data.regions)) === '';
+  const open = editing || trip.destination === '' || unresolved;
   const dates = trip.startDate ? `${formatDay(trip.startDate)} – ${formatDay(trip.endDate)}` : t('datesUndecided');
 
   return (
@@ -46,16 +49,18 @@ function ConditionsForm({ onDone }: { onDone: () => void }) {
   const trip = useTrip((current) => current);
   const regions = useQuery(regionsQuery);
   const [destination, setDestination] = useState(trip.destination);
+  const provinces = provincesOf(regions.data?.regions ?? []);
+  // 짧은 이름으로 저장된 목적지는 목록이 오면 전체 이름으로 맞춰 고른 상태로 보여준다.
+  const shown = provinces.includes(destination) ? destination : resolveProvince(destination, provinces);
   const [startDate, setStartDate] = useState(trip.startDate || todayIso());
   // 처음 여행은 시안처럼 2박 3일로 시작한다.
   const [dayCount, setDayCount] = useState(String(trip.days.length ? Math.min(trip.days.length, MAX_TRIP_DAYS) : 3));
   const returning = trip.days.slice(Number(dayCount)).reduce((total, day) => total + day.items.length, 0);
-  const provinces = provincesOf(regions.data?.regions ?? []);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!destination || !startDate) return;
-    tripActions.setTrip(destination, startDate, addDays(startDate, Number(dayCount) - 1));
+    if (!shown || !startDate) return;
+    tripActions.setTrip(shown, startDate, addDays(startDate, Number(dayCount) - 1));
     onDone();
   }
 
@@ -64,7 +69,7 @@ function ConditionsForm({ onDone }: { onDone: () => void }) {
       <Typography id="conditions-title" as="h2" variant="headline2" weight="bold">{t(trip.destination ? 'conditionsEditTitle' : 'conditionsStartTitle')}</Typography>
       <div className="conditions-fields">
         <label className="field"><span>{t('destinationLabel')}</span>
-          <Select value={destination} onChange={setDestination} placeholder={t(regions.isLoading ? 'loading' : 'destinationPlaceholder')} disabled={!provinces.length} aria-label={t('destinationLabel')} width="100%">
+          <Select value={shown} onChange={setDestination} placeholder={t(regions.isLoading ? 'loading' : 'destinationPlaceholder')} disabled={!provinces.length} aria-label={t('destinationLabel')} width="100%">
             {provinces.map((province) => <Option key={province} value={province}>{optionLabel(province, provinces)}</Option>)}
           </Select>
         </label>
@@ -76,7 +81,7 @@ function ConditionsForm({ onDone }: { onDone: () => void }) {
             {Array.from({ length: MAX_TRIP_DAYS }, (_, index) => <Option key={index} value={String(index + 1)}>{tripLengthLabel(index + 1)}</Option>)}
           </Select>
         </label>
-        <Button type="submit" variant="solid" color="primary" disabled={!destination || !startDate}>{t(trip.destination ? 'conditionsSave' : 'conditionsStart')}</Button>
+        <Button type="submit" variant="solid" color="primary" disabled={!shown || !startDate}>{t(trip.destination ? 'conditionsSave' : 'conditionsStart')}</Button>
       </div>
       {regions.isError && <Typography variant="caption1" color="semantic.foreground.negative.primary" role="alert">{t('regionsError')}</Typography>}
       {returning > 0 && <Typography variant="caption1" color="semantic.foreground.cautionary.primary">{t('shortenNotice', { count: returning })}</Typography>}

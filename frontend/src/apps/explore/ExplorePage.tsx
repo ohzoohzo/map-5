@@ -6,7 +6,7 @@ import { Coffee, Dices, Landmark, ShoppingBag, UtensilsCrossed, type LucideIcon 
 import { useTranslation } from 'react-i18next';
 import { ApiError, getCatalog, getConfig, searchPlaces, type Place, type SearchPlacesCategory } from '../../api/client';
 import KakaoMap, { type MapPin } from '../../shared/map/KakaoMap';
-import { districtOf, districtsOf, shortProvince } from '../../shared/regions';
+import { districtOf, districtsOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { navigate } from '../../shared/router';
 import PinDayPage from '../../shared/ui/PinDayPage';
 import { TRAVEL_TEST_IDS } from '../../shared/testIds';
@@ -34,24 +34,25 @@ export default function ExplorePage() {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState('list');
-  const short = shortProvince(trip.destination);
   const config = useQuery({ queryKey: ['config'], queryFn: ({ signal }) => getConfig(signal), staleTime: Infinity });
   const regions = useQuery(regionsQuery);
-  const districts = districtsOf(regions.data?.regions ?? [], trip.destination);
+  const province = resolveProvince(trip.destination, provincesOf(regions.data?.regions ?? []));
+  const short = shortProvince(province);
+  const districts = districtsOf(regions.data?.regions ?? [], province);
   const area = [short, district].filter(Boolean).join(' ');
   const usesKakao = query !== '' || kind !== 'attraction';
   const searchText = query ? `${area} ${query}` : `${area} ${KINDS[kind].keyword}`;
   const searchCategory = query ? null : KINDS[kind].category;
   const kakaoReady = config.data?.place_search_enabled === true;
   const catalog = useQuery({
-    queryKey: ['travel', 'catalog', district ? `${trip.destination} ${district}` : trip.destination, ''],
-    queryFn: ({ signal }) => getCatalog(district ? `${trip.destination} ${district}` : trip.destination, '', signal),
-    enabled: trip.destination !== '' && !usesKakao,
+    queryKey: ['travel', 'catalog', district ? `${province} ${district}` : province, ''],
+    queryFn: ({ signal }) => getCatalog(district ? `${province} ${district}` : province, '', signal),
+    enabled: province !== '' && !usesKakao,
   });
   const search = useQuery({
     queryKey: ['travel', 'search', searchText, searchCategory],
     queryFn: ({ signal }) => searchPlaces(searchText, searchCategory, signal),
-    enabled: trip.destination !== '' && usesKakao && kakaoReady,
+    enabled: province !== '' && usesKakao && kakaoReady,
   });
   const result = usesKakao ? search : catalog;
   const places = result.data?.places ?? EMPTY;
@@ -81,7 +82,7 @@ export default function ExplorePage() {
   return (
     <PinDayPage>
       <TripBar page="explore" />
-      {trip.destination !== '' && <>
+      {province !== '' && <>
         <header className="page-head">
           <div>
             <Typography as="h1" variant="title2" weight="bold">{t('exploreTitle', { place: short })}</Typography>

@@ -10,6 +10,19 @@ const SHORT_PROVINCE: Record<string, string> = {
 
 export const shortProvince = (province: string) => SHORT_PROVINCE[province] ?? province;
 
+/**
+ * 여행 목적지(trip.destination)를 카탈로그의 시·도 전체 이름으로 푼다.
+ * 홈은 '부산'처럼 짧은 이름을, 여행 조건 바는 '부산광역시'를 저장한다. 짧은 이름이 여러 시·도에
+ * 걸리면('강원' → 강원도·강원특별자치도) 추측하지 않고 '' 를 돌려 사용자가 고르게 한다.
+ */
+export function resolveProvince(destination: string, provinces: string[]): string {
+  const name = destination.trim();
+  if (!name) return '';
+  if (provinces.includes(name)) return name;
+  const matches = provinces.filter((province) => shortProvince(province) === name);
+  return matches.length === 1 ? matches[0]! : '';
+}
+
 export function provincesOf(regions: string[]): string[] {
   return [...new Set(regions.map((region) => region.split(' ')[0]!))].sort((a, b) => a.localeCompare(b, 'ko'));
 }

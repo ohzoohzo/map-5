@@ -48,5 +48,8 @@ export function formatDay(date: string) {
   return `${day.getMonth() + 1}.${day.getDate()} (${WEEKDAYS[day.getDay()]})`;
 }
 
+/** '2026-10-25T15:00+09:00' → 15 */
+export const formatHour = (time: string) => Number(time.slice(11, 13));
+
 /** '2026-10-23T16:46:04+09:00' → '16:46' */
 export const formatClock = (time: string) => time.slice(11, 16);

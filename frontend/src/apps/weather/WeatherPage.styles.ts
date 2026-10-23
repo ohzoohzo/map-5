@@ -37,6 +37,15 @@ export const WeatherSection = styled.div`
   .w-weather-icon { width: 44px; height: 44px; color: ${brand}; }
   .w-forecast .w-advice { margin: 0; max-width: 380px; line-height: 1.6; }
   .w-forecast .w-footnote { grid-column: 1 / -1; margin: 0; font-size: 12px; color: ${fg('neutral-tertiary')}; }
+  .w-hours { grid-column: 1 / -1; list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(64px, 1fr)); gap: 8px; overflow-x: auto; }
+  .w-hours li { display: grid; justify-items: center; gap: 4px; padding: 10px 6px; border-radius: 12px; background: ${surface}; border: 1px solid ${line}; }
+  .w-hours li.rain { border-color: ${brand}; background: color-mix(in srgb, ${brand} 6%, white); }
+  .w-hours span { font-size: 12px; font-weight: 600; color: ${fg('neutral-secondary')}; }
+  .w-hours svg { width: 22px; height: 22px; color: ${fg('neutral-tertiary')}; }
+  .w-hours li.rain svg { color: ${brand}; }
+  .w-hours strong { font-size: 15px; }
+  .w-hours small { font-size: 11px; color: ${fg('neutral-tertiary')}; }
+  .w-hours li.rain small { color: ${brand}; font-weight: 700; }
 
   .w-compare { display: grid; grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr); gap: 16px; align-items: start; }
   .w-place { display: flex; flex-direction: column; gap: 12px; min-height: 260px; }
@@ -51,6 +60,8 @@ export const WeatherSection = styled.div`
   .w-description { margin: 0; font-size: 14px; line-height: 1.7; color: ${fg('neutral-secondary')}; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .w-address { margin: auto 0 0; display: flex; align-items: center; gap: 6px; font-size: 13px; color: ${fg('neutral-tertiary')}; }
   .w-address svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .w-place > button { align-self: flex-start; }
+  .w-docent { padding: 0; overflow: hidden; }
 
   .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; word-break: keep-all; font-size: 13px; font-weight: 700; color: ${fg('neutral-secondary')}; }
   .w-swap svg { width: 48px; height: 48px; padding: 13px; border-radius: 50%; background: ${brandSoft}; color: ${brand}; }
@@ -83,7 +94,8 @@ export const WeatherSection = styled.div`
     .w-compare { grid-template-columns: 1fr; }
     .w-swap { flex-direction: row; justify-content: center; }
     .w-swap svg { transform: rotate(90deg); }
-    .w-forecast { grid-template-columns: 1fr; }
+    .w-forecast { grid-template-columns: minmax(0, 1fr); }
+    .w-hours { grid-template-columns: repeat(8, 64px); }
     .w-more-list { grid-template-columns: 1fr; }
     .w-actions > button { flex: 1 1 auto; }
   }

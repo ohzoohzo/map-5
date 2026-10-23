@@ -52,6 +52,8 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   const [first, second] = alternatives.alternatives;
 
   await expect(page.getByRole('region', { name: '비 예보' })).toContainText('15–18시 사이 · 강수확률 최대 70%');
+  const hours = page.getByRole('list', { name: '3시간 단위 예보' }).getByRole('listitem');
+  await expect(hours).toHaveText(['12시18°비 30%', '15시18°비 70%']);
   const original = page.getByRole('article', { name: '원래 일정' });
   await expect(original.getByRole('heading')).toHaveText(beach.name);
   await expect(original).toContainText('야외일 수 있어요');
@@ -104,4 +106,24 @@ test('a day carried over without a date asks for travel dates instead of request
   await expect(page.getByRole('region', { name: '여행 날짜가 아직 없어요' })).toBeVisible();
   await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
   expect(forecastCalls).toBe(0);
+});
+
+test('the chosen alternative can be explained by the AI docent only when asked', async ({ page }) => {
+  const docentCalls: string[] = [];
+  await page.route('**/api/docent/**', (route) => {
+    docentCalls.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 503, json: { detail: '해설 테스트용 응답' } });
+  });
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const name = alternatives.alternatives[0]!.place.name;
+  await expect(page.getByRole('article', { name: '바꿔볼 장소' }).getByRole('heading')).toHaveText(name);
+  expect(docentCalls, 'AI 해설은 사용자가 열기 전엔 호출하지 않는다').toEqual([]);
+
+  await page.getByRole('button', { name: '이 장소 해설 보기' }).click();
+  await expect(page.getByRole('region', { name: `${name} 해설` })).toBeVisible();
+  await expect.poll(() => docentCalls.length).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: '해설 닫기' }).click();
+  await expect(page.getByRole('region', { name: `${name} 해설` })).toHaveCount(0);
 });

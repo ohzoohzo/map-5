@@ -2,14 +2,15 @@ import { useState, type CSSProperties } from 'react';
 import { Button, FallbackView, FallbackViewText, Loading, SectionMessage, TextButton, Typography } from '@montage-ui/core';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ArrowRight, Building2, CalendarDays, CloudRain, CloudSun, Info, Landmark, MapPin, Trees } from 'lucide-react';
+import { ArrowRight, BookOpen, Building2, CalendarDays, CloudRain, CloudSun, Info, Landmark, MapPin, Trees } from 'lucide-react';
 import { ApiError, type Place } from '../../api/client';
 import { navigate, useSearchParam } from '../../shared/router';
 import TripBar from '../../shared/trip/TripBar';
 import { tripActions, useTrip, type TripDay } from '../../shared/trip/tripStore';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import DocentPanel from '../docent/DocentPanel';
 import { WeatherSection } from './WeatherPage.styles';
-import { formatClock, formatDay, summarizeRain, useAlternatives, useForecast } from './weather';
+import { formatClock, formatDay, formatHour, summarizeRain, useAlternatives, useForecast } from './weather';
 
 // 언제 갈까?(SchedulePage)와 같은 DAY 색 — 같은 DAY 를 두 화면에서 같은 색으로 본다
 const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
@@ -102,6 +103,8 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
   const { t } = useTranslation('weather');
   const alternatives = useAlternatives(place);
   const [chosenId, setChosenId] = useState<string | null>(null);
+  // 해설은 AI 호출(수 초·과금)이라 사용자가 열 때만 DocentPanel 을 그린다
+  const [docentFor, setDocentFor] = useState<string | null>(null);
 
   const inDay = new Set(day.items.map((item) => item.placeId));
   const options = (alternatives.data?.alternatives ?? []).filter((option) => !inDay.has(option.place.id));
@@ -148,6 +151,10 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
               <span className="w-badge indoor"><Building2 />{t('indoorCandidate')}</span>
               {chosen.place.description && <p className="w-description">{chosen.place.description}</p>}
               <p className="w-address"><MapPin />{chosen.place.address || t('noAddress')} · {t('distance', { km: chosen.distance_km })}</p>
+              <TextButton size="small" color="primary" leadingContent={<BookOpen />} aria-expanded={docentFor === chosen.place.id}
+                onClick={() => setDocentFor(docentFor === chosen.place.id ? null : chosen.place.id)}>
+                {t(docentFor === chosen.place.id ? 'docentClose' : 'docentOpen')}
+              </TextButton>
             </article>
           )}
           {options.length > 1 && (
@@ -168,6 +175,12 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
           {alternatives.data && <p className="w-footnote">{t('alternativesNote', { source: alternatives.data.source })}</p>}
         </div>
       </div>
+
+      {chosen && docentFor === chosen.place.id && (
+        <section className="w-card w-docent" aria-label={t('docentTitle', { name: chosen.place.name })}>
+          <DocentPanel place={chosen.place} />
+        </section>
+      )}
 
       {chosen && (
         <section className="w-card w-preview" aria-label={t('previewTitle')}>
@@ -230,6 +243,16 @@ function ForecastBanner({ place, date, dayNumber }: { place: Place; date: string
         </div>
       </div>
       <p className="w-advice">{rain.rainy ? t('rainAdvice') : t('clearAdvice')}</p>
+      <ol className="w-hours" aria-label={t('hoursTitle')}>
+        {data.slots.map((slot) => (
+          <li key={slot.time} className={slot.rain_expected ? 'rain' : undefined} title={slot.condition}>
+            <span>{t('hour', { hour: formatHour(slot.time) })}</span>
+            {slot.rain_expected ? <CloudRain /> : <CloudSun />}
+            <strong>{Math.round(slot.temperature)}°</strong>
+            <small>{t('hourRain', { value: slot.rain_probability })}</small>
+          </li>
+        ))}
+      </ol>
       <p className="w-footnote">{t('forecastSource', { time: formatClock(data.fetched_at), threshold: data.rain_threshold })}</p>
     </section>
   );

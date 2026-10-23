@@ -126,7 +126,7 @@ function Result({ type, onRetry }: { type: TasteType; onRetry: () => void }) {
           <div
             className="ts-illust"
             aria-hidden
-            style={{ background: image ? `url(${image}) center / cover no-repeat` : `linear-gradient(160deg, ${color.primarySoft} 0%, ${color.borderStrong} 100%)` }}
+            style={{ background: `url(${image}) center / contain no-repeat` }}
           />
           <div className="ts-hero-body">
             <p className="ts-eyebrow">{t('result.eyebrow')}</p>

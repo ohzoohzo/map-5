@@ -33,8 +33,13 @@ export const TYPE_PLACES: Record<TasteType, [string, string]> = {
   active: ['송도해상케이블카', '스카이라인 루지'],
 };
 
-/** 그림·사진이 생기면 경로만 채운다 (예: '/images/taste-slow-alley.png'). 비어 있으면 색 배경. */
-export const TYPE_IMAGES: Record<TasteType, string> = { 'slow-alley': '', 'sea-healing': '', culture: '', active: '' };
+/** 유형을 표현하는 생성 일러스트. 실제 장소 사진으로 사용하지 않는다. */
+export const TYPE_IMAGES: Record<TasteType, string> = {
+  'slow-alley': '/images/pinday/taste-slow-alley.png',
+  'sea-healing': '/images/pinday/taste-sea-healing.png',
+  culture: '/images/pinday/taste-culture.png',
+  active: '/images/pinday/taste-active.png',
+};
 
 /**
  * 가장 많이 고른 유형이 결과. 동점이면 더 뒤 문항에서 고른 유형을 우선한다.

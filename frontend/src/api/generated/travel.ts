@@ -487,10 +487,3 @@ export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>
 
   return withQueryKey(query, queryOptions.queryKey);
 }
-
-
-
-
-
-
-

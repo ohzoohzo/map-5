@@ -135,7 +135,7 @@ const fulfillRoutes = (route: Route, status: 'ok' | 'no_route' = 'ok') => route.
   json: routeResponse(new URL(route.request().url()), status),
 });
 
-async function useMapSpy(page: Page, bootstrapOnly = false) {
+async function useMapSpy(page: Page, bootstrapOnly = false, highMapLayer = false) {
   await page.route('**/api/config', (route) => route.fulfill({
     json: { js_key: 'transport-route-test', place_search_enabled: false },
   }));
@@ -149,7 +149,17 @@ async function useMapSpy(page: Page, bootstrapOnly = false) {
       class LatLng { constructor(latitude, longitude) { this.latitude = latitude; this.longitude = longitude; } }
       class LatLngBounds { constructor() { this.points = []; } extend(point) { this.points.push(point); } }
       class Map {
-        constructor(element, options) { this.center = options.center; this.level = options.level; }
+        constructor(element, options) {
+          this.center = options.center; this.level = options.level;
+          if (${highMapLayer}) {
+            element.style.position = 'relative';
+            const pane = document.createElement('div');
+            pane.setAttribute('data-transport-sdk-pane', 'true');
+            pane.style.cssText = 'position:absolute;inset:0;z-index:100';
+            pane.innerHTML = '<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#e4eaf1" /></svg>';
+            element.appendChild(pane);
+          }
+        }
         setBounds(bounds) { window.__transportBounds.push(bounds.points); }
         setCenter(point) { this.center = point; } getCenter() { return this.center; }
         setLevel(level) { this.level = level; } getLevel() { return this.level; }
@@ -313,6 +323,38 @@ test('autoload false SDK bootstrap calls load before requiring map constructors'
   await expect.poll(() => activeMapPoints(page))
     .toEqual(routeResponse(defaultRequest()).routes[0]!.steps.flatMap((step) => step.path));
   await expect(page.getByText('지도를 불러오지 못했어요.', { exact: true })).toHaveCount(0);
+});
+
+test('route legend stays painted above the SDK map layers on desktop and mobile', async ({ page }, testInfo) => {
+  await useMapSpy(page, false, true);
+  await seedTrip(page);
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => activeMapPoints(page))
+    .toEqual(routeResponse(defaultRequest()).routes[0]!.steps.flatMap((step) => step.path));
+
+  const map = page.getByRole('region', { name: '선택 구간 지도', exact: true });
+  const legend = map.locator('.map-legend');
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1080 });
+    await legend.scrollIntoViewIfNeeded();
+    await expect(legend).toContainText('도보 · 점선');
+    await expect(legend).toContainText('버스 · 실선');
+    await expect(map.locator('[data-transport-sdk-pane]')).toHaveCount(1);
+    // pointer-events:none lets map interaction pass through the legend. Briefly
+    // include it in hit testing to inspect paint order, then restore the style.
+    await expect.poll(() => legend.evaluate((element) => {
+      const previous = element.style.pointerEvents;
+      element.style.pointerEvents = 'auto';
+      try {
+        const bounds = element.getBoundingClientRect();
+        const top = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+        return top !== null && element.contains(top);
+      } finally {
+        element.style.pointerEvents = previous;
+      }
+    }), `범례가 ${width}px 화면에서 SDK의 높은 지도 레이어보다 앞에 표시돼야 한다`).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`transport-map-legend-${width}.png`), fullPage: true });
+  }
 });
 
 test('driving, walking and transit use their own geometry, costs and sources when switching modes', async ({ page }, testInfo) => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Check, Heart, Info, MapPin, RotateCcw, Share2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Heart, Info, MapPin, RotateCcw } from 'lucide-react';
 import { getCatalog, type Place } from '../../api/client';
 import { districtOf } from '../../shared/regions';
 import { Link, navigate } from '../../shared/router';
@@ -169,8 +169,6 @@ function Result({ type, onRetry }: { type: TasteType; onRetry: () => void }) {
           <p className="ts-hint">{t('result.ctaHint')}</p>
           <div className="ts-sub-actions">
             <button type="button" className="ts-outline" onClick={onRetry}><RotateCcw size={17} />{t('result.retry')}</button>
-            {/* 공유 기능은 다음 작업에서 연결 */}
-            <button type="button" className="ts-outline"><Share2 size={17} />{t('result.share')}</button>
           </div>
           <p className="ts-note"><Info size={16} />{t('result.note')}</p>
         </div>

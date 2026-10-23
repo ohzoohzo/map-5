@@ -63,10 +63,9 @@ export default {
       placesError: '장소를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.',
       saveCandidate: '{{name}} 후보함에 저장',
       removeCandidate: '{{name}} 후보함에서 빼기',
-      cta: '이 취향으로 장소 찾기',
-      ctaHint: '어디 갈까?에서 추천 필터로 이어져요.',
+      cta: '취향 저장하고 장소 둘러보기',
+      ctaHint: '결과를 저장하고 ‘어디 갈까?’로 이동해요.',
       retry: '다시 테스트하기',
-      share: '결과 카드 공유',
       note: '여행 취향을 돕는 가벼운 테스트예요.',
     },
 

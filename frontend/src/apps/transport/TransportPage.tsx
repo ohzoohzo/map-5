@@ -48,7 +48,8 @@ const DayTabs = styled.div`
   border-radius: 999px;
 
   .day-button {
-    min-width: 150px;
+    flex: 0 0 auto;
+    min-width: max-content;
     white-space: nowrap;
   }
 
@@ -56,8 +57,6 @@ const DayTabs = styled.div`
     width: 100%;
 
     .day-button {
-      min-width: 130px;
-      flex: 1;
       padding: 8px 12px;
     }
   }
@@ -299,6 +298,7 @@ export default function TransportPage() {
               variant={index === activeDayIndex ? 'solid' : 'outlined'}
               color={index === activeDayIndex ? 'primary' : 'assistive'}
               aria-pressed={index === activeDayIndex}
+              onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })}
               onClick={() => {
                 setSelectedDayIndex(index);
                 setSelectedSegmentIndex(0);

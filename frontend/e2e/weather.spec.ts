@@ -35,7 +35,7 @@ const PHOTO_ORIGIN = 'https://pinday-weather-photo.example';
 const PHOTO_SOURCE = '한국관광공사 TourAPI';
 const PHOTO_LICENSE = '공공누리 제3유형 (출처표시 + 변경금지)';
 type PhotoState = 'ready' | 'empty' | 'unavailable' | 'broken';
-type PhotoSetup = { states?: ReadonlyMap<string, PhotoState>; defaultState?: PhotoState };
+type PhotoSetup = { states?: ReadonlyMap<string, PhotoState>; defaultState?: PhotoState; license?: string };
 const photoUrl = (id: string) => `${PHOTO_ORIGIN}/${encodeURIComponent(id)}.svg`;
 const photoSourceUrl = (id: string) => `https://gallery.visitkorea.or.kr/fixture/${encodeURIComponent(id)}`;
 
@@ -70,7 +70,7 @@ async function installPhotos(page: Page, setup: PhotoSetup) {
     if (stateOf(id) === 'unavailable') return route.fulfill({ status: 503, json: { detail: '사진 서비스를 일시적으로 이용할 수 없습니다.' } });
     const body: DocentPhotos = {
       place_id: id,
-      photos: stateOf(id) === 'empty' ? [] : [{ url: photoUrl(id), thumbnail_url: photoUrl(id), title: `${url.searchParams.get('name')} 원본`, license: PHOTO_LICENSE }],
+      photos: stateOf(id) === 'empty' ? [] : [{ url: photoUrl(id), thumbnail_url: photoUrl(id), title: `${url.searchParams.get('name')} 원본`, license: setup.license ?? PHOTO_LICENSE }],
       source: PHOTO_SOURCE,
       source_url: photoSourceUrl(id),
     };
@@ -284,3 +284,67 @@ test('the center "이 장소만 교체" button replaces the stop just like the b
   const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
   expect(saved.days[1]!.items.map((item) => item.placeId)).toEqual([cafe.id, first.id, night.id]);
 });
+
+for (const width of [1586, 1440, 1150, 1101]) {
+  test(`${width}px에서 시안의 좌우 장소 비교와 가로 일정 미리보기를 유지한다`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
+    await expect(page.getByRole('article', { name: '바꿔볼 장소', exact: true })).toBeVisible();
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height, right: r.right, bottom: r.bottom };
+      };
+      const row = (selector: string) => [...document.querySelectorAll(selector)].map((e) => ({ x: e.getBoundingClientRect().x, y: e.getBoundingClientRect().y }));
+      return {
+        hero: box('.w-hero'), preview: box('.w-preview'), original: box('.w-place:not(.chosen)'), chosen: box('.w-place.chosen'),
+        originalCopy: box('.w-place:not(.chosen) .w-place-copy'), originalImage: box('.w-place:not(.chosen) .w-visual'),
+        chosenCopy: box('.w-place.chosen .w-place-copy'), chosenImage: box('.w-place.chosen .w-visual'),
+        recommendations: row('.w-more-list > li').slice(0, 2), stops: row('.w-timeline > li'),
+      };
+    });
+    expect(geometry.hero.height, '선택 영역이 머리글 높이를 늘리지 않아야 한다').toBeLessThan(200);
+    await expect(page.locator('.w-hero-copy .w-pickers')).toHaveCount(0);
+    expect(Math.abs(geometry.original.y - geometry.chosen.y)).toBeLessThanOrEqual(1);
+    expect(geometry.original.right).toBeLessThan(geometry.chosen.x);
+    expect(geometry.originalImage.x).toBeGreaterThan(geometry.originalCopy.x);
+    expect(geometry.chosenImage.x).toBeGreaterThan(geometry.chosenCopy.x);
+    expect(geometry.recommendations).toHaveLength(2);
+    expect(Math.abs(geometry.recommendations[0]!.y - geometry.recommendations[1]!.y)).toBeLessThanOrEqual(1);
+    expect(geometry.recommendations[1]!.x).toBeGreaterThan(geometry.recommendations[0]!.x);
+    expect(geometry.stops).toHaveLength(3);
+    expect(Math.max(...geometry.stops.map((e) => e.y)) - Math.min(...geometry.stops.map((e) => e.y))).toBeLessThanOrEqual(1);
+    if (width === 1586) {
+      expect(geometry.hero.width, '넓은 화면에서는 시안의 콘텐츠 폭을 사용한다').toBeGreaterThanOrEqual(1440);
+      expect(geometry.preview.bottom, '비교와 교체 동작을 첫 화면에서 확인할 수 있어야 한다').toBeLessThanOrEqual(1000);
+    }
+    await noHorizontalOverflow(page);
+    await page.screenshot({ path: testInfo.outputPath(`weather-aligned-${width}.png`), fullPage: true });
+  });
+}
+
+test('공공누리 제1유형 사진은 시안 프레임을 채운다', async ({ page }) => {
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready', license: '공공누리 제1유형(출처표시)' });
+  const image = page.getByRole('article', { name: '원래 일정', exact: true }).getByRole('img', { name: `${beach.name} 사진 (${beach.name} 원본)`, exact: true });
+  await expect(image).toBeVisible();
+  await expect(image).toHaveCSS('object-fit', 'cover');
+});
+
+
+for (const width of [1101, 390]) {
+  test(`${width}px에서 긴 장소 주소가 카드나 화면을 넘지 않고 전체 주소를 보존한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 1000 });
+    const address = '부산광역시 해운대구 해운대해변로 264 (우동) 해운대해수욕장 관광안내소와 해변 산책로 입구';
+    const seeded = { ...trip, places: { ...trip.places, [beach.id]: { ...beach, address } } };
+    await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, seeded, { defaultState: 'ready' });
+    const original = page.getByRole('article', { name: '원래 일정', exact: true });
+    const addressLink = original.getByRole('button', { name: `${beach.name} 해설 보기`, exact: true });
+    await expect(addressLink).toHaveAttribute('title', address);
+    await expect(addressLink).toContainText(address);
+    await addressLink.scrollIntoViewIfNeeded();
+    const card = await original.boundingBox();
+    const link = await addressLink.boundingBox();
+    expect(link!.x + link!.width).toBeLessThanOrEqual(card!.x + card!.width);
+    await noHorizontalOverflow(page);
+  });
+}

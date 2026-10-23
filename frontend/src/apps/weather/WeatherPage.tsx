@@ -10,10 +10,9 @@ import { districtOf } from '../../shared/regions';
 import { navigate, useSearchParam } from '../../shared/router';
 import TripBar from '../../shared/trip/TripBar';
 import { tripActions, useTrip, type TripDay } from '../../shared/trip/tripStore';
-import PinDayPage from '../../shared/ui/PinDayPage';
 import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import DocentPanel from '../docent/DocentPanel';
-import { WeatherSection } from './WeatherPage.styles';
+import { WeatherPageLayout, WeatherSection } from './WeatherPage.styles';
 import { formatClock, formatDay, formatDayLong, rainPeriod, summarizeRain, useAlternatives, useForecast } from './weather';
 
 // 시안: design/pinday-weather-v2.png — 머리글+예보 / 원래 일정 ↔ 바꿔볼 장소(+이런 곳도) / 교체 후 미리보기 / 출처
@@ -42,26 +41,27 @@ export default function WeatherPage() {
     <div className="w-hero-copy">
       <Typography as="h1" variant="title1" weight="bold">{t('title')}</Typography>
       <Typography as="p" className="w-subtitle" variant="headline2" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
-      {!empty && (
-        <div className="w-pickers">
-          <label className="field"><span>{t('pickDay')}</span>
-            <Select value={String(dayIndex)} onChange={(value) => select(Number(value), 0)} aria-label={t('pickDay')} width="100%">
-              {days.map((each, index) => <Option key={index} value={String(index)}>{dayLabel(t, index, each)}</Option>)}
-            </Select>
-          </label>
-          <label className="field"><span>{t('pickPlace')}</span>
-            <Select value={String(itemIndex)} onChange={(value) => select(dayIndex, Number(value))} aria-label={t('pickPlace')} width="100%" disabled={day.items.length === 0}
-              placeholder={t('dayEmpty')}>
-              {day.items.map((item, index) => <Option key={`${item.placeId}-${index}`} value={String(index)}>{`${index + 1}. ${places[item.placeId]?.name ?? item.placeId}`}</Option>)}
-            </Select>
-          </label>
-        </div>
-      )}
+    </div>
+  );
+
+  const pickers = !empty && (
+    <div className="w-pickers" role="group" aria-label={t('compareTarget')}>
+      <label className="field"><span>{t('pickDay')}</span>
+        <Select value={String(dayIndex)} onChange={(value) => select(Number(value), 0)} aria-label={t('pickDay')} width="100%" height={44}>
+          {days.map((each, index) => <Option key={index} value={String(index)}>{dayLabel(t, index, each)}</Option>)}
+        </Select>
+      </label>
+      <label className="field"><span>{t('pickPlace')}</span>
+        <Select value={String(itemIndex)} onChange={(value) => select(dayIndex, Number(value))} aria-label={t('pickPlace')} width="100%" height={44} disabled={day.items.length === 0}
+          placeholder={t('dayEmpty')}>
+          {day.items.map((item, index) => <Option key={`${item.placeId}-${index}`} value={String(index)}>{`${index + 1}. ${places[item.placeId]?.name ?? item.placeId}`}</Option>)}
+        </Select>
+      </label>
     </div>
   );
 
   return (
-    <PinDayPage>
+    <WeatherPageLayout>
       <TripBar page="schedule" />
       <WeatherSection>
         {notice && (
@@ -83,6 +83,7 @@ export default function WeatherPage() {
         </> : <>
           <div className="w-hero">
             {heading}
+            {pickers}
             {place && <ForecastCard place={place} date={day.date} dayNumber={dayIndex + 1} />}
           </div>
           {place
@@ -96,7 +97,7 @@ export default function WeatherPage() {
           <span>{t('footerCaveat')}</span>
         </footer>
       </WeatherSection>
-    </PinDayPage>
+    </WeatherPageLayout>
   );
 }
 
@@ -131,16 +132,16 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
   }
 
   const placeLink = (target: Place) => (
-    <button type="button" className="w-place-link" aria-expanded={docentPlace?.id === target.id}
+    <button type="button" className="w-place-link" title={target.address || t('noAddress')} aria-expanded={docentPlace?.id === target.id}
       onClick={() => setDocentPlace(docentPlace?.id === target.id ? null : target)} aria-label={t('docentOpen', { name: target.name })}>
-      <MapPin />{target.address || t('noAddress')}<ChevronRight />
+      <MapPin /><span>{target.address || t('noAddress')}</span><ChevronRight />
     </button>
   );
 
   return (
     <>
       <div className="w-compare">
-        <article className="w-card w-place" aria-label={t('original')}>
+        <article className="w-card w-place original" aria-label={t('original')}>
           <div className="w-place-copy">
             <div className="w-card-top"><span className="w-tag">{t('original')}</span><span className="w-meta">{t('dayLabel', label)}</span></div>
             <Typography as="h2" variant="title3" weight="bold">{place.name}</Typography>
@@ -172,21 +173,25 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
                 <Typography as="h2" variant="title3" weight="bold">{chosen.place.name}</Typography>
                 <span className="w-badge indoor"><Building2 />{t('indoorCandidate')}</span>
                 {chosen.place.description && <p className="w-description">{chosen.place.description}</p>}
-                <span className="w-meta">{t('distance', { km: chosen.distance_km })}</span>
-                {placeLink(chosen.place)}
+                <div className="w-place-footer">
+                  {placeLink(chosen.place)}
+                  <span className="w-meta">{t('distance', { km: chosen.distance_km })}</span>
+                </div>
               </div>
               <PlaceVisual place={chosen.place} kind="indoor" />
             </article>
           )}
           {others.length > 0 && (
             <section className="w-more" aria-labelledby="weather-more-title">
-              <Typography id="weather-more-title" as="h3" variant="headline2" weight="bold"><span className="w-dot" aria-hidden="true" />{t('moreTitle')}</Typography>
+              <div className="w-more-head">
+                <Typography id="weather-more-title" as="h3" variant="headline2" weight="bold"><span className="w-dot" aria-hidden="true" />{t('moreTitle')}</Typography>
+                {others.length > 2 && (
+                  <TextButton size="small" color="assistive" onClick={() => setShowAll(!showAll)}>{t(showAll ? 'showFewer' : 'showMore', { count: others.length - 2 })}</TextButton>
+                )}
+              </div>
               <ul className="w-more-list">
                 {visibleOthers.map((option) => <MoreCard key={option.place.id} option={option} onChoose={() => setChosenId(option.place.id)} />)}
               </ul>
-              {others.length > 2 && (
-                <TextButton size="small" color="assistive" onClick={() => setShowAll(!showAll)}>{t(showAll ? 'showFewer' : 'showMore', { count: others.length - 2 })}</TextButton>
-              )}
             </section>
           )}
         </div>
@@ -219,7 +224,7 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
           <div className="w-actions">
             <p className="w-info"><Info />{t('previewNote', label)}</p>
             <Button variant="outlined" color="primary" onClick={() => navigate(`/schedule?day=${dayIndex + 1}`)}>{t('keep')}</Button>
-            <Button variant="solid" color="primary" trailingContent={<ArrowRight />} onClick={replace}>{t('replace')}</Button>
+            <Button className="w-replace-action" variant="solid" color="primary" trailingContent={<ArrowRight />} onClick={replace}>{t('replace')}</Button>
           </div>
         </section>
       )}
@@ -237,12 +242,13 @@ function PlaceVisual({ place, kind, large = false, small = false }: { place: Pla
   const [broken, setBroken] = useState<string | null>(null);
   const Icon = VISUAL_ICON[kind];
   const className = `w-visual ${kind}${large ? ' large' : ''}${small ? ' small' : ''}`;
+  const canCrop = photo ? /공공누리\s*제?\s*1\s*유형/.test(photo.license) : false;
   if (!photo || broken === photo.url) {
     const state = photo && broken === photo.url ? 'photoBroken' : photos.isError ? 'photoError' : photos.isSuccess ? 'photoEmpty' : 'photoLoading';
     return <div className={className} role="status" aria-label={t('photoLabel', { name: place.name })}><span className="w-photo-state"><Icon aria-hidden="true" /><span>{t(state)}</span></span></div>;
   }
   return (
-    <figure className={`${className} photo`}>
+    <figure className={`${className} photo`} data-photo-fit={canCrop ? 'cover' : 'contain'}>
       <span className="w-photo-frame"><img src={photo.url} alt={t('photoAlt', { name: place.name, title: photo.title })} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={photo.title} /></span>
     </figure>
   );
@@ -257,6 +263,7 @@ function MoreCard({ option, onChoose }: { option: WeatherAlternative; onChoose: 
         <span className="w-more-copy">
           <strong>{option.place.name}</strong>
           <span className="w-badge indoor small"><Building2 />{t('indoorShort')}</span>
+          {option.place.description && <span className="w-more-description">{option.place.description}</span>}
           <small><MapPin />{[districtOf(option.place), t('distance', { km: option.distance_km })].filter(Boolean).join(' · ')}</small>
         </span>
         <ChevronRight className="w-chevron" />
@@ -327,7 +334,7 @@ function ForecastCard({ place, date, dayNumber }: { place: Place; date: string; 
   }
 
   return (
-    <section className={rainy ? 'w-card w-forecast rainy' : 'w-card w-forecast'} aria-label={label}>
+    <section className={`w-card w-forecast${rainy ? ' rainy' : ''}${advice ? ' has-advice' : ''}`} aria-label={label}>
       <div className="w-forecast-left">{head}{body}</div>
       {advice && <p className="w-advice">{advice}</p>}
       {forecast.data?.status === 'ok' && <p className="w-forecast-time">{t('forecastSource', { time: formatClock(forecast.data.fetched_at), threshold: forecast.data.rain_threshold })}</p>}

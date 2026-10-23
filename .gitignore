@@ -7,7 +7,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 frontend/dist/
-bazel-*
 .DS_Store
 **/data/*_raw.*
 frontend/e2e/artifacts/

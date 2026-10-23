@@ -1,83 +1,55 @@
-"""최근 소식: OpenAI 웹 검색. 실제 검색 출처 목록에 있는 URL·확인된 발행일의 기사만 남긴다."""
-import json
-from datetime import date, datetime, timedelta
+"""최근 소식: 부산시·부산관광공사·지역 언론으로 한정한 Google 뉴스 RSS (키 불필요, 1초 내외).
 
-from fastapi import HTTPException
+AI 웹 검색(20~40초)을 대신한다. 기사 제목·출처·발행일을 원문 그대로 쓰므로 지어낸 내용이 없다.
+제목에 장소명이 들어간 기사만 남겨 무관한 기사를 거른다.
+"""
+import re
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 
-from .writer import call_responses, model_name, output_text
+import httpx
 
-MAX_ITEMS = 5
+RSS_URL = "https://news.google.com/rss/search"
+SOURCE_URL = "https://news.google.com/"
+# 믿을 만한 부산 출처: 부산시(구·군 포함 하위 도메인), 부산관광포털, 부산관광공사, 부산일보, 국제신문, KNN
+TRUSTED_SITES = ["busan.go.kr", "visitbusan.net", "bto.or.kr", "busan.com", "kookje.co.kr", "knn.co.kr"]
+MAX_ITEMS = 3
 RECENT_DAYS = 183  # 약 6개월
 
-SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["items"],
-    "properties": {
-        "items": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["title", "summary", "published_date", "source_name", "url"],
-                "properties": {
-                    "title": {"type": "string"},
-                    "summary": {"type": "string"},
-                    "published_date": {"type": "string"},
-                    "source_name": {"type": "string"},
-                    "url": {"type": "string"},
-                },
-            },
-        },
-    },
-}
+
+def _normalize(text: str) -> str:
+    return re.sub(r"\(.*?\)|\s", "", text)
 
 
-def search_sources(payload: dict) -> set[str]:
-    return {
-        source.get("url")
-        for item in payload.get("output", []) if item.get("type") == "web_search_call"
-        for source in ((item.get("action") or {}).get("sources") or [])
-        if isinstance(source, dict) and source.get("url")
-    }
-
-
-def valid_date(value: str, today: date) -> bool:
+def search_news(place_name: str, now: datetime) -> list[dict]:
+    query = f'"{place_name}" (' + " OR ".join(f"site:{site}" for site in TRUSTED_SITES) + ")"
     try:
-        published = date.fromisoformat(value)
-    except ValueError:
-        return False
-    return today - timedelta(days=RECENT_DAYS) <= published <= today
+        response = httpx.get(RSS_URL, params={"q": query, "hl": "ko", "gl": "KR", "ceid": "KR:ko"}, timeout=8.0, follow_redirects=True)
+        response.raise_for_status()
+        entries = ET.fromstring(response.content).findall("./channel/item")
+    except (httpx.HTTPError, ET.ParseError):
+        return []
 
-
-def search_news(place_name: str, address: str, now: datetime) -> list[dict]:
-    today = now.date()
-    body = {
-        "model": model_name(),
-        "reasoning": {"effort": "low"},
-        "tools": [{"type": "web_search", "user_location": {"type": "approximate", "country": "KR"}}],
-        "include": ["web_search_call.action.sources"],
-        "input": (
-            f"오늘은 {today.isoformat()}이다. 아래 장소와 직접 관련된 한국어 뉴스·공식 소식을 웹에서 검색해 최근 3개월을 우선으로, 최대 6개월({RECENT_DAYS}일) 이내 것만 "
-            f"최대 {MAX_ITEMS}건 정리해라.\n장소: {place_name}\n주소: {address}\n"
-            "규칙: 실제로 검색해서 열어 본 기사만, 발행일(YYYY-MM-DD)을 확인한 것만 넣는다. 같은 사건의 중복 기사는 하나만. "
-            "summary 는 기사 내용 한두 문장 요약(추측 금지). 관련 기사가 없으면 빈 배열."
-        ),
-        "text": {"format": {"type": "json_schema", "name": "docent_news", "strict": True, "schema": SCHEMA}},
-    }
-    payload = call_responses(body, timeout=120.0)
-    try:
-        items = json.loads(output_text(payload)).get("items", [])
-    except (ValueError, AttributeError):
-        raise HTTPException(502, "최근 소식 응답 형식이 올바르지 않아요.") from None
-    sources = search_sources(payload)
-    kept, seen = [], set()
-    for item in items:
-        url = item.get("url", "")
-        if not url.startswith(("http://", "https://")) or url not in sources or url in seen:
+    target = _normalize(place_name)
+    oldest = now - timedelta(days=RECENT_DAYS)
+    items, seen = [], set()
+    for entry in entries:
+        source = (entry.findtext("source") or "").strip()
+        title = (entry.findtext("title") or "").strip()
+        if source and title.endswith(f" - {source}"):
+            title = title[: -len(f" - {source}")].strip()
+        title = re.split(r"\s[:|]\s", title)[0].strip()  # 사이트 메뉴 꼬리 제거 ("… | 축제·행사", "… : 부산소식")
+        key = re.sub(r"[^0-9A-Za-z가-힣]", "", title)[:30]  # 같은 기사 중복 판별
+        link = (entry.findtext("link") or "").strip()
+        try:
+            published = parsedate_to_datetime(entry.findtext("pubDate") or "").astimezone(now.tzinfo)
+        except (TypeError, ValueError):
             continue
-        if not valid_date(item.get("published_date", ""), today):
+        if target not in _normalize(title) or not link.startswith("https://") or key in seen:
             continue
-        seen.add(url)
-        kept.append(item)
-    return sorted(kept, key=lambda item: item["published_date"], reverse=True)[:MAX_ITEMS]
+        if not oldest <= published <= now + timedelta(days=1):
+            continue
+        seen.add(key)
+        items.append({"title": title, "summary": "", "published_date": published.date().isoformat(), "source_name": source or "언론사", "url": link})
+    return sorted(items, key=lambda item: item["published_date"], reverse=True)[:MAX_ITEMS]

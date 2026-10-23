@@ -20,9 +20,9 @@
   `gpt-5-mini`(env `OPENAI_MODEL` 로 변경 가능), JSON 스키마 출력, 섹션별 근거 번호, 근거 없으면 생성 안 함.
   장소별 결과는 서버 메모리 캐시 (재시작 시 초기화). 응답 약 8초.
 - 프론트: 생성 fetch 는 오류 응답을 throw 하지 않아 `getDocentStoryUrl` + 공용 `request()` 사용.
-- 2026-10-23 최근 소식 API `GET /api/docent/news` (routers/docent/news.py): OpenAI web_search + JSON 스키마.
-  검증: 실제 검색 출처 목록(`web_search_call.action.sources`)에 있는 URL만, 발행일 YYYY-MM-DD 이고 6개월 이내만 남김.
-  결과 있으면 6시간 캐시, 0건이면 캐시 안 함. 응답 20~40초라 탭을 열 때만 조회.
+- 2026-10-23 최근 소식 API `GET /api/docent/news` (routers/docent/news.py): ~~OpenAI web_search~~(20~40초, 도메인 한정해도 비슷) →
+  Google 뉴스 RSS + `site:` 로 부산 출처 한정 (busan.go.kr·visitbusan.net·bto.or.kr·busan.com·kookje.co.kr·knn.co.kr). 0.2~1.3초, 키 불필요.
+  제목에 장소명 포함 + 6개월 이내만, 메뉴 꼬리(" | …", " : …") 제거·중복 제거, 최신 3건, 1시간 캐시. AI 요약 없음(원문 제목 그대로).
 - 2026-10-23 사진 `GET /api/docent/photos`: TourAPI 대표 이미지 + detailImage2, 공공누리 유형 확인된 https 사진만 (최대 8장, 약 0.5초).
   `PhotoSlideshow`: 사진 크기(420×280, 3:2)만큼 + 오른쪽에 간단 설명(AI 요약, 없으면 공공데이터 소개) 크게. 화살표 없이 자동 슬라이드.
   해설·소식 로딩 중엔 "둘러보기" 캡션. 제3유형(변경금지)이라 object-fit: contain + 출처 표기.

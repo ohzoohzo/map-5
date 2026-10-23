@@ -27,16 +27,14 @@ function useStory(place: Place | null) {
   });
 }
 
-// 웹 검색은 20~30초 걸리고 비용이 들어서 '최근 소식' 탭을 열었을 때만 조회한다
+// 부산 지역 출처 RSS 조회(1초 내외). '최근 소식' 탭을 열었을 때만 조회한다
 function useNews(place: Place | null, enabled: boolean) {
   return useQuery({
     queryKey: ['docent', 'news', place?.id],
     enabled: enabled && place !== null,
-    staleTime: 6 * 60 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
     retry: false,
-    queryFn: ({ signal }) => request<DocentNews>(getDocentNewsUrl({
-      place_id: place!.id, name: place!.name, address: place!.address,
-    }), signal),
+    queryFn: ({ signal }) => request<DocentNews>(getDocentNewsUrl({ place_id: place!.id, name: place!.name }), signal),
   });
 }
 
@@ -151,13 +149,13 @@ export default function DocentPanel({ place }: { place: Place | null }) {
                     <a href={item.url} target="_blank" rel="noreferrer">
                       <strong>{item.title}<ArrowUpRight size={14} /></strong>
                       <span className="news-meta">{item.source_name} · {t('publishedDate', { date: item.published_date })}</span>
-                      <span className="news-summary">{item.summary}</span>
+                      {item.summary && <span className="news-summary">{item.summary}</span>}
                     </a>
                   </li>
                 ))}
               </ul>
               {news.data.searched_at && (
-                <p className="ai-note"><Sparkles size={12} /> {t('newsNote', { model: news.data.model, time: news.data.searched_at.slice(0, 16).replace('T', ' ') })}</p>
+                <p className="ai-note">{t('newsNote', { time: news.data.searched_at.slice(0, 16).replace('T', ' ') })}</p>
               )}
             </>
           )}

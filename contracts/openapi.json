@@ -226,6 +226,7 @@
           "docent"
         ],
         "summary": "Docent News",
+        "description": "부산시·부산관광공사·지역 언론 보도 중 장소명이 제목에 들어간 최신 3건.",
         "operationId": "docent_news",
         "parameters": [
           {
@@ -248,17 +249,6 @@
               "minLength": 1,
               "maxLength": 100,
               "title": "Name"
-            }
-          },
-          {
-            "name": "address",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 200,
-              "default": "",
-              "title": "Address"
             }
           }
         ],

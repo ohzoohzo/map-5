@@ -275,6 +275,7 @@ export const getDocentNewsUrl = (params: DocentNewsParams,) => {
 }
 
 /**
+ * 부산시·부산관광공사·지역 언론 보도 중 장소명이 제목에 들어간 최신 3건.
  * @summary Docent News
  */
 export const docentNews = async (params: DocentNewsParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentNews> => {

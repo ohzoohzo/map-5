@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.main import app
 from backend.app.routers import docent
-from backend.app.routers.docent import sources, writer
+from backend.app.routers.docent import news, sources, writer
 from backend.app.routers.docent.sources import Evidence
 
 PARAMS = {"place_id": "kakao:1", "name": "검증 장소", "address": "부산광역시 검증구", "latitude": 35.1, "longitude": 129.0}
@@ -87,47 +87,53 @@ def test_tour_title_match_prefers_exact_name_nearby(monkeypatch):
     assert calls[-1] == "2"
 
 
-def news_payload(items, sources):
-    return {"output": [
-        {"type": "web_search_call", "action": {"type": "search", "sources": [{"type": "url", "url": url} for url in sources]}},
-        {"type": "message", "content": [{"type": "output_text", "text": json.dumps({"items": items})}]},
-    ]}
+def rss(*entries):
+    items = "".join(
+        f"<item><title>{title} - {source}</title><link>{link}</link><pubDate>{date}</pubDate><source url=\"https://x\">{source}</source></item>"
+        for title, link, date, source in entries
+    )
+    return f"<rss><channel>{items}</channel></rss>"
 
 
-def news_item(url, published_date):
-    return {"title": "제목", "summary": "요약", "published_date": published_date, "source_name": "검증일보", "url": url}
-
-
-def test_news_keeps_only_searched_urls_with_recent_valid_dates(monkeypatch):
+def test_news_uses_trusted_sites_and_keeps_recent_titled_items(monkeypatch):
     docent._news_cache.clear()
-    monkeypatch.setattr(docent, "env", lambda name: "test-key")
-    monkeypatch.setattr(writer, "env", lambda name: "test-key" if name == "OPENAI_API_KEY" else "")
-    today = docent.datetime.now(docent.KST).date().isoformat()
-    items = [
-        news_item("https://news.example/a", today),           # 유지
-        news_item("https://invented.example/b", today),       # 검색 출처에 없음 → 제외
-        news_item("https://news.example/c", "2020-01-01"),    # 오래됨 → 제외
-        news_item("https://news.example/d", "모름"),           # 날짜 형식 오류 → 제외
-    ]
-    post = Mock(return_value=httpx.Response(200, json=news_payload(items, ["https://news.example/a", "https://news.example/c", "https://news.example/d"])))
-    monkeypatch.setattr(writer.httpx, "post", post)
+    from email.utils import format_datetime
+    now = docent.datetime.now(docent.KST)
+    recent = format_datetime(now - docent.timedelta(days=1))
+    older = format_datetime(now - docent.timedelta(days=3))
+    old = format_datetime(now - docent.timedelta(days=400))
+    body = rss(
+        ("검증 장소 축제 개최", "https://news.google.com/a", older, "국제신문"),
+        ("검증 장소 새 전시", "https://news.google.com/b", recent, "부산일보"),
+        ("다른 동네 소식", "https://news.google.com/c", recent, "부산일보"),        # 제목에 장소명 없음 → 제외
+        ("검증 장소 옛 기사", "https://news.google.com/d", old, "KNN"),            # 오래됨 → 제외
+        ("검증장소 소식 하나 더", "https://news.google.com/e", older, "부산시청"),
+        ("검증 장소 네번째", "https://news.google.com/f", older, "국제신문"),         # 3건 초과 → 제외
+    )
+    calls = []
+
+    def fake_get(url, params, timeout, follow_redirects):
+        calls.append(params["q"])
+        return httpx.Response(200, text=body, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(news.httpx, "get", fake_get)
     client = TestClient(app)
-    params = {"place_id": "kakao:1", "name": "검증 장소"}
-    data = client.get("/api/docent/news", params=params).json()
-    assert [item["url"] for item in data["items"]] == ["https://news.example/a"]
-    assert post.call_args.kwargs["json"]["tools"][0]["type"] == "web_search"
-    client.get("/api/docent/news", params=params)
-    assert post.call_count == 1  # 캐시
+    data = client.get("/api/docent/news", params={"place_id": "kakao:1", "name": "검증 장소"}).json()
+    assert len(data["items"]) == 3
+    assert data["items"][0]["title"] == "검증 장소 새 전시" and data["items"][0]["source_name"] == "부산일보"
+    assert all("다른" not in item["title"] and "옛" not in item["title"] for item in data["items"])
+    assert "site:busan.go.kr" in calls[0] and "site:kookje.co.kr" in calls[0]
+    client.get("/api/docent/news", params={"place_id": "kakao:1", "name": "검증 장소"})
+    assert len(calls) == 1  # 캐시
 
 
-def test_news_without_key_does_not_search(monkeypatch):
+def test_news_network_error_returns_empty(monkeypatch):
     docent._news_cache.clear()
-    monkeypatch.setattr(docent, "env", lambda name: "")
-    post = Mock()
-    monkeypatch.setattr(writer.httpx, "post", post)
+    def boom(*args, **kwargs):
+        raise httpx.ConnectError("down")
+    monkeypatch.setattr(news.httpx, "get", boom)
     data = TestClient(app).get("/api/docent/news", params={"place_id": "kakao:2", "name": "검증"}).json()
-    assert data["ready"] is False and data["items"] == []
-    post.assert_not_called()
+    assert data["ready"] is True and data["items"] == []
 
 
 def test_photos_keep_only_licensed_https_images(monkeypatch):

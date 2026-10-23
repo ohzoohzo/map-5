@@ -52,6 +52,7 @@ const MapFrame = styled.div`
   .map-canvas {
     width: 100%;
     height: 100%;
+    isolation: isolate;
   }
 
   .map-status {
@@ -80,7 +81,7 @@ const MapFrame = styled.div`
   .map-legend {
     position: absolute;
     right: 12px;
-    bottom: 12px;
+    bottom: 36px;
     left: 12px;
     display: flex;
     flex-wrap: wrap;
@@ -284,7 +285,7 @@ export default function RouteMap({
       points: step.path.map((point) => new loadedSdk.LatLng(point.latitude, point.longitude)),
     })) ?? [];
     paths.forEach((path) => path.points.forEach((point) => bounds.extend(point)));
-    map.current.setBounds(bounds, 64, 48, 64, 48);
+    map.current.setBounds(bounds, 64, 48, 128, 48);
 
     const markers = [
       new loadedSdk.Marker({ position: origin, map: map.current, title: departure.name }),

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Dices, Heart, Map as MapIcon, MapPin, RotateCcw } from 'lucide-react';
+import { ArrowRight, Heart, MapPin, RotateCcw } from 'lucide-react';
 import { getCatalog, type Place } from '../../api/client';
 import { districtOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
@@ -124,9 +124,7 @@ export default function RandomPick({ destination, onExplore }: { destination: st
           <p className="card-sub">{t('random.subtitle', { place: shortProvince(destination) })}</p>
         </div>
         <span className={busy ? 'illust is-rolling' : 'illust'} aria-hidden>
-          <MapIcon size={64} strokeWidth={1.2} />
-          <MapPin className="pin" size={46} fill={color.primary} color={color.surface} strokeWidth={1.5} />
-          <Dices className="dice" size={38} strokeWidth={1.5} />
+          <img className="random-asset" src="/images/pinday/travel-random.png" alt="" width={148} height={148} loading="lazy" decoding="async" />
         </span>
       </div>
 
@@ -200,7 +198,9 @@ const tick = keyframes`
 
 // .card · h2 · .card-sub · .outline · .illust 기본 모양은 HomePage 의 Cards 스타일을 그대로 쓴다
 const Card = styled.section`
-  .illust.is-rolling .dice { animation: ${roll} 0.45s linear infinite; }
+  .random-head > .illust { width: 148px; height: 148px; }
+  .random-asset { display: block; width: 148px; height: 148px; max-width: 100%; object-fit: contain; }
+  .illust.is-rolling .random-asset { animation: ${roll} 0.45s linear infinite; }
 
   .slot { display: grid; place-items: center; gap: 6px; min-height: 132px; padding: 18px; border: 2px dashed ${color.borderStrong}; border-radius: ${radius.lg}; background: ${color.surface}; text-align: center; overflow: hidden; }
   .slot-label { font-size: 14px; font-weight: 600; color: ${color.teal}; }
@@ -231,6 +231,6 @@ const Card = styled.section`
     .action-row { grid-template-columns: 1fr; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .illust.is-rolling .dice, .slot-name, .result { animation: none; }
+    .illust.is-rolling .random-asset, .slot-name, .result { animation: none; }
   }
 `;

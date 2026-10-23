@@ -4,17 +4,18 @@ import { expect, noHorizontalOverflow, startTrip, test } from './support';
 
 // 사진 유무에 따라 달라지는 레이아웃을 재현한다. 장소·여행 상태는 실제 카탈로그와 화면 동작을 쓴다.
 const photoTitle = '도슨트 사진 배치 회귀 검증';
-const photoUrl = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="#e1edf7"/></svg>')}`;
+const photoUrl = 'https://pinday-docent-fixture.example/photo.svg';
 
 for (const viewport of [{ width: 1440, height: 1080 }, { width: 390, height: 844 }]) {
   test(`${viewport.width}px 일정 도슨트 사진이 패널 안에 맞고 설명이 아래에 놓인다`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
+    await page.route(photoUrl, (route) => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="#e1edf7"/></svg>' }));
     await page.route('**/api/docent/photos?**', (route) => {
       const placeId = new URL(route.request().url()).searchParams.get('place_id')!;
       const photos: DocentPhotos = {
         place_id: placeId,
         photos: [{ url: photoUrl, thumbnail_url: photoUrl, title: photoTitle, license: 'E2E fixture' }],
-        source: 'E2E fixture', source_url: '',
+        source: 'E2E fixture', source_url: 'https://pinday-docent-fixture.example/',
       };
       return route.fulfill({ json: photos });
     });

@@ -78,12 +78,14 @@ const PinDayPage = styled.div`
   .popup-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: ${fg('neutral-secondary')}; } .popup-link svg { width: 14px; height: 14px; }
 
   .candidate-tray { position: sticky; bottom: 16px; z-index: 20; margin-top: 24px; background: ${surface}; border: 1px solid ${line}; border-radius: 20px; box-shadow: 0 8px 28px #0000001f; padding: 14px 14px 14px 24px; display: flex; align-items: center; gap: 20px; }
-  .tray-summary { display: grid; gap: 2px; min-width: 200px; max-width: 240px; } .tray-summary h2 { margin: 0; }
+  .tray-summary { display: flex; align-items: center; gap: 10px; min-width: 200px; max-width: 240px; } .tray-summary h2 { margin: 0; }
+  .tray-summary-copy { display: grid; gap: 2px; min-width: 0; }
   .tray-list { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 0; }
+  .tray-list:empty { display: none; }
   .tray-item { display: flex; align-items: center; gap: 4px; border: 1px solid ${line}; border-radius: 12px; padding: 8px 6px 8px 12px; flex-shrink: 0; }
   .tray-name { display: grid; text-align: left; width: 240px; } .tray-copy { display: grid; text-align: left; min-width: 0; } .tray-copy > strong { font-size: 14px; color: ${fg('neutral-strong')}; } .tray-copy > span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
   .tray-remove { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: ${fg('neutral-tertiary')}; } .tray-remove:hover { background: ${canvas}; } .tray-remove svg { width: 16px; height: 16px; }
-  .tray-cta { flex-shrink: 0; }
+  .tray-cta { flex-shrink: 0; margin-left: auto; }
 
   .planner-grid { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 24px; align-items: start; }
   @media (min-width: 1281px) { .planner-grid { grid-template-columns: 360px minmax(0, 1fr) 340px; } }
@@ -105,7 +107,7 @@ const PinDayPage = styled.div`
   .visit-copy > strong { font-size: 15px; color: ${fg('neutral-strong')}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .visit-copy > span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
   .visit-actions { display: flex; gap: 2px; }
-  .day-empty { padding: 16px 0 14px; margin: 0; }
+  .day-empty { display: grid; justify-items: center; gap: 8px; padding: 8px 0 14px; text-align: center; }
   .unscheduled { display: grid; gap: 10px; } .muted { color: ${fg('neutral-tertiary')}; font-weight: 500; }
   .unscheduled-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid ${line}; }
   .unscheduled-list li:first-of-type { border-top: 0; }

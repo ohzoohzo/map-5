@@ -11,6 +11,7 @@ import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar from '../../shared/trip/TripBar';
 import { scheduledDayOf, tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import PlacePhoto from '../../shared/media/PlacePhoto';
 import DocentPanel from '../docent/DocentPanel';
 
@@ -113,7 +114,10 @@ export default function SchedulePage() {
                   </span>
                 </li>)}
               </ol>
-              {!visits.length && <Typography as="p" variant="label2" color="semantic.foreground.neutral.tertiary" className="day-empty">{t(unscheduled.length ? 'dayEmpty' : 'dayEmptyNoCandidates')}</Typography>}
+              {!visits.length && <div className="day-empty">
+                <EmptyStateArt kind="itinerary" size={140} />
+                <Typography as="p" variant="label2" color="semantic.foreground.neutral.tertiary">{t(unscheduled.length ? 'dayEmpty' : 'dayEmptyNoCandidates')}</Typography>
+              </div>}
             </div>
 
             <section className="unscheduled" aria-labelledby="unscheduled-title">

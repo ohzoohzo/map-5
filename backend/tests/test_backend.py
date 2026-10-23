@@ -158,6 +158,18 @@ def test_catalog_filters_use_and_and_regions_come_from_full_catalog(client, sett
     assert client.get("/api/travel/catalog", params={"region": "종로구"}).json()["total"] == 0
 
 
+def test_catalog_region_accepts_a_whole_province_but_not_a_partial_name(client, settings):
+    write_catalog(settings.catalog_path, [
+        place(1, "부산광역시 중구"),
+        place(2, "부산광역시 영도구"),
+        place(3, "서울특별시 종로구"),
+    ])
+    province = client.get("/api/travel/catalog", params={"region": "부산광역시"}).json()
+    assert [item["id"] for item in province["places"]] == ["test:1", "test:2"]
+    assert client.get("/api/travel/catalog", params={"region": "부산"}).json()["total"] == 0
+    assert client.get("/api/travel/catalog", params={"region": "부산광역시 영도구"}).json()["total"] == 1
+
+
 def test_catalog_limit_is_the_actual_shared_result_count(client, settings):
     write_catalog(settings.catalog_path, [place(i) for i in range(205)])
     data = client.get("/api/travel/catalog").json()
@@ -202,6 +214,15 @@ def test_search_maps_xy_and_does_not_expose_rest_secret(client, monkeypatch):
     assert upstream.call_args.kwargs["timeout"] == 10.0
     assert upstream.call_args.kwargs["params"] == {"query": "종로 관광", "size": 15}
     assert upstream.call_args.kwargs["headers"] == {"Authorization": "KakaoAK " + REST_KEY}
+
+
+def test_search_category_is_forwarded_as_kakao_group_code(client, monkeypatch):
+    upstream = Mock(return_value=httpx.Response(200, json={"documents": [kakao_document()]}))
+    monkeypatch.setattr(kakao.httpx, "get", upstream)
+    response = client.get("/api/travel/search", params={"query": "부산 맛집", "category": "FD6"})
+    assert response.status_code == 200
+    assert upstream.call_args.kwargs["params"] == {"query": "부산 맛집", "size": 15, "category_group_code": "FD6"}
+    assert client.get("/api/travel/search", params={"query": "부산", "category": "XX9"}).status_code == 422
 
 
 @pytest.mark.parametrize("upstream_status,expected", [(401, 503), (403, 503), (429, 429), (500, 502), (400, 502)])

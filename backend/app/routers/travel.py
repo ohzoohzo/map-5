@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -9,6 +9,8 @@ from ..settings import Settings, get_settings
 
 router = APIRouter(prefix="/api/travel", tags=["travel"])
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
+# Kakao category group codes the explore page filters by: food, cafe, attraction, culture.
+PlaceCategory = Literal["FD6", "CE7", "AT4", "CT1"]
 
 
 @router.get(
@@ -30,8 +32,9 @@ def get_catalog(
 def search_places(
     settings: SettingsDependency,
     query: Annotated[str, Query(min_length=1, max_length=100)],
+    category: PlaceCategory | None = None,
 ) -> SearchResponse:
     normalized = query.strip()
     if not normalized:
         raise HTTPException(422, "검색할 장소나 지역을 입력해 주세요.")
-    return find_places(normalized, settings)
+    return find_places(normalized, settings, category)

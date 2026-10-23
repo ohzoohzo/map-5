@@ -8,6 +8,7 @@
 export * from './catalogResponse.ts';
 export * from './configResponse.ts';
 export * from './errorResponse.ts';
+export * from './featureStatus.ts';
 export * from './getCatalogParams.ts';
 export * from './healthResponse.ts';
 export * from './place.ts';

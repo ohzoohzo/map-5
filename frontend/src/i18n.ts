@@ -2,7 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 const ko = {
-  brand: '오조오조',
+  brand: 'PinDay',
   brandSub: '여행의 시작',
   appTitle: '여행 설계',
   appDescription: '발견한 장소를 나만의 여행으로',
@@ -113,8 +113,15 @@ const ko = {
   photoFreeNote: '사진 대신, 진짜 여행 정보를 담았어요.',
 };
 
+// 기능별 문구는 apps/<기능>/i18n.ts 에서 `export default { namespace, ko }` 로 두면 자동 등록된다.
+// 기능 화면에서는 useTranslation('<namespace>') 로 쓴다. 이 파일(공통 문구)은 여원 리뷰.
+const featureModules = import.meta.glob<{ default: { namespace: string; ko: Record<string, string> } }>('./apps/*/i18n.ts', { eager: true });
+const featureResources = Object.fromEntries(
+  Object.values(featureModules).map(({ default: feature }) => [feature.namespace, feature.ko]),
+);
+
 i18n.use(initReactI18next).init({
-  resources: { ko: { translation: ko } },
+  resources: { ko: { translation: ko, ...featureResources } },
   lng: 'ko',
   fallbackLng: 'ko',
   interpolation: { escapeValue: false },

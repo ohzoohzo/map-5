@@ -21,6 +21,12 @@ def valid_key(value: str) -> bool:
     return KEY_PATTERN.fullmatch(value) is not None
 
 
+def env(name: str) -> str:
+    """기능별 비밀값 읽기. 새 키는 .env.example 에만 추가하고 이 파일은 고치지 않는다."""
+    get_settings()  # .env 로드 보장
+    return os.getenv(name, "").strip()
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     # Only this project file is loaded; inherited shell keys cannot shadow it.

@@ -22,7 +22,7 @@ def stop(*_):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
-    python = ROOT / ".venv/bin/python"
+    python = ROOT / (".venv/Scripts/python.exe" if sys.platform == "win32" else ".venv/bin/python")
     vite = ROOT / "frontend/node_modules/vite/bin/vite.js"
     if not python.exists() or not vite.exists():
         sys.exit("먼저 .venv와 frontend 의존성을 설치해 주세요. GitHub Issue #1 실행 안내를 참고하세요.")

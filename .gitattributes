@@ -1,0 +1,10 @@
+# 운영체제가 달라도 줄바꿈을 LF 로 통일 (Windows CRLF 로 인한 가짜 diff·충돌 방지)
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.jpg binary
+
+# 자동 생성 파일: 충돌 나면 손으로 고치지 말고 다시 생성 (README "충돌이 났을 때")
+contracts/openapi.json linguist-generated=true
+frontend/src/api/generated/** linguist-generated=true
+frontend/bun.lock linguist-generated=true

@@ -61,6 +61,68 @@
         }
       }
     },
+    "/api/docent/status": {
+      "get": {
+        "tags": [
+          "docent"
+        ],
+        "summary": "Docent Status",
+        "operationId": "docent_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/taste/status": {
+      "get": {
+        "tags": [
+          "taste"
+        ],
+        "summary": "Taste Status",
+        "operationId": "taste_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/travel/catalog": {
       "get": {
         "tags": [
@@ -209,6 +271,37 @@
           }
         }
       }
+    },
+    "/api/weather/status": {
+      "get": {
+        "tags": [
+          "weather"
+        ],
+        "summary": "Weather Status",
+        "operationId": "weather_status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -318,6 +411,31 @@
           "detail"
         ],
         "title": "ErrorResponse"
+      },
+      "FeatureStatus": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "feature",
+          "ready",
+          "message"
+        ],
+        "title": "FeatureStatus",
+        "description": "기능 라우터의 연동 상태. 실제 데이터가 없을 때 가짜 값 대신 이 응답으로 상태를 알린다."
       },
       "HealthResponse": {
         "properties": {

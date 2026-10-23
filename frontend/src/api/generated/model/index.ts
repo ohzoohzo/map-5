@@ -7,6 +7,9 @@
 
 export * from './catalogResponse.ts';
 export * from './configResponse.ts';
+export * from './docentNews.ts';
+export * from './docentNewsItem.ts';
+export * from './docentNewsParams.ts';
 export * from './docentReference.ts';
 export * from './docentReferenceKind.ts';
 export * from './docentSection.ts';

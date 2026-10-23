@@ -20,6 +20,23 @@ class DocentSection(StrictModel):
     reference_indexes: list[int]
 
 
+class DocentNewsItem(StrictModel):
+    title: str
+    summary: str
+    published_date: str        # YYYY-MM-DD (확인된 것만 반환)
+    source_name: str
+    url: str
+
+
+class DocentNews(StrictModel):
+    place_id: str
+    ready: bool
+    message: str
+    items: list[DocentNewsItem]
+    model: str | None
+    searched_at: str | None    # ISO 8601 (KST)
+
+
 class DocentStory(StrictModel):
     place_id: str
     ready: bool               # False 면 AI 해설 없이 근거 자료만 반환

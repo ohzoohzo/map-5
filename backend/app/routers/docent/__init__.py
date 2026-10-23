@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, Query
 from ...models import ErrorResponse, FeatureStatus
 from ...services.catalog import read_catalog
 from ...settings import Settings, env, get_settings
-from .models import DocentReference, DocentSection, DocentStory
+from .models import DocentNews, DocentNewsItem, DocentReference, DocentSection, DocentStory
+from .news import search_news
 from .sources import Evidence, clean, nearby_heritage, tour_overview
 from .writer import model_name, write_story
 
@@ -16,6 +17,8 @@ router = APIRouter(prefix="/api/docent", tags=["docent"])
 SECTION_TITLES = {"history": "역사와 문화", "feature": "동네의 특징", "tip": "방문 전 알아두기"}
 KST = timezone(timedelta(hours=9))
 _cache: dict[str, DocentStory] = {}  # 같은 장소 반복 과금 방지 (서버 재시작 시 초기화)
+_news_cache: dict[str, tuple[datetime, DocentNews]] = {}
+NEWS_TTL = timedelta(hours=6)
 
 
 @router.get("/status", response_model=FeatureStatus, operation_id="docent_status")
@@ -85,3 +88,30 @@ def docent_story(
     )
     _cache[place_id] = story
     return story
+
+
+@router.get(
+    "/news", response_model=DocentNews, operation_id="docent_news",
+    responses={429: {"model": ErrorResponse}, 502: {"model": ErrorResponse}, 503: {"model": ErrorResponse}, 504: {"model": ErrorResponse}},
+)
+def docent_news(
+    place_id: Annotated[str, Query(min_length=1, max_length=120)],
+    name: Annotated[str, Query(min_length=1, max_length=100)],
+    address: Annotated[str, Query(max_length=200)] = "",
+) -> DocentNews:
+    now = datetime.now(KST)
+    cached = _news_cache.get(place_id)
+    if cached and now - cached[0] < NEWS_TTL:
+        return cached[1]
+    if not env("OPENAI_API_KEY"):
+        return DocentNews(place_id=place_id, ready=False, message="웹 검색 연동 전이에요.", items=[], model=None, searched_at=None)
+
+    items = [DocentNewsItem(**item) for item in search_news(name, address, now)]
+    news = DocentNews(
+        place_id=place_id, ready=True,
+        message="AI가 웹 검색으로 찾은 기사 요약이에요. 원문 링크로 확인해 주세요." if items else "최근 관련 소식을 찾지 못했어요.",
+        items=items, model=model_name(), searched_at=now.isoformat(timespec="seconds"),
+    )
+    if items:  # 못 찾은 결과는 캐시하지 않아 다시 시도할 수 있게
+        _news_cache[place_id] = (now, news)
+    return news

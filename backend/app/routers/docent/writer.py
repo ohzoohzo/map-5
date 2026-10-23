@@ -46,9 +46,6 @@ def model_name() -> str:
 
 
 def write_story(place_name: str, address: str, evidences: list[Evidence]) -> dict:
-    key = env("OPENAI_API_KEY")
-    if not key:
-        raise HTTPException(503, "OpenAI API 키 설정을 확인해 주세요.")
     material = "\n\n".join(f"[{index}] {item.label} ({item.source})\n{item.text}" for index, item in enumerate(evidences, start=1))
     body = {
         "model": model_name(),
@@ -60,7 +57,18 @@ def write_story(place_name: str, address: str, evidences: list[Evidence]) -> dic
         "text": {"format": {"type": "json_schema", "name": "docent_story", "strict": True, "schema": SCHEMA}},
     }
     try:
-        response = httpx.post(OPENAI_URL, json=body, headers={"Authorization": f"Bearer {key}"}, timeout=90.0)
+        return json.loads(output_text(call_responses(body)))
+    except ValueError:
+        raise HTTPException(502, "해설 응답 형식이 올바르지 않아요.") from None
+
+
+def call_responses(body: dict, timeout: float = 90.0) -> dict:
+    """Responses API 호출. 오류는 키·원문 없이 안전한 메시지로 바꾼다."""
+    key = env("OPENAI_API_KEY")
+    if not key:
+        raise HTTPException(503, "OpenAI API 키 설정을 확인해 주세요.")
+    try:
+        response = httpx.post(OPENAI_URL, json=body, headers={"Authorization": f"Bearer {key}"}, timeout=timeout)
     except httpx.TimeoutException:
         raise HTTPException(504, "해설 생성 응답이 늦어요. 잠시 후 다시 시도해 주세요.") from None
     except httpx.RequestError:
@@ -73,11 +81,19 @@ def write_story(place_name: str, address: str, evidences: list[Evidence]) -> dic
         raise HTTPException(502, "해설을 만들지 못했어요.")
     try:
         payload = response.json()
-        text = next(
+    except ValueError:
+        raise HTTPException(502, "해설 응답 형식이 올바르지 않아요.") from None
+    if not isinstance(payload, dict):
+        raise HTTPException(502, "해설 응답 형식이 올바르지 않아요.")
+    return payload
+
+
+def output_text(payload: dict) -> str:
+    try:
+        return next(
             part["text"]
             for item in payload.get("output", []) if item.get("type") == "message"
             for part in item.get("content", []) if part.get("type") == "output_text"
         )
-        return json.loads(text)
-    except (StopIteration, ValueError, KeyError, TypeError):
+    except (StopIteration, KeyError, TypeError, AttributeError):
         raise HTTPException(502, "해설 응답 형식이 올바르지 않아요.") from None

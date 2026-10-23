@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, Bookmark, BookmarkCheck, FileText, Landmark, Map, MapPin, Mountain, Newspaper, RefreshCw, Sparkles } from 'lucide-react';
 import { ApiError, request, type Place } from '../../api/client';
-import { getDocentStoryUrl, useDocentStatus } from '../../api/generated/docent/docent';
-import type { DocentStory } from '../../api/generated/model';
+import { getDocentNewsUrl, getDocentStoryUrl } from '../../api/generated/docent/docent';
+import type { DocentNews, DocentStory } from '../../api/generated/model';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import { Panel } from './styles';
 
@@ -26,6 +26,19 @@ function useStory(place: Place | null) {
   });
 }
 
+// 웹 검색은 20~30초 걸리고 비용이 들어서 '최근 소식' 탭을 열었을 때만 조회한다
+function useNews(place: Place | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['docent', 'news', place?.id],
+    enabled: enabled && place !== null,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: false,
+    queryFn: ({ signal }) => request<DocentNews>(getDocentNewsUrl({
+      place_id: place!.id, name: place!.name, address: place!.address,
+    }), signal),
+  });
+}
+
 /**
  * 장소 하나의 도슨트 해설. DocentPage 와 '언제 갈까?' 사이드 패널에서 함께 쓴다.
  * 해설은 공공데이터 근거 원문으로만 만들고, 각 문단에 근거 번호를 붙인다.
@@ -33,8 +46,8 @@ function useStory(place: Place | null) {
 export default function DocentPanel({ place }: { place: Place | null }) {
   const { t } = useTranslation('docent');
   const [tab, setTab] = useState<Tab>('story');
-  const status = useDocentStatus();
   const story = useStory(place);
+  const news = useNews(place, tab === 'news');
   const saved = useTrip((trip) => (place ? trip.candidateIds.includes(place.id) : false));
   const data = story.data;
 
@@ -113,8 +126,35 @@ export default function DocentPanel({ place }: { place: Place | null }) {
         </div>
       ) : (
         <div role="tabpanel">
-          <p className="news">{t('newsNotice')}<br />{t('newsPending')}</p>
-          <p className="status">{status.data?.ready ? t('statusReady') : t('statusNotReady')}</p>
+          <span className="label">{t('nowViewing')}</span>
+          <h2>{place.name}</h2>
+          <p className="news">{t('newsNotice')}</p>
+          {news.isLoading && <p className="loading"><Sparkles size={14} /> {t('newsLoading')}</p>}
+          {news.isError && (
+            <div className="error">
+              <p>{news.error instanceof ApiError ? news.error.message : t('newsError')}</p>
+              <button className="button outline" onClick={() => news.refetch()}><RefreshCw size={14} />{t('retry')}</button>
+            </div>
+          )}
+          {news.data && (
+            <>
+              <p className="pending">{news.data.message}</p>
+              <ul className="news-list">
+                {news.data.items.map((item) => (
+                  <li key={item.url}>
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      <strong>{item.title}<ArrowUpRight size={14} /></strong>
+                      <span className="news-meta">{item.source_name} · {t('publishedDate', { date: item.published_date })}</span>
+                      <span className="news-summary">{item.summary}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              {news.data.searched_at && (
+                <p className="ai-note"><Sparkles size={12} /> {t('newsNote', { model: news.data.model, time: news.data.searched_at.slice(0, 16).replace('T', ' ') })}</p>
+              )}
+            </>
+          )}
         </div>
       )}
     </Panel>

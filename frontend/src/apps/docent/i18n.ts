@@ -37,8 +37,9 @@ export default {
     saveCandidate: '이 장소를 후보함에 저장',
     savedCandidate: '후보함에 저장됨',
     newsNotice: '최근 소식은 출처와 발행일을 함께 보여드려요.',
-    newsPending: '웹 검색 연동 전이라 아직 표시할 소식이 없어요.',
-    statusReady: '도슨트 연결 준비됨',
-    statusNotReady: '도슨트 연결 준비 중',
+    newsLoading: '웹에서 최근 소식을 찾는 중이에요. 30초 정도 걸려요.',
+    newsError: '최근 소식을 불러오지 못했어요.',
+    publishedDate: '발행 {{date}}',
+    newsNote: 'AI({{model}})가 웹 검색으로 찾은 기사 요약 · 검색 {{time}} · 원문으로 꼭 확인해 주세요',
   },
 };

@@ -1,8 +1,8 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import type { Place } from '../src/api/client';
-import type { WeatherAlternatives, WeatherForecast } from '../src/api/generated/model';
+import type { DocentPhotos, WeatherAlternatives, WeatherForecast } from '../src/api/generated/model';
 import type { Trip } from '../src/shared/trip/tripStore';
-import { expect, test } from './support';
+import { expect, noHorizontalOverflow, test } from './support';
 
 // 여행 상태는 다른 화면(언제 갈까?)이 만들어 주므로 여기서는 저장소에 직접 넣는다. 장소 좌표는 실제 부산 위치.
 const place = (id: string, name: string, latitude: number, longitude: number): Place => ({
@@ -31,11 +31,63 @@ const forecast = (status: WeatherForecast['status'], slots: WeatherForecast['slo
   source: 'OpenWeather 5 Day / 3 Hour Forecast', source_url: 'https://openweathermap.org/api/forecast5', fetched_at: '2026-10-23T16:46:00+09:00',
 });
 
-async function openWeather(page: Page, response: { status: number; body: unknown }, seeded: Trip | null = trip) {
-  // 외부 예보는 키·시점에 따라 달라지므로 응답을 고정한다. 대안 장소는 실제 로컬 관광 데이터를 쓴다.
+const PHOTO_ORIGIN = 'https://pinday-weather-photo.example';
+const PHOTO_SOURCE = '한국관광공사 TourAPI';
+const PHOTO_LICENSE = '공공누리 제3유형 (출처표시 + 변경금지)';
+type PhotoState = 'ready' | 'empty' | 'unavailable' | 'broken';
+type PhotoSetup = { states?: ReadonlyMap<string, PhotoState>; defaultState?: PhotoState };
+const photoUrl = (id: string) => `${PHOTO_ORIGIN}/${encodeURIComponent(id)}.svg`;
+const photoSourceUrl = (id: string) => `https://gallery.visitkorea.or.kr/fixture/${encodeURIComponent(id)}`;
+
+async function installPhotos(page: Page, setup: PhotoSetup) {
+  const requests = new Map<string, URL[]>();
+  const stateOf = (id: string) => setup.states?.get(id) ?? setup.defaultState ?? 'empty';
+  const legacyRequests: string[] = [];
+  await page.route('**/api/weather/photo?**', (route) => {
+    legacyRequests.push(route.request().url());
+    return route.fulfill({ status: 503, json: { detail: '이전 사진 API를 호출하면 안 됩니다.' } });
+  });
+  await page.route(`${PHOTO_ORIGIN}/**`, (route) => {
+    const id = decodeURIComponent(new URL(route.request().url()).pathname.slice(1, -4));
+    if (stateOf(id) === 'broken') return route.fulfill({ status: 404, contentType: 'text/plain', body: 'Image unavailable' });
+    return route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400"><rect width="1200" height="400" fill="#d2ebf2"/></svg>',
+    });
+  });
+  await page.route('**/api/docent/photos?**', (route) => {
+    const url = new URL(route.request().url());
+    const id = url.searchParams.get('place_id')!;
+    requests.set(id, [...(requests.get(id) ?? []), url]);
+    if (stateOf(id) === 'unavailable') return route.fulfill({ status: 503, json: { detail: '사진 서비스를 일시적으로 이용할 수 없습니다.' } });
+    const body: DocentPhotos = {
+      place_id: id,
+      photos: stateOf(id) === 'empty' ? [] : [{ url: photoUrl(id), thumbnail_url: photoUrl(id), title: `${url.searchParams.get('name')} 원본`, license: PHOTO_LICENSE }],
+      source: PHOTO_SOURCE,
+      source_url: photoSourceUrl(id),
+    };
+    return route.fulfill({ json: body });
+  });
+  return { requests, legacyRequests };
+}
+
+async function expectPhoto(scope: Locator, target: Place) {
+  await scope.scrollIntoViewIfNeeded();
+  const image = scope.getByRole('img', { name: `${target.name} 사진 (${target.name} 원본)`, exact: true });
+  await image.scrollIntoViewIfNeeded();
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute('src', photoUrl(target.id));
+  await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
+  await expect(image).toHaveCSS('object-fit', 'contain');
+  await expect(scope).toContainText(`사진: ${PHOTO_SOURCE} · ${PHOTO_LICENSE}`);
+  await expect(scope.locator('figcaption')).toHaveAttribute('title', `사진: ${PHOTO_SOURCE} · ${PHOTO_LICENSE} · ${photoSourceUrl(target.id)}`);
+  return image;
+}
+
+async function openWeather(page: Page, response: { status: number; body: unknown }, seeded: Trip | null = trip, photos: PhotoSetup = {}) {
+  // 외부 예보·관광사진만 고정하고 대안 장소는 실제 로컬 관광 데이터를 쓴다.
   await page.route('**/api/weather/forecast?**', (route) => route.fulfill({ status: response.status, json: response.body }));
-  // 관광사진도 외부 데이터라 기본은 '사진 없음'으로 고정한다 (사진 표시는 아래 전용 테스트에서)
-  await page.route('**/api/weather/photo?**', (route) => route.fulfill({ json: { photo: null } }));
+  const photoRequests = await installPhotos(page, photos);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.evaluate((value) => {
     if (value) localStorage.setItem('pinday.trip.v1', JSON.stringify(value));
@@ -44,7 +96,7 @@ async function openWeather(page: Page, response: { status: number; body: unknown
   const alternatives = page.waitForResponse((each) => new URL(each.url()).pathname === '/api/weather/alternatives');
   alternatives.catch(() => undefined); // 일정이 없는 경우엔 대안 요청이 없다
   await page.goto('/weather?day=2&item=1', { waitUntil: 'domcontentloaded' });
-  return { alternatives };
+  return { alternatives, ...photoRequests };
 }
 
 test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place without touching the rest of the day', async ({ page }, testInfo) => {
@@ -66,7 +118,11 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   await page.getByRole('button', { name: `${second!.place.name}을(를) 바꿀 장소로 보기` }).click();
   await expect(chosen.getByRole('heading')).toHaveText(second!.place.name);
   const preview = page.getByRole('region', { name: '교체 후 미리보기' });
-  await expect(preview.getByRole('listitem')).toHaveText([`1번째이전 일정 (그대로)${cafe.name}`, `2번째교체될 장소${second!.place.name}`, `3번째이후 일정 (그대로)${night.name}`]);
+  const stops = preview.getByRole('listitem');
+  await expect(stops.locator('.w-stop-copy strong')).toHaveText([cafe.name, second!.place.name, night.name]);
+  await expect(stops.nth(0)).toContainText('1번째이전 일정 (그대로)');
+  await expect(stops.nth(1)).toContainText('2번째교체될 장소');
+  await expect(stops.nth(2)).toContainText('3번째이후 일정 (그대로)');
 
   await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
   await expect(page.getByRole('status').filter({ hasText: '바꿨어요' })).toContainText(`DAY 2의 ${beach.name}을(를) ${second!.place.name}(으)로 바꿨어요.`);
@@ -112,7 +168,7 @@ test('a day carried over without a date asks for travel dates instead of request
 
 test('the chosen alternative can be explained by the AI docent only when asked', async ({ page }) => {
   const docentCalls: string[] = [];
-  await page.route('**/api/docent/**', (route) => {
+  await page.route('**/api/docent/story?**', (route) => {
     docentCalls.push(new URL(route.request().url()).pathname);
     return route.fulfill({ status: 503, json: { detail: '해설 테스트용 응답' } });
   });
@@ -138,34 +194,71 @@ test('another stop of the day can be picked from the place selector', async ({ p
   await expect(page.getByRole('article', { name: '원래 일정' }).getByRole('heading')).toHaveText(night.name);
 });
 
-test('a matching tourism photo replaces the icon, with its credit, and a broken image falls back', async ({ page }) => {
-  const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-  await page.route('https://photo.test/**', (route) => (route.request().url().endsWith('broken.jpg')
-    ? route.fulfill({ status: 404, body: '' })
-    : route.fulfill({ contentType: 'image/png', body: pixel })));
-  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
-  // openWeather 의 기본 '사진 없음'보다 나중에 등록한 route 가 먼저 쓰인다
-  await page.route('**/api/weather/photo?**', (route) => {
-    const name = new URL(route.request().url()).searchParams.get('name');
-    const photo = (url: string, match = 'place', label = name) => ({ url, title: name, photographer: '한국관광공사 테스트', match, label, source: '한국관광공사 관광사진', source_url: 'https://www.data.go.kr/' });
-    if (name === beach.name) return route.fulfill({ json: { photo: photo('https://photo.test/beach.png') } });
-    if (name === night.name) return route.fulfill({ json: { photo: photo('https://photo.test/broken.jpg') } });
-    if (name === cafe.name) return route.fulfill({ json: { photo: null } });
-    // 그 장소 사진이 없는 대안은 지역 사진 — 화면에 그 사실이 보여야 한다
-    return route.fulfill({ json: { photo: photo('https://photo.test/area.png', 'area', '기장군') } });
-  });
-  await page.reload({ waitUntil: 'domcontentloaded' });
-
+test('날씨 비교·대안·미리보기는 같은 TourAPI 사진 계약과 출처를 공유한다', async ({ page }) => {
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const first = alternatives.alternatives[0]!.place;
   const original = page.getByRole('article', { name: '원래 일정' });
-  await expect(original.getByRole('img', { name: `${beach.name} 사진` })).toBeVisible();
-  await expect(original).toContainText('사진: 한국관광공사 테스트 · 한국관광공사 관광사진');
+  await expectPhoto(original, beach);
   const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
-  await expect(chosen.getByRole('img', { name: /기장군 지역 사진/ })).toBeVisible();
-  await expect(chosen).toContainText('이 장소 사진이 없어 기장군 지역 사진이에요');
+  await expectPhoto(chosen, first);
   const preview = page.getByRole('region', { name: '교체 후 미리보기' });
-  await expect(preview.getByRole('img', { name: `${night.name} 사진` })).toHaveCount(0);
-  await expect(preview.getByText('지역 사진', { exact: true })).toBeVisible();
+  for (const target of [cafe, first, night]) {
+    await expectPhoto(preview.getByRole('listitem').filter({ has: page.locator('.w-stop-copy strong', { hasText: target.name }) }), target);
+  }
+  for (const target of [beach, first, cafe, night]) {
+    const requests = loaded.requests.get(target.id)!;
+    expect(requests, '같은 장소의 사진은 비교 카드와 미리보기에서 한 번만 조회한다').toHaveLength(1);
+    expect(Object.fromEntries(requests[0]!.searchParams)).toEqual({
+      place_id: target.id, name: target.name, latitude: String(target.latitude), longitude: String(target.longitude),
+    });
+  }
+  expect(loaded.legacyRequests, '날씨 페이지도 공용 TourAPI 사진을 사용해야 한다').toEqual([]);
 });
+
+test('390px에서도 TourAPI 사진 비율·출처·이용조건과 교체 미리보기가 화면 안에 남는다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const first = alternatives.alternatives[0]!.place;
+  await expectPhoto(page.getByRole('article', { name: '원래 일정' }), beach);
+  await expectPhoto(page.getByRole('article', { name: '바꿔볼 장소' }), first);
+  const stop = page.getByRole('region', { name: '교체 후 미리보기' }).getByRole('listitem').filter({ has: page.locator('.w-stop-copy strong', { hasText: first.name }) });
+  await expectPhoto(stop, first);
+  const credit = stop.locator('figcaption');
+  await expect(credit).toBeVisible();
+  expect(await credit.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await noHorizontalOverflow(page);
+});
+
+for (const [state, message] of [
+  ['empty', '장소 사진을 찾지 못했어요'],
+  ['unavailable', '사진을 불러오지 못했어요'],
+  ['broken', '사진을 표시할 수 없어요'],
+] as const) {
+  test(`사진 ${state} 상태를 표시해도 다른 장소 사진과 일정 교체는 유지된다`, async ({ page }) => {
+    const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, {
+      defaultState: 'ready', states: new Map([[beach.id, state]]),
+    });
+    const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+    const first = alternatives.alternatives[0]!.place;
+    const original = page.getByRole('article', { name: '원래 일정' });
+    await expect(original.getByRole('heading')).toHaveText(beach.name);
+    await expect(original.getByRole('status', { name: `${beach.name} 사진`, exact: true })).toContainText(message);
+    await expect(original.locator('img')).toHaveCount(0);
+    await expectPhoto(page.getByRole('article', { name: '바꿔볼 장소' }), first);
+    const before: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
+    expect(before.days).toEqual(trip.days);
+    await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
+    const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
+    expect(saved.days[1]!.items).toEqual([
+      { placeId: cafe.id, memo: '', visited: false },
+      { placeId: first.id, memo: '노을 보기', visited: false },
+      { placeId: night.id, memo: '', visited: false },
+    ]);
+    expect(loaded.legacyRequests).toEqual([]);
+  });
+}
 
 test('the center "이 장소만 교체" button replaces the stop just like the bottom button', async ({ page }) => {
   const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });

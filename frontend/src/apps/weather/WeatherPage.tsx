@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { ArrowRight, Building2, CalendarDays, ChevronRight, CloudRain, CloudSun, Info, Landmark, MapPin, Trees } from 'lucide-react';
 import { ApiError, type Place } from '../../api/client';
 import type { WeatherAlternative } from '../../api/generated/model';
+import { usePlacePhotos } from '../../shared/media/usePlacePhotos';
 import { districtOf } from '../../shared/regions';
 import { navigate, useSearchParam } from '../../shared/router';
 import TripBar from '../../shared/trip/TripBar';
@@ -12,7 +13,7 @@ import { tripActions, useTrip, type TripDay } from '../../shared/trip/tripStore'
 import PinDayPage from '../../shared/ui/PinDayPage';
 import DocentPanel from '../docent/DocentPanel';
 import { WeatherSection } from './WeatherPage.styles';
-import { formatClock, formatDay, formatDayLong, rainPeriod, summarizeRain, useAlternatives, useForecast, usePlacePhoto } from './weather';
+import { formatClock, formatDay, formatDayLong, rainPeriod, summarizeRain, useAlternatives, useForecast } from './weather';
 
 // 시안: design/pinday-weather-v2.png — 머리글+예보 / 원래 일정 ↔ 바꿔볼 장소(+이런 곳도) / 교체 후 미리보기 / 출처
 // 선택 상태는 URL 로 받는다 → 다른 화면에서 /weather?day=2&item=1 로 바로 열 수 있다 (day 는 1부터, item 은 0부터)
@@ -224,23 +225,25 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
   );
 }
 
-/** 장소 사진: 한국관광공사 관광사진. 그 장소 사진이 없으면 관련·지역 사진임을 표시하고, 그마저 못 불러오면 아이콘으로 대신한다 */
+/** 장소 카드·도슨트와 동일한 TourAPI 사진과 출처·이용조건을 표시한다. */
 type VisualKind = 'indoor' | 'outdoor' | 'neutral';
 const VISUAL_ICON = { indoor: Landmark, outdoor: Trees, neutral: MapPin };
 function PlaceVisual({ place, kind, large = false, small = false }: { place: Place; kind: VisualKind; large?: boolean; small?: boolean }) {
   const { t } = useTranslation('weather');
-  const photo = usePlacePhoto(place).data?.photo;
+  const photos = usePlacePhotos(place);
+  const photo = photos.data?.photos[0];
   const [broken, setBroken] = useState<string | null>(null);
   const Icon = VISUAL_ICON[kind];
   const className = `w-visual ${kind}${large ? ' large' : ''}${small ? ' small' : ''}`;
-  if (!photo || broken === photo.url) return <div className={className} aria-hidden="true"><Icon /></div>;
-  const by = photo.photographer || photo.source;
-  const credit = photo.match === 'place' ? t('photoCredit', { photographer: by }) : t(photo.match === 'area' ? 'photoArea' : 'photoRelated', { label: photo.label, photographer: by });
-  const alt = photo.match === 'place' ? t('photoAlt', { name: place.name }) : t(photo.match === 'area' ? 'photoAreaAlt' : 'photoRelatedAlt', { label: photo.label, title: photo.title });
+  if (!photo || broken === photo.url) {
+    const state = photo && broken === photo.url ? 'photoBroken' : photos.isError ? 'photoError' : photos.isSuccess ? 'photoEmpty' : 'photoLoading';
+    return <div className={className} role="status" aria-label={t('photoLabel', { name: place.name })}><span className="w-photo-state"><Icon aria-hidden="true" /><span>{t(state)}</span></span></div>;
+  }
+  const credit = t('photoCredit', { source: photos.data!.source, license: photo.license });
   return (
-    <figure className={`${className} photo${photo.match === 'place' ? '' : ' approx'}`}>
-      <img src={photo.url} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={credit} />
-      {small ? photo.match !== 'place' && <figcaption>{t(photo.match === 'area' ? 'photoAreaShort' : 'photoRelatedShort')}</figcaption> : <figcaption>{credit}</figcaption>}
+    <figure className={`${className} photo`}>
+      <span className="w-photo-frame"><img src={photo.url} alt={t('photoAlt', { name: place.name, title: photo.title })} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={photo.title} /></span>
+      <figcaption title={`${credit} · ${photos.data!.source_url}`}>{credit}</figcaption>
     </figure>
   );
 }

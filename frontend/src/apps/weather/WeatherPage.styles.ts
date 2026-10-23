@@ -64,10 +64,16 @@ export const WeatherSection = styled.div`
   .w-visual svg { width: 56px; height: 56px; } .w-visual.small svg { width: 26px; height: 26px; }
   .w-visual.outdoor { background: linear-gradient(160deg, #8fd0f5 0%, #3d8bfd 55%, #e8d5a8 100%); }
   .w-visual.indoor { background: linear-gradient(150deg, #7fd3dc 0%, ${teal} 100%); }
-  .w-visual.photo { position: relative; margin: 0; overflow: hidden; background: ${canvas}; }
-  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .w-visual.photo figcaption { position: absolute; right: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 8px; border-radius: 999px; background: #000000a6; color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .w-visual.photo.small figcaption { right: 4px; bottom: 4px; padding: 1px 6px; font-size: 10px; }
+  .w-photo-state { display: grid; justify-items: center; gap: 8px; padding: 8px; font-size: 12px; line-height: 1.4; text-align: center; }
+  .w-visual.small .w-photo-state { gap: 4px; padding: 4px; font-size: 10px; }
+  .w-visual.small .w-photo-state svg { width: 20px; height: 20px; }
+  .w-visual.photo { margin: 0; overflow: hidden; background: ${canvas}; grid-template-rows: minmax(0, 1fr) auto; justify-items: stretch; }
+  .w-photo-frame { position: relative; align-self: stretch; min-height: 160px; width: 100%; }
+  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .w-visual.photo figcaption { padding: 6px 8px; color: ${fg('neutral-secondary')}; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+  .w-visual.photo.small { height: auto; }
+  .w-visual.photo.small .w-photo-frame { min-height: 64px; }
+  .w-visual.photo.small figcaption { padding: 4px; font-size: 10px; }
   .w-visual.neutral { background: linear-gradient(150deg, #c9d3df 0%, #8a97a8 100%); }
 
   .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 16px; text-align: center; word-break: keep-all; font-size: 14px; font-weight: 700; color: ${fg('neutral-strong')}; transition: background .15s; }
@@ -104,6 +110,7 @@ export const WeatherSection = styled.div`
   .w-timeline { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 44px; }
   .w-stop { position: relative; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; padding: 8px; border-radius: 12px; background: ${canvas}; min-height: 80px; }
   .w-stop .w-visual { height: 64px; }
+  .w-stop .w-visual.photo { height: auto; }
   .w-stop + .w-stop::before { content: '→'; position: absolute; left: -32px; top: 50%; transform: translateY(-50%); font-size: 20px; color: ${brand}; }
   .w-stop.replaced { background: ${tealSoft}; box-shadow: inset 0 0 0 1px ${teal}; }
   .w-stop-copy { display: grid; gap: 6px; min-width: 0; }

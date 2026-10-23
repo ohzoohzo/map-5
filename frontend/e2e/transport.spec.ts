@@ -122,7 +122,7 @@ const fulfillRoutes = (route: Route, status: 'ok' | 'no_route' = 'ok') => route.
   json: routeResponse(new URL(route.request().url()), status),
 });
 
-async function useMapSpy(page: Page) {
+async function useMapSpy(page: Page, bootstrapOnly = false) {
   await page.route('**/api/config', (route) => route.fulfill({
     json: { js_key: 'transport-route-test', place_search_enabled: false },
   }));
@@ -147,7 +147,19 @@ async function useMapSpy(page: Page) {
         constructor(options) { this.record = { active: Boolean(options.map), path: options.path }; window.__transportLines.push(this.record); }
         setMap(map) { this.record.active = Boolean(map); }
       }
-      window.kakao = { maps: { load(callback) { callback(); }, LatLng, LatLngBounds, Map, Marker, Polyline } };
+      const constructors = { LatLng, LatLngBounds, Map, Marker, Polyline };
+      window.__transportSdkLoadCalls = 0;
+      const maps = {
+        load(callback) {
+          window.__transportSdkLoadCalls += 1;
+          const ready = () => { Object.assign(maps, constructors); callback(); };
+          if (${bootstrapOnly}) queueMicrotask(ready);
+          else ready();
+        },
+        ...(${bootstrapOnly} ? {} : constructors),
+      };
+      window.__transportSdkInitiallyReady = 'Map' in maps;
+      window.kakao = { maps };
     })();`,
   }));
 }
@@ -275,6 +287,19 @@ test('transit alternatives replace the summary, instructions and full route geom
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
     .toBeLessThanOrEqual(1);
   await page.screenshot({ path: testInfo.outputPath('transport-inline-transit-390.png'), fullPage: true });
+});
+
+test('autoload false SDK bootstrap calls load before requiring map constructors', async ({ page }) => {
+  await useMapSpy(page, true);
+  await seedTrip(page);
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+
+  await expect(routeGuidance(page).getByText('약 18분', { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__transportSdkInitiallyReady'))).toBe(false);
+  await expect.poll(() => page.evaluate(() => Reflect.get(window, '__transportSdkLoadCalls'))).toBeGreaterThan(0);
+  await expect.poll(() => activeMapPoints(page))
+    .toEqual(routeResponse(defaultRequest()).routes[0]!.steps.flatMap((step) => step.path));
+  await expect(page.getByText('지도를 불러오지 못했어요.', { exact: true })).toHaveCount(0);
 });
 
 test('walking uses the walking API path and driving only offers the external Kakao route', async ({ page }) => {

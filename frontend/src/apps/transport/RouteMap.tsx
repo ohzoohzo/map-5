@@ -23,8 +23,10 @@ interface KakaoMapInstance {
 }
 interface KakaoMarker { setMap(map: KakaoMapInstance | null): void }
 interface KakaoPolyline { setMap(map: KakaoMapInstance | null): void }
-interface KakaoSdk {
+interface KakaoLoader {
   load(callback: () => void): void;
+}
+interface KakaoSdk extends KakaoLoader {
   LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
   LatLngBounds: new () => KakaoBounds;
   Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMapInstance;
@@ -110,10 +112,13 @@ const MapFrame = styled.div`
 
 let sdkPromise: Promise<KakaoSdk> | null = null;
 
-function isKakaoSdk(value: unknown): value is KakaoSdk {
+function isKakaoLoader(value: unknown): value is KakaoLoader {
   if (typeof value !== 'object' || value === null) return false;
-  return 'load' in value
-    && typeof value.load === 'function'
+  return 'load' in value && typeof value.load === 'function';
+}
+
+function isKakaoSdk(value: unknown): value is KakaoSdk {
+  return isKakaoLoader(value)
     && 'LatLng' in value
     && typeof value.LatLng === 'function'
     && 'LatLngBounds' in value
@@ -126,10 +131,15 @@ function isKakaoSdk(value: unknown): value is KakaoSdk {
     && typeof value.Polyline === 'function';
 }
 
-function getKakaoSdk(): KakaoSdk | undefined {
+function getKakaoMaps(): unknown {
   const kakao: unknown = Reflect.get(window, 'kakao');
   if (typeof kakao !== 'object' || kakao === null || !('maps' in kakao)) return undefined;
-  return isKakaoSdk(kakao.maps) ? kakao.maps : undefined;
+  return kakao.maps;
+}
+
+function getKakaoSdk(): KakaoSdk | undefined {
+  const maps = getKakaoMaps();
+  return isKakaoSdk(maps) ? maps : undefined;
 }
 
 function loadSdk(key: string): Promise<KakaoSdk> {
@@ -142,27 +152,38 @@ function loadSdk(key: string): Promise<KakaoSdk> {
     script.id = 'transport-kakao-map-sdk';
     script.async = true;
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&autoload=false`;
-    const timeout = window.setTimeout(() => {
-      script.remove();
-      reject(new Error('map-timeout'));
-    }, 15_000);
-
-    script.onerror = () => {
+    const fail = (error: Error) => {
       window.clearTimeout(timeout);
+      script.onload = null;
+      script.onerror = null;
       script.remove();
-      reject(new Error('map-load-failed'));
+      reject(error);
     };
+    const timeout = window.setTimeout(() => fail(new Error('map-timeout')), 15_000);
+
+    script.onerror = () => fail(new Error('map-load-failed'));
     script.onload = () => {
-      const sdk = getKakaoSdk();
-      if (!sdk) {
-        window.clearTimeout(timeout);
-        reject(new Error('map-unavailable'));
+      // autoload=false exposes maps.load before the map constructors exist.
+      const loader = getKakaoMaps();
+      if (!isKakaoLoader(loader)) {
+        fail(new Error('map-unavailable'));
         return;
       }
-      sdk.load(() => {
-        window.clearTimeout(timeout);
-        resolve(sdk);
-      });
+      try {
+        loader.load(() => {
+          const sdk = getKakaoSdk();
+          if (!sdk) {
+            fail(new Error('map-unavailable'));
+            return;
+          }
+          window.clearTimeout(timeout);
+          script.onload = null;
+          script.onerror = null;
+          resolve(sdk);
+        });
+      } catch {
+        fail(new Error('map-unavailable'));
+      }
     };
     document.head.appendChild(script);
   }).catch((error: unknown) => {
@@ -299,7 +320,9 @@ export default function RouteMap({
         ? labels.missingKey
         : status === 'error'
           ? labels.failed
-          : null;
+          : status === 'loading'
+            ? labels.loading
+            : null;
 
   return (
     <MapFrame>

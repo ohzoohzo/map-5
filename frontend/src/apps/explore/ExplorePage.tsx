@@ -181,7 +181,7 @@ function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: 
         <span className="place-visual" aria-hidden="true"><Icon size={30} strokeWidth={1.6} /><span className="place-index">{index + 1}</span>{saved && <span className="saved-flag">{t('savedFlag')}</span>}</span>
         <span className="place-copy"><strong>{place.name}</strong><span>{[place.category || t(`kind_${kind}`), districtOf(place)].filter(Boolean).join(' · ')}</span></span>
       </button>
-      <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved} aria-label={t(saved ? 'unsaveNamed' : 'saveNamed', { name: place.name })}>{t(saved ? 'saved' : 'save')}</Button>
+      <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>
     </li>
   );
 }

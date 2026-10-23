@@ -46,13 +46,13 @@ const PinDayPage = styled.div`
   .place-card { background: ${surface}; border: 1px solid ${line}; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: border-color .15s, box-shadow .15s; }
   .place-card.selected { border-color: ${brand}; box-shadow: 0 0 0 1px ${brand}; }
   .place-card > button:last-child { margin: 0 16px 16px; }
-  .place-card-main { display: flex; flex-direction: column; text-align: left; flex: 1; }
-  .place-visual { position: relative; height: 96px; display: grid; place-items: center; color: #fff; }
+  .place-card-main { display: flex; flex-direction: column; align-items: stretch; text-align: left; flex: 1; width: 100%; }
+  .place-visual { position: relative; width: 100%; height: 96px; display: grid; place-items: center; color: #fff; }
   .kind-attraction .place-visual { background: linear-gradient(135deg, #3d8bfd, #0066ff); } .kind-food .place-visual { background: linear-gradient(135deg, #ff9f5a, #f2662f); }
   .kind-cafe .place-visual { background: linear-gradient(135deg, #b08a6e, #7a5a43); } .kind-shopping .place-visual { background: linear-gradient(135deg, #b178f5, #8d4ced); }
   .place-index { position: absolute; left: 12px; top: 12px; min-width: 26px; height: 26px; border-radius: 13px; background: #ffffffe6; color: ${fg('neutral-strong')}; font-size: 13px; font-weight: 700; display: grid; place-items: center; padding: 0 6px; }
   .saved-flag { position: absolute; right: 12px; top: 12px; background: #fff; color: ${brand}; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
-  .place-copy { padding: 14px 16px 12px; display: grid; gap: 4px; }
+  .place-copy { padding: 14px 16px 12px; display: grid; gap: 4px; width: 100%; text-align: left; }
   .place-copy strong { font-size: 17px; color: ${fg('neutral-strong')}; letter-spacing: -0.3px; }
   .place-copy span { font-size: 13px; color: ${fg('neutral-tertiary')}; }
 
@@ -86,6 +86,8 @@ const PinDayPage = styled.div`
   .tray-cta { flex-shrink: 0; }
 
   .planner-grid { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (min-width: 1281px) { .planner-grid { grid-template-columns: 360px minmax(0, 1fr) 340px; } }
+  @media (max-width: 1280px) and (min-width: 1101px) { .docent-side { grid-column: 1 / -1; } }
   .schedule-panel { background: ${surface}; border: 1px solid ${line}; border-radius: 16px; padding: 20px; display: grid; gap: 16px; }
   .schedule-panel h2, .unscheduled h3 { margin: 0; }
   .day-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }

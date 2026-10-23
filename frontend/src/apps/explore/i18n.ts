@@ -42,8 +42,6 @@ export default {
     showOnMap: '{{name}} 지도에서 보기',
     save: '후보함에 저장',
     saved: '후보함에 저장됨',
-    saveNamed: '{{name}} 후보함에 저장',
-    unsaveNamed: '{{name}} 후보함에서 빼기',
     savedFlag: '후보함에 담았어요',
     openKakao: '카카오맵 정보',
     openSource: '데이터 출처',

@@ -24,7 +24,6 @@ export default {
     noCandidatesDetail: '가고 싶은 장소를 먼저 모아 주세요.',
     goExplore: '어디 갈까?에서 찾기',
     scheduleHere: '이 날짜에 추가',
-    scheduleNamed: '{{name}} DAY {{day}}에 추가',
     scheduleOnDay: 'DAY {{day}}에 추가',
     moveToDay: 'DAY {{day}}로 옮기기',
     allPlaced: '후보를 모두 날짜에 배치했어요.',

@@ -11,6 +11,7 @@ import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar from '../../shared/trip/TripBar';
 import { scheduledDayOf, tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import DocentPanel from '../docent/DocentPanel';
 
 // 하루마다 한 색: DAY 탭, 방문 번호, 지도 핀이 같은 색을 쓴다.
 const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
@@ -39,7 +40,9 @@ export default function SchedulePage() {
   const [activeDay, setActiveDay] = useState(Number.isInteger(dayParam) && dayParam >= 1 ? dayParam - 1 : 0);
   const [mapMode, setMapMode] = useState('day');
   const [district, setDistrict] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 선택 장소는 trip.selectedPlaceId 로 공유한다: 오른쪽 도슨트 해설과 /docent 왕복 뒤에도 같은 장소가 열린다.
+  const selectedId = useTrip((current) => current.selectedPlaceId);
+  const setSelectedId = tripActions.selectPlace;
   const config = useQuery({ queryKey: ['config'], queryFn: ({ signal }) => getConfig(signal), staleTime: Infinity });
   const day = Math.min(activeDay, Math.max(trip.days.length - 1, 0));
   const visits = useMemo(() => (trip.days[day]?.items ?? []).map((item) => trip.places[item.placeId]!), [trip.days, trip.places, day]);
@@ -119,7 +122,7 @@ export default function SchedulePage() {
                 : <ul className="unscheduled-list" data-testid={TRAVEL_TEST_IDS.UNSCHEDULED_LIST}>
                   {unscheduled.map((place) => <li key={place.id}>
                     <button type="button" className="visit-name" onClick={() => setSelectedId(place.id)}><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></button>
-                    <Button size="small" variant="outlined" color="primary" leadingContent={<IconPlus />} onClick={() => tripActions.addToDay(day, place.id)} aria-label={t('scheduleNamed', { name: place.name, day: day + 1 })}>{t('scheduleHere')}</Button>
+                    <Button size="small" variant="outlined" color="primary" leadingContent={<IconPlus />} onClick={() => tripActions.addToDay(day, place.id)}><span className="sr-only">{place.name} DAY {day + 1}에 추가 · </span>{t('scheduleHere')}</Button>
                   </li>)}
                   {!unscheduled.length && <li className="all-placed">{t('allPlaced')}</li>}
                 </ul>}
@@ -153,6 +156,8 @@ export default function SchedulePage() {
             </KakaoMap>
             {mapMode === 'day' && visits.length > 0 && !config.data?.js_key && !config.isLoading && <ol className="route-fallback" aria-label={t('visitOrder')}>{visits.map((place, index) => <li key={place.id}><span style={{ background: dayColor(day) }}>{index + 1}</span>{place.name}</li>)}</ol>}
           </div>
+
+          <aside className="docent-side"><DocentPanel place={selected} /></aside>
         </div>
       </>}
     </PinDayPage>

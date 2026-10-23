@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bus, CalendarDays, Car, Footprints, MapPin, Route } from 'lucide-react';
+import { ArrowRight, Bus, CalendarDays, Car, ExternalLink, Footprints, MapPin, Route } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getConfig, type Place } from '../../api/client';
 import { color, font, layout, radius } from '../../shared/design/tokens';
@@ -280,11 +280,42 @@ const MapNote = styled.p`
   line-height: 1.6;
 `;
 
+const DirectionsLink = styled.a`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 10px 16px;
+  color: ${color.surface};
+  background: ${color.coral};
+  border-radius: ${radius.md};
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+
+  &:hover {
+    filter: brightness(0.96);
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${color.primary};
+    outline-offset: 2px;
+  }
+`;
+
 interface ScheduledPlace {
   place?: Place;
 }
 
 type TravelMode = 'transit' | 'car' | 'walk';
+
+function kakaoDirectionsUrl(departure: Place, arrival: Place) {
+  const from = `${encodeURIComponent(departure.name)},${departure.latitude},${departure.longitude}`;
+  const to = `${encodeURIComponent(arrival.name)},${arrival.latitude},${arrival.longitude}`;
+  return `https://map.kakao.com/link/from/${from}/to/${to}`;
+}
 
 function formatDate(date: string) {
   const [year, month, day] = date.split('-').map(Number);
@@ -434,6 +465,14 @@ export default function TransportPage() {
                 ))}
               </ModeTabs>
               <MapNote>{t(`modeNote.${travelMode}`)}</MapNote>
+              <DirectionsLink
+                href={kakaoDirectionsUrl(departure, arrival)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('openDirections')}
+                <ExternalLink size={17} aria-hidden="true" />
+              </DirectionsLink>
             </>
           )}
         </Panel>

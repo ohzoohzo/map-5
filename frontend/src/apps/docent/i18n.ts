@@ -41,8 +41,6 @@ export default {
     newsLoadingCaption: '소식을 찾는 동안 {{name}} 둘러보기',
     storyLoadingCaption: '해설을 준비하는 동안 {{name}} 둘러보기',
     photosLabel: '{{name}} 사진',
-    photoPrev: '이전 사진',
-    photoNext: '다음 사진',
     photoCredit: '사진: 한국관광공사 · {{license}}',
     newsError: '최근 소식을 불러오지 못했어요.',
     publishedDate: '발행 {{date}}',

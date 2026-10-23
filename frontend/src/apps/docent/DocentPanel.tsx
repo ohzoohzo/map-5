@@ -51,6 +51,10 @@ export default function DocentPanel({ place }: { place: Place | null }) {
   const news = useNews(place, tab === 'news');
   const saved = useTrip((trip) => (place ? trip.candidateIds.includes(place.id) : false));
   const data = story.data;
+  // 사진 오른쪽 간단 설명: AI 요약이 있으면 그것, 없으면 공공데이터 소개
+  const heroText = data?.ready && data.summary
+    ? <p>{data.summary}</p>
+    : place?.description ? <p className="muted">{place.description}</p> : null;
 
   return (
     <Panel aria-label={t('menu')}>
@@ -66,7 +70,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="address">{[place.category, place.address].filter(Boolean).join(' · ')}</p>
-          <PhotoSlideshow place={place} caption={story.isLoading ? t('storyLoadingCaption', { name: place.name }) : undefined} />
+          <PhotoSlideshow place={place} caption={story.isLoading ? t('storyLoadingCaption', { name: place.name }) : undefined}>{heroText}</PhotoSlideshow>
 
           {story.isLoading && <p className="loading"><Sparkles size={14} /> {t('storyLoading')}</p>}
           {story.isError && (
@@ -78,7 +82,6 @@ export default function DocentPanel({ place }: { place: Place | null }) {
 
           {data?.ready ? (
             <>
-              <p className="summary">{data.summary}</p>
               <div className="sections">
                 {data.sections.map((section) => {
                   const Icon = SECTION_ICONS[section.key];
@@ -131,7 +134,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           <span className="label">{t('nowViewing')}</span>
           <h2>{place.name}</h2>
           <p className="news">{t('newsNotice')}</p>
-          <PhotoSlideshow place={place} caption={news.isLoading ? t('newsLoadingCaption', { name: place.name }) : undefined} />
+          <PhotoSlideshow place={place} caption={news.isLoading ? t('newsLoadingCaption', { name: place.name }) : undefined}>{heroText}</PhotoSlideshow>
           {news.isLoading && <p className="loading"><Sparkles size={14} /> {t('newsLoading')}</p>}
           {news.isError && (
             <div className="error">

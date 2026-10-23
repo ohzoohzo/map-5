@@ -36,14 +36,23 @@ export const Picker = styled(Card)`
 
 export const Slides = styled.div`
   margin-top: 16px;
-  .slide-frame { position: relative; height: 300px; border-radius: ${radius.md}; overflow: hidden; background: ${color.navy}; }
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  &:has(> .hero-text:only-child) { grid-template-columns: 1fr; }
+  .slide-frame { position: relative; width: 420px; aspect-ratio: 3 / 2; border-radius: ${radius.md}; overflow: hidden; background: ${color.navy}; }
   .slide-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s ease; }
   .slide-frame img.active { opacity: 1; }
-  .slide-caption { position: absolute; left: 12px; bottom: 12px; margin: 0; padding: 6px 12px; border-radius: ${radius.pill}; background: ${color.navy}bf; color: ${color.surface}; font-size: 13px; }
-  .slide-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: ${color.surface}d9; color: ${color.navy}; }
-  .slide-nav.prev { left: 10px; } .slide-nav.next { right: 10px; }
-  .slide-meta { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: ${color.textMuted}; }
-  @media (max-width: 700px) { .slide-frame { height: 220px; } }
+  .slide-caption { position: absolute; left: 10px; right: 10px; bottom: 10px; margin: 0; padding: 6px 12px; border-radius: ${radius.pill}; background: ${color.navy}bf; color: ${color.surface}; font-size: 12px; text-align: center; }
+  .slide-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: ${color.textMuted}; }
+  .hero-text { font-size: 20px; line-height: 1.7; font-weight: 600; letter-spacing: -0.4px; color: ${color.navy}; word-break: keep-all; }
+  .hero-text.muted, .hero-text .muted { font-size: 16px; font-weight: 500; color: ${color.textSub}; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    .slide-frame { width: 100%; }
+    .hero-text { font-size: 17px; }
+  }
 `;
 
 export const Panel = styled(Card)`

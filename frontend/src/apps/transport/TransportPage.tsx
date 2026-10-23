@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
-import { ArrowRight, CalendarDays, MapPin, Route } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowRight, Bus, CalendarDays, Car, Footprints, MapPin, Route } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Place } from '../../api/client';
+import { getConfig, type Place } from '../../api/client';
 import { color, font, layout, radius } from '../../shared/design/tokens';
 import { useTrip } from '../../shared/trip/tripStore';
+import RouteMap from './RouteMap';
 
 const Page = styled.main`
   max-width: ${layout.maxWidth};
@@ -77,8 +79,12 @@ const DayTabs = styled.div`
 
 const Content = styled.div`
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  grid-template-columns: minmax(260px, 0.85fr) minmax(300px, 0.95fr) minmax(340px, 1.2fr);
   gap: 16px;
+
+  @media (max-width: 1080px) {
+    grid-template-columns: minmax(260px, 0.85fr) minmax(300px, 1.15fr);
+  }
 
   @media (max-width: 760px) {
     grid-template-columns: 1fr;
@@ -234,9 +240,51 @@ const RouteSummary = styled.div`
   }
 `;
 
+const ModeTabs = styled.div`
+  display: flex;
+  gap: 6px;
+  margin: 16px 0 12px;
+  padding: 4px;
+  background: ${color.bg};
+  border: 1px solid ${color.border};
+  border-radius: ${radius.pill};
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: ${layout.minTouch};
+    flex: 1;
+    padding: 8px;
+    color: ${color.textSub};
+    background: transparent;
+    border: 0;
+    border-radius: ${radius.pill};
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+  }
+
+  button[aria-pressed='true'] {
+    color: ${color.surface};
+    background: ${color.primary};
+  }
+`;
+
+const MapNote = styled.p`
+  margin: 10px 0 0;
+  color: ${color.textMuted};
+  font-size: 13px;
+  line-height: 1.6;
+`;
+
 interface ScheduledPlace {
   place?: Place;
 }
+
+type TravelMode = 'transit' | 'car' | 'walk';
 
 function formatDate(date: string) {
   const [year, month, day] = date.split('-').map(Number);
@@ -249,8 +297,14 @@ export default function TransportPage() {
   const { t } = useTranslation('transport');
   const days = useTrip((trip) => trip.days);
   const places = useTrip((trip) => trip.places);
+  const config = useQuery({
+    queryKey: ['config'],
+    queryFn: ({ signal }) => getConfig(signal),
+    staleTime: Infinity,
+  });
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [selectedSegmentIndex, setSelectedSegmentIndex] = useState(0);
+  const [travelMode, setTravelMode] = useState<TravelMode>('transit');
   const activeDayIndex = Math.min(selectedDayIndex, Math.max(0, days.length - 1));
   const selectedDay = days[activeDayIndex];
   const itinerary: ScheduledPlace[] = selectedDay?.items.map((item) => ({
@@ -336,7 +390,7 @@ export default function TransportPage() {
             <span>{selectedSegment ? t('segmentNumber', { number: selectedSegmentIndex + 1 }) : ''}</span>
           </PanelHeading>
 
-          {selectedSegment ? (
+          {selectedSegment && departure && arrival ? (
             <RouteSummary>
               <div className="endpoint">
                 <span className="endpoint-label"><MapPin size={14} aria-hidden="true" />{t('departure')}</span>
@@ -352,8 +406,70 @@ export default function TransportPage() {
             </RouteSummary>
           ) : (
             <EmptyState>
-              {itinerary.length < 2 ? t('needTwoPlaces') : t('selectSegment')}
+              {itinerary.length < 2
+                ? t('needTwoPlaces')
+                : !selectedSegment
+                  ? t('selectSegment')
+                  : t('missingPlaceData')}
             </EmptyState>
+          )}
+
+          {selectedSegment && departure && arrival && (
+            <>
+              <ModeTabs role="group" aria-label={t('modeTabs')}>
+                {([
+                  ['transit', Bus],
+                  ['car', Car],
+                  ['walk', Footprints],
+                ] as const).map(([mode, Icon]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={travelMode === mode}
+                    onClick={() => setTravelMode(mode)}
+                  >
+                    <Icon size={18} aria-hidden="true" />
+                    {t(`mode.${mode}`)}
+                  </button>
+                ))}
+              </ModeTabs>
+              <MapNote>{t(`modeNote.${travelMode}`)}</MapNote>
+            </>
+          )}
+        </Panel>
+
+        <Panel aria-labelledby="map-heading">
+          <PanelHeading>
+            <h2 id="map-heading">{t('mapTitle')}</h2>
+          </PanelHeading>
+          {selectedSegment && departure && arrival ? (
+            <>
+              <RouteMap
+                apiKey={config.data?.js_key}
+                loadingKey={config.isLoading}
+                keyError={config.isError}
+                departure={departure}
+                arrival={arrival}
+                labels={{
+                  mapLabel: t('mapTitle'),
+                  loading: t('mapLoading'),
+                  missingKey: t('mapMissingKey'),
+                  missingKeyDescription: t('mapMissingKeyDescription'),
+                  failed: t('mapFailed'),
+                  failedDescription: t('mapFailedDescription'),
+                  retry: t('retry'),
+                  departure: t('departure'),
+                  arrival: t('arrival'),
+                  examplePath: t('examplePath'),
+                }}
+                onRetryKey={() => { void config.refetch(); }}
+              />
+              {config.isError && config.error instanceof Error && (
+                <MapNote role="alert">{config.error.message}</MapNote>
+              )}
+            </>
+          ) : (
+            <EmptyState>{t('mapNeedsSegment')}</EmptyState>
           )}
         </Panel>
       </Content>

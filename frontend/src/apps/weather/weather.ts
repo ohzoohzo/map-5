@@ -8,7 +8,7 @@ export function useForecast(place: Place | undefined, date: string | undefined) 
   return useQuery({
     queryKey: ['weather', 'forecast', place?.latitude, place?.longitude, date],
     queryFn: ({ signal }) => request<WeatherForecast>(getWeatherForecastUrl({ latitude: place!.latitude, longitude: place!.longitude, date: date! }), signal),
-    enabled: place !== undefined && date !== undefined,
+    enabled: place !== undefined && Boolean(date),
     staleTime: 10 * 60_000,
   });
 }
@@ -41,8 +41,9 @@ export function summarizeRain(slots: WeatherSlot[]): RainSummary {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** '2026-10-25' → '10.25 (일)' */
+/** '2026-10-25' → '10.25 (일)'. 날짜가 아직 없는 DAY(이전 일정에서 옮겨 온 경우)는 빈 문자열 */
 export function formatDay(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
   const day = new Date(`${date}T00:00:00`);
   return `${day.getMonth() + 1}.${day.getDate()} (${WEEKDAYS[day.getDay()]})`;
 }

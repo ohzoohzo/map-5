@@ -51,11 +51,11 @@ export default function WeatherPage() {
         <div className="w-day-tabs" role="tablist">
           {days.map((each, index) => (
             <button
-              key={each.date} role="tab" aria-selected={index === dayIndex}
+              key={index} role="tab" aria-selected={index === dayIndex}
               className={index === dayIndex ? 'w-day-tab w-active' : 'w-day-tab'}
               onClick={() => { setNotice(null); navigate(`/weather?day=${index + 1}&item=0`); }}
             >
-              {t('dayTab', { day: index + 1, date: formatDay(each.date) })}
+              {dayLabel(t, index + 1, each.date)}
             </button>
           ))}
         </div>
@@ -189,7 +189,11 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
 function ForecastBanner({ place, date, dayNumber }: { place: Place; date: string; dayNumber: number }) {
   const { t } = useTranslation('weather');
   const forecast = useForecast(place, date);
-  const heading = <span className="w-muted">{t('dayTab', { day: dayNumber, date: formatDay(date) })}</span>;
+  const heading = <span className="w-muted">{dayLabel(t, dayNumber, date)}</span>;
+
+  if (!formatDay(date)) {
+    return <section className="w-card w-forecast" aria-label={t('forecastNoDate')}>{heading}<div><strong>{t('forecastNoDate')}</strong><p className="w-muted">{t('forecastNoDateDetail')}</p></div></section>;
+  }
 
   if (forecast.isPending) return <section className="w-card w-forecast" aria-live="polite">{heading}<p className="w-muted">{t('forecastLoading')}</p></section>;
   if (forecast.isError) {
@@ -221,5 +225,7 @@ function ForecastBanner({ place, date, dayNumber }: { place: Place; date: string
     </section>
   );
 }
+
+const dayLabel = (t: TFunction<'weather'>, day: number, date: string) => (formatDay(date) ? t('dayTab', { day, date: formatDay(date) }) : t('dayOnly', { day }));
 
 const errorText = (error: Error, t: TFunction<'weather'>) => (error instanceof ApiError ? error.message : t('networkError'));

@@ -20,9 +20,11 @@
 - 백엔드 모델 이름은 기능 접두어를 붙인다 (`WeatherForecast`). 새 키는 `settings.env("이름")` 으로 읽는다.
 - 여행 상태(후보·일정·선택 장소)는 `shared/trip/tripStore.ts` 의 `useTrip` / `tripActions` 만 사용한다.
 - 디자인은 `shared/design/tokens.ts` 값과 `design/` 시안을 따른다. 색을 직접 쓰지 않는다.
+- 스타일은 기능 폴더의 styled 컴포넌트 안에만 둔다. 전역 클래스를 새로 만들지 않고, 클래스명은 그 컴포넌트 안에서만 쓴다 (전역 `styles.ts` 는 머리글 `.site-header` 전용, #13).
 - API 를 바꿨으면 `python tools/gen_api.py` 로 생성 파일(`contracts/`, `frontend/src/api/generated/`)을 다시 만들어 함께 커밋한다. **생성 파일에서 충돌이 나면 손으로 고치지 말고 아무쪽이나 받은 뒤 다시 생성**한다.
 
 ## 커밋·PR
 - 커밋: `feat(weather): 예보 카드` 형식. push·PR 은 사용자가 원할 때만.
 - PR 전(CI 없음 — 직접 확인): `python -m pytest backend/tests -q`, `cd frontend && bun run build`, 화면을 바꿨으면 `cd frontend && node node_modules/@playwright/test/cli.js test`.
 - main 에 직접 push 하지 않는다. 작업 시작 전·PR 전 `git pull origin main` 으로 최신화.
+- pull 뒤 `frontend/package.json`·`bun.lock` 이 바뀌었으면 `cd frontend && bun install`, `backend/requirements*.txt` 가 바뀌었으면 백엔드 의존성을 다시 설치하고 **개발 서버를 재시작**한다 (#20).

@@ -1,24 +1,11 @@
 import type { CatalogResponse, ConfigResponse, SearchPlacesCategory, SearchResponse } from './generated/model';
 export type { Place, CatalogResponse, ConfigResponse, SearchPlacesCategory, SearchResponse } from './generated/model';
 
-export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+import { apiFetch } from './fetcher';
+export { ApiError } from './fetcher';
 
-export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(path, { signal });
-  if (!response.ok) {
-    const body: unknown = await response.json().catch(() => null);
-    const detail = typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string'
-      ? body.detail
-      : `HTTP ${response.status}`;
-    throw new ApiError(detail, response.status);
-  }
-  return response.json() as Promise<T>;
-}
+/** 화면에서 직접 부르는 요청. 생성 훅과 같은 apiFetch 라 4xx/5xx 는 ApiError 로 던진다. */
+export const request = <T>(path: string, signal?: AbortSignal) => apiFetch<T>(path, { signal });
 
 export const getConfig = (signal?: AbortSignal) => request<ConfigResponse>('/api/config', signal);
 export const getCatalog = (region: string, query: string, signal?: AbortSignal) => {

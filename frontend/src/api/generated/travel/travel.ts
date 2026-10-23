@@ -27,7 +27,10 @@ import type {
   SearchResponse
 } from '../model';
 
+import { apiFetch } from '../../fetcher.ts';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -64,23 +67,16 @@ export const getGetCatalogUrl = (params?: GetCatalogParams,) => {
 /**
  * @summary Get Catalog
  */
-export const getCatalog = async (params?: GetCatalogParams, options?: RequestInit): Promise<CatalogResponse> => {
+export const getCatalog = async (params?: GetCatalogParams, options?: Parameters<typeof apiFetch>[1]): Promise<CatalogResponse> => {
 
-  const res = await fetch(getGetCatalogUrl(params),
+  return apiFetch<CatalogResponse>(getGetCatalogUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: CatalogResponse = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -93,16 +89,16 @@ export const getGetCatalogQueryKey = (params?: GetCatalogParams,) => {
     }
 
 
-export const getGetCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getCatalog>>, TError = ErrorResponse>(params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, fetch?: RequestInit}
+export const getGetCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getCatalog>>, TError = ErrorResponse>(params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetCatalogQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCatalog>>> = ({ signal }) => getCatalog(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCatalog>>> = ({ signal }) => getCatalog(params, { signal, ...requestOptions });
 
 
 
@@ -122,7 +118,7 @@ export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TE
           TError,
           Awaited<ReturnType<typeof getCatalog>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TError = ErrorResponse>(
@@ -132,11 +128,11 @@ export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TE
           TError,
           Awaited<ReturnType<typeof getCatalog>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TError = ErrorResponse>(
- params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, fetch?: RequestInit}
+ params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -144,7 +140,7 @@ export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TE
  */
 
 export function useGetCatalog<TData = Awaited<ReturnType<typeof getCatalog>>, TError = ErrorResponse>(
- params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, fetch?: RequestInit}
+ params?: GetCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -178,23 +174,16 @@ export const getSearchPlacesUrl = (params: SearchPlacesParams,) => {
 /**
  * @summary Search Places
  */
-export const searchPlaces = async (params: SearchPlacesParams, options?: RequestInit): Promise<SearchResponse> => {
+export const searchPlaces = async (params: SearchPlacesParams, options?: Parameters<typeof apiFetch>[1]): Promise<SearchResponse> => {
 
-  const res = await fetch(getSearchPlacesUrl(params),
+  return apiFetch<SearchResponse>(getSearchPlacesUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: SearchResponse = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -207,16 +196,16 @@ export const getSearchPlacesQueryKey = (params?: SearchPlacesParams,) => {
     }
 
 
-export const getSearchPlacesQueryOptions = <TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorResponse>(params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, fetch?: RequestInit}
+export const getSearchPlacesQueryOptions = <TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorResponse>(params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getSearchPlacesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPlaces>>> = ({ signal }) => searchPlaces(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPlaces>>> = ({ signal }) => searchPlaces(params, { signal, ...requestOptions });
 
 
 
@@ -236,7 +225,7 @@ export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>
           TError,
           Awaited<ReturnType<typeof searchPlaces>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorResponse>(
@@ -246,11 +235,11 @@ export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>
           TError,
           Awaited<ReturnType<typeof searchPlaces>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorResponse>(
- params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, fetch?: RequestInit}
+ params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -258,7 +247,7 @@ export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>
  */
 
 export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorResponse>(
- params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, fetch?: RequestInit}
+ params: SearchPlacesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

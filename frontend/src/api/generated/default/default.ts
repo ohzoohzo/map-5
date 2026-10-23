@@ -25,7 +25,10 @@ import type {
   HealthResponse
 } from '../model';
 
+import { apiFetch } from '../../fetcher.ts';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -55,23 +58,16 @@ export const getHealthUrl = () => {
 /**
  * @summary Health
  */
-export const health = async ( options?: RequestInit): Promise<HealthResponse> => {
+export const health = async ( options?: Parameters<typeof apiFetch>[1]): Promise<HealthResponse> => {
 
-  const res = await fetch(getHealthUrl(),
+  return apiFetch<HealthResponse>(getHealthUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: HealthResponse = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -84,16 +80,16 @@ export const getHealthQueryKey = () => {
     }
 
 
-export const getHealthQueryOptions = <TData = Awaited<ReturnType<typeof health>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, fetch?: RequestInit}
+export const getHealthQueryOptions = <TData = Awaited<ReturnType<typeof health>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getHealthQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof health>>> = ({ signal }) => health({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof health>>> = ({ signal }) => health({ signal, ...requestOptions });
 
 
 
@@ -113,7 +109,7 @@ export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = E
           TError,
           Awaited<ReturnType<typeof health>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = ErrorResponse>(
@@ -123,11 +119,11 @@ export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = E
           TError,
           Awaited<ReturnType<typeof health>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -135,7 +131,7 @@ export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = E
  */
 
 export function useHealth<TData = Awaited<ReturnType<typeof health>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof health>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -162,23 +158,16 @@ export const getGetConfigUrl = () => {
 /**
  * @summary Get Config
  */
-export const getConfig = async ( options?: RequestInit): Promise<ConfigResponse> => {
+export const getConfig = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ConfigResponse> => {
 
-  const res = await fetch(getGetConfigUrl(),
+  return apiFetch<ConfigResponse>(getGetConfigUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: ConfigResponse = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -191,16 +180,16 @@ export const getGetConfigQueryKey = () => {
     }
 
 
-export const getGetConfigQueryOptions = <TData = Awaited<ReturnType<typeof getConfig>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, fetch?: RequestInit}
+export const getGetConfigQueryOptions = <TData = Awaited<ReturnType<typeof getConfig>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getGetConfigQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfig>>> = ({ signal }) => getConfig({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfig>>> = ({ signal }) => getConfig({ signal, ...requestOptions });
 
 
 
@@ -220,7 +209,7 @@ export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TErr
           TError,
           Awaited<ReturnType<typeof getConfig>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TError = ErrorResponse>(
@@ -230,11 +219,11 @@ export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TErr
           TError,
           Awaited<ReturnType<typeof getConfig>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -242,7 +231,7 @@ export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TErr
  */
 
 export function useGetConfig<TData = Awaited<ReturnType<typeof getConfig>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfig>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

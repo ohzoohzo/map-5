@@ -2,7 +2,7 @@
   "version": 1,
   "created": "2026-10-23",
   "tool": "built-in image_gen",
-  "purpose": "Three decorative illustrations for empty candidate collection, empty itinerary and docent guidance.",
+  "purpose": "Five decorative illustrations for empty candidates, empty itinerary, docent guidance, weather preparation and transport guidance.",
   "session": "codex://threads/01a167ef-4b4e-7c93-bc11-584daed04f07",
   "assets": [
     {
@@ -43,6 +43,32 @@
         255
       ],
       "sha256": "23e15063407d9e6f047117ecae33f37cd89bbebe373b5e5f96f149431385492d"
+    },
+    {
+      "file": "frontend/public/images/pinday/weather-preparation.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Same cohesive travel editorial style as the PinDay empty-itinerary and empty-candidates assets: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory, and restrained warm coral accents. Sophisticated, friendly, visually clear at 140px web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding. No words, letters, numerals, typography, labels, logos, watermark, UI screenshot, background rectangle, border or checkerboard. Real alpha transparency, no solid background. Decorative conceptual illustration, not factual weather information or a real route/map. Subject: preparing for a trip in changing weather. A compact ivory and cobalt travel backpack with a folded cobalt umbrella leaning alongside, a small aqua water bottle and a neatly rolled pale-aqua jacket. A small warm coral sun and a single pale-aqua cloud float together behind the backpack as a decorative all-weather motif. Welcoming, prepared, calm mood. The umbrella is folded and there are no raindrops, weather numbers or forecast cards. No people. Simple readable silhouette with minimal props, same navy outlines and watercolor texture.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "fc80402481046f289aacf2a0099145b752e858479466c9d69179c8a211c81111"
+    },
+    {
+      "file": "frontend/public/images/pinday/transport-route-guide.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Same cohesive travel editorial style as the PinDay empty-itinerary and empty-candidates assets: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory, and restrained warm coral accents. Sophisticated, friendly, visually clear at 140px web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding. No words, letters, numerals, typography, labels, logos, watermark, UI screenshot, background rectangle, border or checkerboard. Real alpha transparency, no solid background. Decorative conceptual illustration, not factual weather information or a real route/map. Subject: choose how to travel between two places. A folded pale-aqua illustrated route map forms the base. Two simple cobalt and coral location pins connected by one short curved dotted navy line. A small charming blue-and-ivory city bus is the dominant object; a tiny ivory car and one small navy walking-shoe motif sit nearby to suggest public transport, car and walking. All objects form one balanced compact group, not separate panels. Generic decorative geography with no street names or destination labels, no real transit brand, no numbers, no people. Refined travel editorial illustration, readable small details and softly shaded ivory surfaces.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "4de935e155a5a50900fede3ced673dcada68c7815d16001e9aba7ac17f697e23"
     }
   ]
 }

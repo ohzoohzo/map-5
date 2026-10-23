@@ -11,6 +11,7 @@ import { navigate, useSearchParam } from '../../shared/router';
 import TripBar from '../../shared/trip/TripBar';
 import { tripActions, useTrip, type TripDay } from '../../shared/trip/tripStore';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import DocentPanel from '../docent/DocentPanel';
 import { WeatherSection } from './WeatherPage.styles';
 import { formatClock, formatDay, formatDayLong, rainPeriod, summarizeRain, useAlternatives, useForecast } from './weather';
@@ -74,6 +75,7 @@ export default function WeatherPage() {
           <div className="w-hero">{heading}</div>
           <div className="w-card">
             <FallbackView padding="compact">
+              <EmptyStateArt kind="weather" size={140} />
               <FallbackViewText title={t('emptyTitle')} description={t('emptyDescription')} />
               <Button size="small" variant="solid" leadingContent={<CalendarDays />} onClick={() => navigate('/schedule')}>{t('goSchedule')}</Button>
             </FallbackView>

@@ -4,6 +4,8 @@ const ART = {
   candidates: '/images/pinday/empty-candidates.png',
   itinerary: '/images/pinday/empty-itinerary.png',
   docent: '/images/pinday/docent-guide.png',
+  weather: '/images/pinday/weather-preparation.png',
+  transport: '/images/pinday/transport-route-guide.png',
 } as const;
 
 const Art = styled.img`

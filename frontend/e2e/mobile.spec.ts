@@ -1,32 +1,22 @@
 import { TRAVEL_TEST_IDS as IDS } from '../src/shared/testIds';
-import { expect, expectCatalogRendered, expectItinerary, openCatalog, test } from './support';
+import { expect, expectNames, noHorizontalOverflow, startTrip, test } from './support';
 
-test('at 390px a traveler can discover, open the map, and manage a day without horizontal page overflow', async ({ page }, testInfo) => {
-  const initial = await openCatalog(page);
-  await expect(page.getByRole('tab', { name: '여행지', exact: true })).toBeVisible();
-  await expect(page.getByRole('combobox', { name: '여행 지역', exact: true })).toBeVisible();
-  await expect(page.getByRole('searchbox', { name: '여행지 검색', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '검색', exact: true })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.screenshot({ path: testInfo.outputPath('mobile-390.png') });
+test('390px에서 목록/지도를 오가며 후보를 담고, 일정 화면까지 가로 넘침이 없다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  await noHorizontalOverflow(page);
+  const chosen = busan.places[0]!;
+  await page.getByRole('button', { name: `${chosen.name} 후보함에 저장`, exact: true }).click();
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+  await page.screenshot({ path: testInfo.outputPath('explore-390.png') });
 
-  const chosen = initial.places[0]!;
-  await page.getByRole('button', { name: `${chosen.name} 일정에 담기`, exact: true }).first().click();
-  await expect(page.getByTestId(IDS.SELECTED_PLACE_COUNT)).toHaveText('1');
-  await page.getByRole('tab', { name: /^나의 일정/ }).click();
-  await expectItinerary(page, [chosen.name]);
-  await expect(page.getByRole('combobox', { name: '여행 기간', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: `${chosen.name} 일정에서 빼기`, exact: true })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
-  await page.screenshot({ path: testInfo.outputPath('mobile-plan-390.png') });
-
-  await page.getByRole('tab', { name: '지도', exact: true }).click();
+  await page.getByRole('radio', { name: '지도' }).click();
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeVisible();
-  await expectCatalogRendered(page, initial);
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  await expect(page.getByTestId(IDS.PLACE_GRID)).toBeHidden();
+  await noHorizontalOverflow(page);
 
-  await page.getByRole('tab', { name: /^나의 일정/ }).click();
-  await page.getByRole('button', { name: `${chosen.name} 일정에서 빼기`, exact: true }).click();
-  await expectItinerary(page, []);
-  await expect(page.getByTestId(IDS.SELECTED_PLACE_COUNT)).toHaveText('0');
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  await page.getByRole('button', { name: `${chosen.name} DAY 1에 추가` }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [chosen.name]);
+  await noHorizontalOverflow(page);
+  await page.screenshot({ path: testInfo.outputPath('schedule-390.png') });
 });

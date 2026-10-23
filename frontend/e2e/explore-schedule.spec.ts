@@ -1,0 +1,105 @@
+import { TRAVEL_TEST_IDS as IDS } from '../src/shared/testIds';
+import { catalogResponse, expect, expectNames, readCatalog, startTrip, test } from './support';
+
+test('어디 갈까?: 시·도와 동네로 실제 관광지를 좁히고 후보함에 모은다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  expect(busan.places.every((place) => place.address.startsWith('부산'))).toBe(true);
+  await expect(page.getByRole('heading', { name: '부산의 어디를 담아볼까요?' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('explore-1440.png') });
+
+  const district = busan.regions.find((region) => region.startsWith('부산광역시 '))!.slice('부산광역시 '.length);
+  const narrowed = catalogResponse(page, `부산광역시 ${district}`);
+  await page.getByRole('group', { name: '동네' }).getByRole('button', { name: district, exact: true }).click();
+  const local = await readCatalog(await narrowed);
+  expect(local.total).toBeLessThan(busan.total);
+  await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(local.total));
+
+  const [first, second] = local.places.length > 1 ? local.places : busan.places;
+  await page.getByRole('button', { name: `${first!.name} 후보함에 저장`, exact: true }).click();
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+  const savedButton = page.getByTestId(IDS.PLACE_GRID).getByRole('button', { name: `${first!.name} 후보함에 저장됨`, exact: true });
+  await expect(savedButton).toHaveAttribute('aria-pressed', 'true');
+  await savedButton.click();
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('0');
+  await page.getByRole('button', { name: `${first!.name} 후보함에 저장`, exact: true }).click();
+  if (second) await page.getByRole('button', { name: `${second.name} 후보함에 저장`, exact: true }).click();
+  await expect(page.getByTestId(IDS.CANDIDATE_TRAY)).toContainText(first!.name);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText(second ? '2' : '1');
+});
+
+test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {
+  const busan = await startTrip(page);
+  const [a, b, c] = busan.places;
+  for (const place of [a!, b!, c!]) await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  await expect(page).toHaveURL(/\/schedule$/);
+  await expectNames(page, IDS.UNSCHEDULED_LIST, [a!.name, b!.name, c!.name]);
+
+  await page.getByRole('button', { name: `${a!.name} DAY 1에 추가` }).click();
+  await page.getByRole('button', { name: `${b!.name} DAY 1에 추가` }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [a!.name, b!.name]);
+  await expect(page.getByTestId(IDS.STRAIGHT_DISTANCE)).not.toHaveText('0');
+  await page.getByRole('button', { name: `${b!.name} 순서 위로`, exact: true }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [b!.name, a!.name]);
+
+  await page.getByRole('tab', { name: /^DAY 3/ }).click();
+  await page.getByRole('button', { name: `${c!.name} DAY 3에 추가` }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [c!.name]);
+  await expect(page.getByTestId(IDS.SCHEDULED_COUNT)).toHaveText('3');
+  await expect(page.getByTestId(IDS.UNSCHEDULED_LIST)).toContainText('후보를 모두 날짜에 배치했어요.');
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.getByRole('tab', { name: /^DAY 1/ }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [b!.name, a!.name]);
+
+  await page.getByRole('button', { name: '여행 조건 수정' }).click();
+  await page.getByRole('combobox', { name: '기간', exact: true }).click();
+  await page.getByRole('option', { name: '1박 2일', exact: true }).click();
+  await expect(page.getByText('뒤쪽 날짜의 일정 1곳은 후보함으로 돌아가요.')).toBeVisible();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('tab', { name: /^DAY 3/ })).toHaveCount(0);
+  await expect(page.getByTestId(IDS.SCHEDULED_COUNT)).toHaveText('2');
+  await expectNames(page, IDS.UNSCHEDULED_LIST, [c!.name]);
+
+  await page.getByRole('button', { name: `${a!.name} 일정에서 빼기`, exact: true }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [b!.name]);
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('3');
+});
+
+test('카카오 검색 탭은 키가 있으면 시·도·동네로 좁힌 카테고리 검색을, 없으면 이유를 보여준다', async ({ page }) => {
+  await startTrip(page);
+  const config = await (await page.request.get('/api/config')).json() as { place_search_enabled: boolean };
+  if (!config.place_search_enabled) {
+    await page.getByRole('tab', { name: '맛집' }).click();
+    await expect(page.getByText('장소 검색이 꺼져 있어요')).toBeVisible();
+    return;
+  }
+  const searched = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/travel/search');
+  await page.getByRole('tab', { name: '맛집' }).click();
+  const response = await searched;
+  const url = new URL(response.url());
+  expect(url.searchParams.get('query')).toBe('부산 맛집');
+  expect(url.searchParams.get('category')).toBe('FD6');
+  const body = await response.json() as { total: number };
+  await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(body.total));
+});
+
+test('Playwright 추적 HTML을 저장해도 개발 서버가 새로고침하지 않아 입력 중인 검색어가 남는다', async ({ page }, testInfo) => {
+  const { mkdir, unlink, writeFile } = await import('node:fs/promises');
+  const { dirname } = await import('node:path');
+  await startTrip(page);
+  const search = page.getByRole('searchbox', { name: '장소 검색' });
+  await search.fill('아직 제출하지 않은 검색어');
+  const probe = testInfo.outputPath('traces', 'resources', 'watch-exclusion-probe.html');
+  await mkdir(dirname(probe), { recursive: true });
+  const navigated = page.waitForEvent('framenavigated', { predicate: (frame) => frame === page.mainFrame(), timeout: 2_000 }).then(() => true, () => false);
+  try {
+    await writeFile(probe, '<!doctype html><title>Trace artifact watch regression</title>', 'utf8');
+    expect(await navigated).toBe(false);
+    await expect(search).toHaveValue('아직 제출하지 않은 검색어');
+  } finally {
+    await unlink(probe);
+  }
+});

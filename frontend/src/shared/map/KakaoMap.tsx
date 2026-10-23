@@ -95,7 +95,9 @@ export default function KakaoMap({ jsKey, configLoading, pins, route = [], route
     // Hidden mobile tabs have no usable pixel bounds. Recalculate only once visible,
     // before placing a center or calculating the bounds for the current pins.
     map.current.relayout();
-    if (points.length === 1) { map.current.setCenter(new loaded.LatLng(points[0]!.latitude, points[0]!.longitude)); map.current.setLevel(5); return; }
+    // Centering at the old world zoom rounds coordinates to coarse pixels; zoom
+    // first so a single pin remains centered at the final map resolution.
+    if (points.length === 1) { map.current.setLevel(5); map.current.setCenter(new loaded.LatLng(points[0]!.latitude, points[0]!.longitude)); return; }
     const bounds = new loaded.LatLngBounds();
     points.forEach((place) => bounds.extend(new loaded.LatLng(place.latitude, place.longitude)));
     map.current.setBounds(bounds, 48, 48, 48, 48);

@@ -1,0 +1,5 @@
+# Vercel 서버 런타임 의존성. backend/requirements.txt 의 부분집합이어야 한다 (backend/tests/test_deploy_config.py 가 확인).
+# pandas 는 오프라인 데이터 정제(backend/data_prep.py)에만 쓰이고, uvicorn 은 Vercel 이 직접 실행하므로 뺀다.
+fastapi>=0.115,<1
+httpx>=0.28,<1
+python-dotenv>=1.0,<2

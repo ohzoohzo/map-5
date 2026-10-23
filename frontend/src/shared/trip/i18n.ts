@@ -1,0 +1,26 @@
+// shared/trip 전용 문구 (여행 조건 바). useTranslation('trip')
+export default {
+  namespace: 'trip',
+  ko: {
+    destinationUndecided: '여행지 미정',
+    datesUndecided: '날짜 미정',
+    editConditions: '여행 조건 수정',
+    candidateCount: '후보',
+    scheduledCount: '일정',
+    placeUnit: '곳',
+    loading: '불러오는 중',
+    conditionsStartTitle: '어디로, 언제 떠나세요?',
+    conditionsEditTitle: '여행 조건 수정',
+    destinationLabel: '여행지',
+    destinationPlaceholder: '시·도를 고르세요',
+    startDateLabel: '출발일',
+    lengthLabel: '기간',
+    conditionsStart: '여행 시작',
+    conditionsSave: '저장',
+    regionsError: '여행지 목록을 불러오지 못했어요. 새로고침해 주세요.',
+    shortenNotice: '기간을 줄이면 뒤쪽 날짜의 일정 {{count}}곳은 후보함으로 돌아가요.',
+    storageError: '이 브라우저에 여행을 저장하지 못했어요. 새로고침하면 바뀐 내용이 사라질 수 있어요.',
+    storageInvalid: '저장된 여행을 읽을 수 없어 새 여행으로 시작했어요. 다시 저장하면 이전 기록을 덮어써요.',
+    storageRetry: '다시 저장',
+  },
+};

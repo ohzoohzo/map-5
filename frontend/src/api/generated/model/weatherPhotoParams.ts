@@ -11,4 +11,8 @@ export type WeatherPhotoParams = {
  * @maxLength 100
  */
 name: string;
+/**
+ * @maxLength 200
+ */
+address?: string;
 };

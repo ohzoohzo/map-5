@@ -149,7 +149,7 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
             {place.description && <p className="w-description">{place.description}</p>}
             {placeLink(place)}
           </div>
-          <PlaceVisual name={place.name} kind={originIndoor ? 'indoor' : 'outdoor'} large />
+          <PlaceVisual place={place} kind={originIndoor ? 'indoor' : 'outdoor'} large />
         </article>
 
         <div className="w-swap" aria-hidden="true"><span>{t('replaceOnly')}</span><ArrowRight /></div>
@@ -168,7 +168,7 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
                 <span className="w-meta">{t('distance', { km: chosen.distance_km })}</span>
                 {placeLink(chosen.place)}
               </div>
-              <PlaceVisual name={chosen.place.name} kind="indoor" />
+              <PlaceVisual place={chosen.place} kind="indoor" />
             </article>
           )}
           {others.length > 0 && (
@@ -220,21 +220,23 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
   );
 }
 
-/** 장소 사진: 한국관광공사 관광사진에서 이름이 맞는 사진. 없거나 못 불러오면 실내·야외 아이콘(모르면 neutral)으로 대신한다 */
+/** 장소 사진: 한국관광공사 관광사진. 그 장소 사진이 없으면 관련·지역 사진임을 표시하고, 그마저 못 불러오면 아이콘으로 대신한다 */
 type VisualKind = 'indoor' | 'outdoor' | 'neutral';
 const VISUAL_ICON = { indoor: Landmark, outdoor: Trees, neutral: MapPin };
-function PlaceVisual({ name, kind, large = false, small = false }: { name: string; kind: VisualKind; large?: boolean; small?: boolean }) {
+function PlaceVisual({ place, kind, large = false, small = false }: { place: Place; kind: VisualKind; large?: boolean; small?: boolean }) {
   const { t } = useTranslation('weather');
-  const photo = usePlacePhoto(name).data?.photo;
+  const photo = usePlacePhoto(place).data?.photo;
   const [broken, setBroken] = useState<string | null>(null);
   const Icon = VISUAL_ICON[kind];
   const className = `w-visual ${kind}${large ? ' large' : ''}${small ? ' small' : ''}`;
   if (!photo || broken === photo.url) return <div className={className} aria-hidden="true"><Icon /></div>;
-  const credit = t('photoCredit', { photographer: photo.photographer || photo.source });
+  const by = photo.photographer || photo.source;
+  const credit = photo.match === 'place' ? t('photoCredit', { photographer: by }) : t(photo.match === 'area' ? 'photoArea' : 'photoRelated', { label: photo.label, photographer: by });
+  const alt = photo.match === 'place' ? t('photoAlt', { name: place.name }) : t(photo.match === 'area' ? 'photoAreaAlt' : 'photoRelatedAlt', { label: photo.label, title: photo.title });
   return (
-    <figure className={`${className} photo`}>
-      <img src={photo.url} alt={t('photoAlt', { name: photo.title })} loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={credit} />
-      {!small && <figcaption>{credit}</figcaption>}
+    <figure className={`${className} photo${photo.match === 'place' ? '' : ' approx'}`}>
+      <img src={photo.url} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(photo.url)} title={credit} />
+      {small ? photo.match !== 'place' && <figcaption>{t(photo.match === 'area' ? 'photoAreaShort' : 'photoRelatedShort')}</figcaption> : <figcaption>{credit}</figcaption>}
     </figure>
   );
 }
@@ -244,7 +246,7 @@ function MoreCard({ option, onChoose }: { option: WeatherAlternative; onChoose: 
   return (
     <li>
       <button type="button" className="w-more-item" onClick={onChoose} aria-label={t('chooseAlternative', { name: option.place.name })}>
-        <PlaceVisual name={option.place.name} kind="indoor" small />
+        <PlaceVisual place={option.place} kind="indoor" small />
         <span className="w-more-copy">
           <strong>{option.place.name}</strong>
           <span className="w-badge indoor small"><Building2 />{t('indoorShort')}</span>
@@ -260,7 +262,7 @@ function TimelineStop({ place, order, badge, replaced = false }: { place: Place;
   const { t } = useTranslation('weather');
   return (
     <li className={replaced ? 'w-stop replaced' : 'w-stop'}>
-      <PlaceVisual name={place.name} kind={replaced ? 'indoor' : 'neutral'} small />
+      <PlaceVisual place={place} kind={replaced ? 'indoor' : 'neutral'} small />
       <span className="w-stop-copy">
         <span className="w-stop-top"><span className="w-stop-order">{t('order', { order })}</span><span className={replaced ? 'w-stop-badge replaced' : 'w-stop-badge'}>{badge}</span></span>
         <strong>{place.name}</strong>

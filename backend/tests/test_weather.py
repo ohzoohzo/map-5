@@ -157,34 +157,61 @@ def test_alternatives_without_catalog_is_unavailable(tmp_path):
         app.dependency_overrides.clear()
 
 
+
 def gallery(*items: dict) -> httpx.Response:
     return httpx.Response(200, json={"response": {"header": {"resultCode": "0000"}, "body": {"items": {"item": list(items)} if items else ""}}})
 
 
-def gallery_item(title: str, url: str = "https://tong.visitkorea.or.kr/a.jpg", tags: str = "") -> dict:
-    return {"galTitle": title, "galWebImageUrl": url, "galPhotographer": "한국관광공사", "galSearchKeyword": tags}
+def gallery_item(title: str, url: str = "https://tong.visitkorea.or.kr/a.jpg", tags: str = "", location: str = "부산광역시 해운대구") -> dict:
+    return {"galTitle": title, "galWebImageUrl": url, "galPhotographer": "한국관광공사", "galSearchKeyword": tags, "galPhotographyLocation": location}
+
+
+def by_keyword(responses: dict[str, httpx.Response]) -> Mock:
+    """검색어별로 다른 응답을 돌려주는 가짜 관광사진 API"""
+    return Mock(side_effect=lambda url, params, **kwargs: responses.get(params["keyword"], gallery()))
 
 
 @pytest.fixture
 def photo_client(monkeypatch):
     from backend.app.routers.weather import photos
-    photos._lookup.cache_clear()
+    photos._gallery.cache_clear()
     monkeypatch.setattr(photos, "env", lambda name: KEY)
     yield TestClient(app), photos
-    photos._lookup.cache_clear()
+    photos._gallery.cache_clear()
 
 
-def test_photo_matches_title_or_exact_tag_only(photo_client, monkeypatch):
+def photo_of(client, name: str, address: str = ""):
+    return client.get("/api/weather/photo", params={"name": name, "address": address}).json()["photo"]
+
+
+def test_place_photo_needs_matching_name_and_province(photo_client, monkeypatch):
     client, photos = photo_client
-    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(
-        gallery_item("부산불꽃축제", "https://x/fireworks.jpg", "부산불꽃축제, 광안리해수욕장"),
-        gallery_item("광안리 야경", "https://x/night.jpg", "광안리"),
-    )))
-    photo = client.get("/api/weather/photo", params={"name": "광안리해수욕장"}).json()["photo"]
-    assert photo["url"] == "https://x/fireworks.jpg"
+    monkeypatch.setattr(photos.httpx, "get", by_keyword({"해양자연사박물관": gallery(
+        gallery_item("땅끝해양자연사박물관", "https://x/haenam.jpg", location="전라남도 해남군"),
+        gallery_item("부산해양자연사박물관", "https://x/busan.jpg", location="부산광역시 동래구"),
+    ), "광안리해수욕장": gallery(
+        gallery_item("부산불꽃축제", "https://x/fireworks.jpg", "부산불꽃축제, 광안리해수욕장", "부산광역시 수영구"),
+    )}))
+    photo = photo_of(client, "해양자연사박물관", "부산광역시 동래구 우장춘로 175")
+    assert (photo["url"], photo["match"]) == ("https://x/busan.jpg", "place")
+    assert photo_of(client, "광안리해수욕장", "부산광역시 수영구 광안동")["url"] == "https://x/fireworks.jpg"
 
-    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("다른 해수욕장", "https://x/other.jpg", "해수욕장"))))
-    assert client.get("/api/weather/photo", params={"name": "송정해수욕장"}).json()["photo"] is None
+
+def test_without_place_photo_falls_back_to_main_word_then_district_then_province(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", by_keyword({
+        "해리단길": gallery(gallery_item("해리단길", "https://x/haeri.jpg", location="부산광역시 해운대구 우동")),
+        "기장군": gallery(gallery_item("해동용궁사", "https://x/gijang.jpg", location="부산광역시 기장군 기장읍")),
+        "부산광역시": gallery(gallery_item("더베이 101", "https://x/busan.jpg", location="부산광역시 해운대구")),
+        "중구": gallery(gallery_item("동성로", "https://x/daegu.jpg", location="대구광역시 중구")),
+    }))
+    related = photo_of(client, "해리단길 카페", "부산광역시 해운대구 우동")
+    assert (related["match"], related["label"], related["url"]) == ("related", "해리단길", "https://x/haeri.jpg")
+    area = photo_of(client, "국립수산과학관", "부산광역시 기장군 기장읍 기장해안로 216")
+    assert (area["match"], area["label"], area["url"]) == ("area", "기장군", "https://x/gijang.jpg")
+    # '중구'는 여러 도시에 있어 다른 시·도 사진은 쓰지 않고 시·도 사진으로 간다
+    city = photo_of(client, "어느 기념관", "부산광역시 중구 대청로")
+    assert (city["match"], city["label"], city["url"]) == ("area", "부산광역시", "https://x/busan.jpg")
 
 
 def test_photo_rejects_non_https_and_hides_key(photo_client, monkeypatch):
@@ -198,9 +225,9 @@ def test_photo_rejects_non_https_and_hides_key(photo_client, monkeypatch):
 def test_photo_failures_are_not_cached(photo_client, monkeypatch):
     client, photos = photo_client
     monkeypatch.setattr(photos.httpx, "get", Mock(side_effect=httpx.ConnectError("down")))
-    assert client.get("/api/weather/photo", params={"name": "해운대해수욕장"}).json()["photo"] is None
+    assert photo_of(client, "해운대해수욕장") is None
     monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("해운대해수욕장"))))
-    assert client.get("/api/weather/photo", params={"name": "해운대해수욕장"}).json()["photo"]["title"] == "해운대해수욕장"
+    assert photo_of(client, "해운대해수욕장")["title"] == "해운대해수욕장"
 
 
 def test_photo_without_key_skips_upstream(monkeypatch):

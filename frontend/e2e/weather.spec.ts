@@ -147,16 +147,22 @@ test('a matching tourism photo replaces the icon, with its credit, and a broken 
   // openWeather 의 기본 '사진 없음'보다 나중에 등록한 route 가 먼저 쓰인다
   await page.route('**/api/weather/photo?**', (route) => {
     const name = new URL(route.request().url()).searchParams.get('name');
-    const photo = (url: string) => ({ url, title: name, photographer: '한국관광공사 테스트', source: '한국관광공사 관광사진', source_url: 'https://www.data.go.kr/' });
+    const photo = (url: string, match = 'place', label = name) => ({ url, title: name, photographer: '한국관광공사 테스트', match, label, source: '한국관광공사 관광사진', source_url: 'https://www.data.go.kr/' });
     if (name === beach.name) return route.fulfill({ json: { photo: photo('https://photo.test/beach.png') } });
     if (name === night.name) return route.fulfill({ json: { photo: photo('https://photo.test/broken.jpg') } });
-    return route.fulfill({ json: { photo: null } });
+    if (name === cafe.name) return route.fulfill({ json: { photo: null } });
+    // 그 장소 사진이 없는 대안은 지역 사진 — 화면에 그 사실이 보여야 한다
+    return route.fulfill({ json: { photo: photo('https://photo.test/area.png', 'area', '기장군') } });
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
 
   const original = page.getByRole('article', { name: '원래 일정' });
   await expect(original.getByRole('img', { name: `${beach.name} 사진` })).toBeVisible();
   await expect(original).toContainText('사진: 한국관광공사 테스트 · 한국관광공사 관광사진');
+  const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosen.getByRole('img', { name: /기장군 지역 사진/ })).toBeVisible();
+  await expect(chosen).toContainText('이 장소 사진이 없어 기장군 지역 사진이에요');
   const preview = page.getByRole('region', { name: '교체 후 미리보기' });
   await expect(preview.getByRole('img', { name: `${night.name} 사진` })).toHaveCount(0);
+  await expect(preview.getByText('지역 사진', { exact: true })).toBeVisible();
 });

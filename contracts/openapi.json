@@ -816,7 +816,7 @@
           "weather"
         ],
         "summary": "Weather Photo",
-        "description": "장소 이름과 맞는 한국관광공사 관광사진 한 장. 없으면 photo=null.",
+        "description": "한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순. 장소 사진이 아니면 match 로 알린다.",
         "operationId": "weather_photo",
         "parameters": [
           {
@@ -828,6 +828,17 @@
               "minLength": 1,
               "maxLength": 100,
               "title": "Name"
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Address"
             }
           }
         ],
@@ -1574,6 +1585,19 @@
             "type": "string",
             "title": "Photographer"
           },
+          "match": {
+            "type": "string",
+            "enum": [
+              "place",
+              "related",
+              "area"
+            ],
+            "title": "Match"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
           "source": {
             "type": "string",
             "title": "Source"
@@ -1589,6 +1613,8 @@
           "url",
           "title",
           "photographer",
+          "match",
+          "label",
           "source",
           "source_url"
         ],

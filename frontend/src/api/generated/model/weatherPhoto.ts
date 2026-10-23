@@ -4,11 +4,14 @@
  * 5조 여행 설계 API
  * OpenAPI spec version: 0.1.0
  */
+import type { WeatherPhotoMatch } from './weatherPhotoMatch.ts';
 
 export interface WeatherPhoto {
   url: string;
   title: string;
   photographer: string;
+  match: WeatherPhotoMatch;
+  label: string;
   source: string;
   source_url: string;
 }

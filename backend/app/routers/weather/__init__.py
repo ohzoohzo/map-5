@@ -51,6 +51,9 @@ def weather_alternatives(
 
 
 @router.get("/photo", response_model=WeatherPhotoResponse, operation_id="weather_photo")
-def weather_photo(name: Annotated[str, Query(min_length=1, max_length=100)]) -> WeatherPhotoResponse:
-    """장소 이름과 맞는 한국관광공사 관광사진 한 장. 없으면 photo=null."""
-    return WeatherPhotoResponse(photo=find_photo(name.strip()))
+def weather_photo(
+    name: Annotated[str, Query(min_length=1, max_length=100)],
+    address: Annotated[str, Query(max_length=200)] = "",
+) -> WeatherPhotoResponse:
+    """한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순. 장소 사진이 아니면 match 로 알린다."""
+    return WeatherPhotoResponse(photo=find_photo(name, address))

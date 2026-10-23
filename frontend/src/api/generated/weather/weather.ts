@@ -384,7 +384,7 @@ export const getWeatherPhotoUrl = (params: WeatherPhotoParams,) => {
 }
 
 /**
- * 장소 이름과 맞는 한국관광공사 관광사진 한 장. 없으면 photo=null.
+ * 한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순. 장소 사진이 아니면 match 로 알린다.
  * @summary Weather Photo
  */
 export const weatherPhoto = async (params: WeatherPhotoParams, options?: Parameters<typeof apiFetch>[1]): Promise<WeatherPhotoResponse> => {

@@ -22,11 +22,11 @@ export function useAlternatives(place: Place | undefined) {
   });
 }
 
-/** 한국관광공사 관광사진 한 장 (없으면 photo=null). 같은 이름은 한 번만 받는다 */
-export function usePlacePhoto(name: string) {
+/** 한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순 (match 로 어느 사진인지 알 수 있다) */
+export function usePlacePhoto(place: Place) {
   return useQuery({
-    queryKey: ['weather', 'photo', name],
-    queryFn: ({ signal }) => weatherPhoto({ name }, { signal }),
+    queryKey: ['weather', 'photo', place.name, place.address],
+    queryFn: ({ signal }) => weatherPhoto({ name: place.name, address: place.address }, { signal }),
     staleTime: Infinity,
     retry: false,
   });

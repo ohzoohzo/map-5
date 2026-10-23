@@ -28,7 +28,8 @@ python tools/dev.py               # 화면 http://localhost:8501 · API http://l
 1. **내 폴더만 고친다.** 화면·메뉴·문구·API 라우터는 폴더만 만들면 자동 등록된다.
 2. 공통 파일(`App.tsx`, `src/i18n.ts`, `src/styles.ts`, `src/shared/`, `backend/app/main.py·models.py·settings.py`, `.env.example`)은 따로 작은 PR → 여원 리뷰.
 3. 브랜치 `feat/<id>-<작업>` → PR → 리뷰 1명 → merge. main 직접 push 금지.
-4. 작업 전·PR 전에 `git pull origin main`.
-5. API 를 바꾸면 `python tools/gen_api.py` 실행 후 생성 파일도 커밋. 생성 파일 충돌 = 아무쪽이나 받고 다시 생성.
+4. 작업 전·PR 전에 `git pull origin main`. pull 뒤 `frontend/package.json`·`bun.lock` 이나 `backend/requirements*.txt` 가 바뀌었으면 `bun install`·`pip install -r ...` 후 개발 서버를 다시 켠다 (`tools/dev.py` 가 빠진 프론트 패키지를 알려준다).
+5. 화면 스타일은 자기 기능 폴더의 styled 컴포넌트 안에만 둔다. `src/styles.ts` 전역 클래스는 헤더 전용이라 새 클래스를 추가하지 않는다 (클래스 이름이 다른 화면과 겹치면 서로 깨진다).
+6. API 를 바꾸면 `python tools/gen_api.py` 실행 후 생성 파일도 커밋. 생성 파일 충돌 = 아무쪽이나 받고 다시 생성.
 
 자세한 에이전트용 규칙: [CLAUDE.md](CLAUDE.md)

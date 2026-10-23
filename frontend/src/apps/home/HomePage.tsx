@@ -11,7 +11,9 @@ import { color, font, layout, radius } from '../../shared/design/tokens';
 const HERO_IMAGE = '';
 const TRAIN_IMAGE = '';
 
-const DESTINATIONS = ['busan'] as const;
+// 화면에는 짧은 이름(i18n), 저장은 카탈로그 region 과 같은 시·도 전체 이름 (TripBar 와 같은 약속)
+const DESTINATIONS = [{ id: 'busan', value: '부산광역시' }] as const;
+type DestinationId = (typeof DESTINATIONS)[number]['id'];
 const TAGS = ['food', 'walk', 'exhibit'] as const;
 type TagId = (typeof TAGS)[number];
 
@@ -54,7 +56,7 @@ export default function HomePage() {
   const savedStart = useTrip((trip) => trip.startDate);
   const savedEnd = useTrip((trip) => trip.endDate);
 
-  const [destination, setDestination] = useState<string>(DESTINATIONS[0]);
+  const [destination, setDestination] = useState<DestinationId>(DESTINATIONS[0].id);
   // 저장된 여행이 있으면 그 날짜, 없으면 내일부터 2박 3일
   const [startDate, setStartDate] = useState(savedStart || addDays(1));
   const [endDate, setEndDate] = useState(savedEnd || addDays(3));
@@ -74,7 +76,8 @@ export default function HomePage() {
 
   function startTrip() {
     if (!canStart) return;
-    tripActions.setTrip(t(`search.destinations.${destination}`), startDate, endDate);
+    const value = DESTINATIONS.find((item) => item.id === destination)?.value ?? DESTINATIONS[0].value;
+    tripActions.setTrip(value, startDate, endDate);
     navigate('/explore');
   }
 
@@ -101,8 +104,8 @@ export default function HomePage() {
             <label className="field-body">
               <span className="field-label">{t('search.whereLabel')}</span>
               <span className="dest-select">
-                <select value={destination} onChange={(event) => setDestination(event.target.value)}>
-                  {DESTINATIONS.map((id) => <option key={id} value={id}>{t(`search.destinations.${id}`)}</option>)}
+                <select value={destination} onChange={(event) => setDestination(event.target.value as DestinationId)}>
+                  {DESTINATIONS.map(({ id }) => <option key={id} value={id}>{t(`search.destinations.${id}`)}</option>)}
                 </select>
                 <ChevronDown size={20} aria-hidden />
               </span>

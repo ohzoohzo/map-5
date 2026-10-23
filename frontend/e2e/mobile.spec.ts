@@ -29,19 +29,19 @@ test('숨긴 모바일 지도는 표시된 크기로 다시 맞추고 일반 크
     window.__mapCalls = [];
     class LatLng { constructor(lat, lng) { this.lat = lat; this.lng = lng; } }
     class Map {
-      constructor(element, options) { this.element = element; this.center = options.center; window.__testMap = this; }
+      constructor(element, options) { this.element = element; this.center = options.center; this.level = options.level; window.__testMap = this; }
       relayout() { this.center = new LatLng(0, 0); window.__mapCalls.push({ kind: 'layout' }); }
       setBounds() { window.__mapCalls.push({ kind: 'bounds', width: this.element.clientWidth, height: this.element.clientHeight }); }
-      setCenter(center) { this.center = center; }
+      setCenter(center) { this.center = center; window.__mapCalls.push({ kind: 'center', level: this.level, lat: center.lat, lng: center.lng }); }
       getCenter() { return this.center; }
-      setLevel() {} getLevel() { return 5; } panTo(center) { this.center = center; }
+      setLevel(level) { this.level = level; } getLevel() { return this.level; } panTo(center) { this.center = center; }
     }
     class Layer { setMap() {} }
     window.kakao = { maps: { load(callback) { callback(); }, LatLng, Map,
       LatLngBounds: class { extend() {} }, CustomOverlay: Layer, Polyline: Layer } };
     })();
   ` }));
-  await startTrip(page);
+  const catalog = await startTrip(page);
   const bounds = () => page.evaluate(() => (window as unknown as { __mapCalls: { kind: string; width: number; height: number }[] }).__mapCalls.filter((call) => call.kind === 'bounds'));
   await expect(page.getByTestId(IDS.MAP_FRAME)).toHaveAttribute('data-map-status', 'ready');
   expect(await bounds()).toEqual([]);
@@ -63,4 +63,14 @@ test('숨긴 모바일 지도는 표시된 크기로 다시 맞추고 일반 크
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeHidden();
   await page.getByRole('radio', { name: '지도', exact: true }).click();
   await expect.poll(async () => (await bounds()).length).toBeGreaterThan(before);
+
+  await page.getByRole('radio', { name: '목록', exact: true }).click();
+  const place = catalog.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기', exact: true }).click();
+  await page.getByRole('button', { name: `${place.name} DAY 1에 추가`, exact: false }).click();
+  // Kakao rounds center coordinates to map pixels: apply the final zoom before
+  // centering a lone pin, otherwise world-zoom rounding becomes a large offset.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __mapCalls: { kind: string; level: number; lat: number; lng: number }[] }).__mapCalls.filter((call) => call.kind === 'center').at(-1)))
+    .toEqual({ kind: 'center', level: 5, lat: place.latitude, lng: place.longitude });
 });

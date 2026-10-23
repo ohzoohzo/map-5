@@ -47,7 +47,7 @@ const trip = {
   version: 1,
   destination: '부산',
   startDate: '2026-10-24',
-  endDate: '2026-10-25',
+  endDate: '2026-10-30',
   taste: null,
   places,
   candidateIds: [],
@@ -67,6 +67,7 @@ const trip = {
         { placeId: 'harbor', memo: '', visited: false },
       ],
     },
+    ...Array.from({ length: 5 }, (_, index) => ({ date: `2026-10-${26 + index}`, items: [] })),
   ],
   selectedPlaceId: null,
 };
@@ -147,4 +148,50 @@ test('long segment names stay selectable without horizontal overflow on mobile',
   );
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
     .toBeLessThanOrEqual(1);
+});
+
+test.describe('mobile date navigation', () => {
+  test.use({ hasTouch: true });
+
+  test('mobile dates keep their icons and labels inside each button and all days stay reachable', async ({ page }, testInfo) => {
+    await seedTrip(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+    const strip = page.getByRole('group', { name: '여행 날짜' });
+    const days = strip.getByRole('button');
+    await expect(days).toHaveCount(7);
+    await page.evaluate(() => document.fonts.ready);
+
+    // 문서 전체 폭만 확인하면 버튼 안에서 날짜가 이웃 아이콘과 겹치는 문제를 놓친다.
+    const contentsFit = await days.evaluateAll((buttons) => buttons.every((button) => {
+      const bounds = button.getBoundingClientRect();
+      const icon = button.querySelector('svg')!.getBoundingClientRect();
+      const label = document.getElementById(button.getAttribute('aria-labelledby')!)!;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const text = range.getBoundingClientRect();
+      return icon.left >= bounds.left && icon.right <= text.left
+        && text.right <= bounds.right && text.top >= bounds.top && text.bottom <= bounds.bottom;
+    }));
+    expect(contentsFit, '각 날짜의 아이콘과 글자는 자기 버튼 안에 서로 겹치지 않고 표시돼야 한다').toBe(true);
+    expect(await strip.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+    await days.first().focus();
+    for (let index = 1; index < 7; index += 1) await page.keyboard.press('Tab');
+    await expect(days.last()).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(days.last()).toHaveAttribute('aria-pressed', 'true');
+    const lastVisible = await days.last().evaluate((button) => {
+      const bounds = button.getBoundingClientRect();
+      const stripBounds = button.parentElement!.getBoundingClientRect();
+      return bounds.left >= stripBounds.left && bounds.right <= stripBounds.right;
+    });
+    expect(lastVisible, '키보드로 이동한 마지막 날짜는 스트립 안으로 스크롤돼야 한다').toBe(true);
+
+    await strip.evaluate((element) => { element.scrollLeft = 0; });
+    await days.first().tap();
+    await expect(days.first()).toHaveAttribute('aria-pressed', 'true');
+    await page.screenshot({ path: testInfo.outputPath('transport-mobile-dates.png') });
+  });
 });

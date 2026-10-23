@@ -226,6 +226,7 @@
           "docent"
         ],
         "summary": "Docent News",
+        "description": "부산시·부산관광공사·지역 언론 보도 중 장소명이 제목에 들어간 최신 3건.",
         "operationId": "docent_news",
         "parameters": [
           {
@@ -248,17 +249,6 @@
               "minLength": 1,
               "maxLength": 100,
               "title": "Name"
-            }
-          },
-          {
-            "name": "address",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "maxLength": 200,
-              "default": "",
-              "title": "Address"
             }
           }
         ],
@@ -322,6 +312,84 @@
               }
             },
             "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/api/docent/photos": {
+      "get": {
+        "tags": [
+          "docent"
+        ],
+        "summary": "Docent Photos",
+        "description": "한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록.",
+        "operationId": "docent_photos",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "title": "Place Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 39.0,
+              "minimum": 33.0,
+              "title": "Latitude"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 132.0,
+              "minimum": 124.0,
+              "title": "Longitude"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocentPhotos"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
           }
         }
       }
@@ -926,6 +994,67 @@
           "url"
         ],
         "title": "DocentNewsItem"
+      },
+      "DocentPhoto": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "title": "Thumbnail Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "license": {
+            "type": "string",
+            "title": "License"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "thumbnail_url",
+          "title",
+          "license"
+        ],
+        "title": "DocentPhoto"
+      },
+      "DocentPhotos": {
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "title": "Place Id"
+          },
+          "photos": {
+            "items": {
+              "$ref": "#/components/schemas/DocentPhoto"
+            },
+            "type": "array",
+            "title": "Photos"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "place_id",
+          "photos",
+          "source",
+          "source_url"
+        ],
+        "title": "DocentPhotos"
       },
       "DocentReference": {
         "properties": {

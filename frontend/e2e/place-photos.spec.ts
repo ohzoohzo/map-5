@@ -89,6 +89,32 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   expect(requests.get(place.id), '같은 여행의 장소 사진은 화면을 오가도 한 번만 조회한다').toBe(1);
 });
 
+test('사진 API가 일시적으로 실패한 뒤 복구되면 SPA로 돌아왔을 때 사진과 출처를 다시 표시한다', async ({ page }) => {
+  const response = await page.request.get('/api/travel/catalog', { params: { region: '부산광역시', query: '' } });
+  expect(response.ok()).toBe(true);
+  const initial = await response.json() as CatalogResponse;
+  const place = initial.places[0]!;
+  const states = new Map<string, PhotoState>([[place.id, 'unavailable']]);
+  const requests = await installPhotos(page, states);
+  await startTrip(page);
+
+  const card = placeCard(page, place);
+  await card.scrollIntoViewIfNeeded();
+  await expect(card.getByRole('img', { name: `${place.name} 사진 없음`, exact: true })).toBeVisible();
+  expect(requests.get(place.id)).toBe(1);
+  const documentStartedAt = await page.evaluate(() => performance.timeOrigin);
+
+  states.set(place.id, 'ready');
+  await page.locator('.main-nav a[href="/"]').click();
+  await expect(page).toHaveURL('/');
+  await page.locator('.main-nav a[href="/explore"]').click();
+  await expect(page).toHaveURL('/explore');
+
+  await expectPhoto(card, place);
+  expect(requests.get(place.id), '실패한 사진 요청은 화면으로 돌아오면 다시 시도한다').toBe(2);
+  expect(await page.evaluate(() => performance.timeOrigin), '전체 새로고침 없이 사진을 복구한다').toBe(documentStartedAt);
+});
+
 test('사진 없음·API 실패·깨진 이미지에서도 후보 저장과 일정 편집이 동작하고 다른 장소 사진이 섞이지 않는다', async ({ page }) => {
   const response = await page.request.get('/api/travel/catalog', { params: { region: '부산광역시', query: '' } });
   expect(response.ok()).toBe(true);

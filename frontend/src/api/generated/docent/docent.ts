@@ -383,7 +383,7 @@ export const getDocentPhotosUrl = (params: DocentPhotosParams,) => {
 }
 
 /**
- * 한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록.
+ * 한국관광공사 사진. 정상적으로 사진이 없으면 빈 목록, 공급자 실패는 502.
  * @summary Docent Photos
  */
 export const docentPhotos = async (params: DocentPhotosParams, options?: Parameters<typeof apiFetch>[1]): Promise<DocentPhotos> => {

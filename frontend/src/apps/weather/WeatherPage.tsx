@@ -1,12 +1,19 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { Button, FallbackView, FallbackViewText, Loading, SectionMessage, TextButton, Typography } from '@montage-ui/core';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ArrowRight, CalendarDays, CloudRain, CloudSun, Building2, Info, Landmark, MapPin, Trees } from 'lucide-react';
+import { ArrowRight, Building2, CalendarDays, CloudRain, CloudSun, Info, Landmark, MapPin, Trees } from 'lucide-react';
 import { ApiError, type Place } from '../../api/client';
-import { Link, navigate, useSearchParam } from '../../shared/router';
+import { navigate, useSearchParam } from '../../shared/router';
+import TripBar from '../../shared/trip/TripBar';
 import { tripActions, useTrip, type TripDay } from '../../shared/trip/tripStore';
-import { Page } from './WeatherPage.styles';
+import PinDayPage from '../../shared/ui/PinDayPage';
+import { WeatherSection } from './WeatherPage.styles';
 import { formatClock, formatDay, summarizeRain, useAlternatives, useForecast } from './weather';
+
+// 언제 갈까?(SchedulePage)와 같은 DAY 색 — 같은 DAY 를 두 화면에서 같은 색으로 본다
+const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
+const dayColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length]!;
 
 // 시안: design/pinday-weather-v2.png
 // 선택 상태는 URL 로 받는다 → 다른 화면에서 /weather?day=2&item=1 로 바로 열 수 있다 (day 는 1부터, item 은 0부터)
@@ -19,72 +26,70 @@ export default function WeatherPage() {
   const [notice, setNotice] = useState<{ text: string; day: number } | null>(null);
 
   const firstFilled = days.findIndex((day) => day.items.length > 0);
-  if (firstFilled < 0) {
-    return (
-      <Page>
-        <Header />
-        <section className="w-empty w-card">
-          <CalendarDays size={28} />
-          <strong>{t('emptyTitle')}</strong>
-          <p>{t('emptyDescription')}</p>
-          <Link className="w-button w-primary" href="/schedule">{t('goSchedule')}</Link>
-        </section>
-      </Page>
-    );
+  const dayIndex = Number.isInteger(dayParam) && dayParam >= 1 && dayParam <= days.length ? dayParam - 1 : Math.max(firstFilled, 0);
+  const day = days[dayIndex];
+  const itemIndex = day && Number.isInteger(itemParam) && itemParam >= 0 && itemParam < day.items.length ? itemParam : 0;
+  const place = places[day?.items[itemIndex]?.placeId ?? ''];
+
+  function select(nextDay: number, nextItem: number) {
+    setNotice(null);
+    navigate(`/weather?day=${nextDay + 1}&item=${nextItem}`);
   }
 
-  const dayIndex = Number.isInteger(dayParam) && dayParam >= 1 && dayParam <= days.length ? dayParam - 1 : firstFilled;
-  const day = days[dayIndex]!;
-  const itemIndex = Number.isInteger(itemParam) && itemParam >= 0 && itemParam < day.items.length ? itemParam : 0;
-  const place = places[day.items[itemIndex]?.placeId ?? ''];
-
   return (
-    <Page>
-      <Header />
-      {notice && (
-        <p className="w-notice" role="status">
-          {notice.text} <Link href={`/schedule?day=${notice.day}`}>{t('viewSchedule')}</Link>
-        </p>
-      )}
-      <section className="w-card w-picker" aria-label={t('pickTitle')}>
-        <h2>{t('pickTitle')}</h2>
-        <div className="w-day-tabs" role="tablist">
-          {days.map((each, index) => (
-            <button
-              key={index} role="tab" aria-selected={index === dayIndex}
-              className={index === dayIndex ? 'w-day-tab w-active' : 'w-day-tab'}
-              onClick={() => { setNotice(null); navigate(`/weather?day=${index + 1}&item=0`); }}
-            >
-              {dayLabel(t, index + 1, each.date)}
-            </button>
-          ))}
-        </div>
-        {day.items.length === 0 ? <p className="w-muted">{t('dayEmpty')}</p> : (
-          <div className="w-stop-chips">
-            {day.items.map((item, index) => (
-              <button
-                key={`${item.placeId}-${index}`} aria-pressed={index === itemIndex}
-                className={index === itemIndex ? 'w-chip w-active' : 'w-chip'}
-                onClick={() => { setNotice(null); navigate(`/weather?day=${dayIndex + 1}&item=${index}`); }}
-              >
-                <span className="w-chip-order">{index + 1}</span>{places[item.placeId]?.name ?? item.placeId}
-              </button>
-            ))}
+    <PinDayPage>
+      <TripBar page="schedule" />
+      <WeatherSection>
+        <header className="w-head">
+          <Typography as="h1" variant="title2" weight="bold">{t('title')}</Typography>
+          <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
+        </header>
+
+        {firstFilled < 0 || !day ? (
+          <div className="w-card">
+            <FallbackView padding="compact">
+              <FallbackViewText title={t('emptyTitle')} description={t('emptyDescription')} />
+              <Button size="small" variant="solid" leadingContent={<CalendarDays />} onClick={() => navigate('/schedule')}>{t('goSchedule')}</Button>
+            </FallbackView>
           </div>
-        )}
-      </section>
-      {place && <Compare key={`${dayIndex}-${itemIndex}-${place.id}`} day={day} dayIndex={dayIndex} itemIndex={itemIndex} place={place} places={places} onReplaced={(text) => setNotice({ text, day: dayIndex + 1 })} />}
-    </Page>
-  );
-}
+        ) : <>
+          {notice && (
+            <div role="status">
+              <SectionMessage variant="positive" description={notice.text}
+                trailingButton={<TextButton size="small" onClick={() => navigate(`/schedule?day=${notice.day}`)}>{t('viewSchedule')}</TextButton>} />
+            </div>
+          )}
 
-function Header() {
-  const { t } = useTranslation('weather');
-  return (
-    <header className="w-page-head">
-      <h1>{t('title')}</h1>
-      <p>{t('subtitle')}</p>
-    </header>
+          <section className="w-card w-picker" aria-labelledby="weather-pick-title">
+            <Typography id="weather-pick-title" as="h2" variant="headline2" weight="bold">{t('pickTitle')}</Typography>
+            <div className="day-tabs" role="tablist" aria-label={t('pickTitle')}>
+              {days.map((each, index) => (
+                <button key={index} type="button" role="tab" aria-selected={index === dayIndex}
+                  className={index === dayIndex ? 'day-tab active' : 'day-tab'} style={{ '--day-color': dayColor(index) } as CSSProperties}
+                  onClick={() => select(index, 0)}>
+                  <strong>DAY {index + 1}</strong><span>{formatDay(each.date) || t('placesInDay', { count: each.items.length })}</span>
+                </button>
+              ))}
+            </div>
+            {day.items.length === 0
+              ? <Typography as="p" variant="label2" color="semantic.foreground.neutral.tertiary">{t('dayEmpty')}</Typography>
+              : (
+                <div className="w-stops">
+                  {day.items.map((item, index) => (
+                    <button key={`${item.placeId}-${index}`} type="button" aria-pressed={index === itemIndex}
+                      className={index === itemIndex ? 'chip active' : 'chip'} onClick={() => select(dayIndex, index)}>
+                      <span className="w-stop-number" style={{ background: dayColor(dayIndex) }}>{index + 1}</span>{places[item.placeId]?.name ?? item.placeId}
+                    </button>
+                  ))}
+                </div>
+              )}
+          </section>
+
+          {place && <Compare key={`${dayIndex}-${itemIndex}-${place.id}`} day={day} dayIndex={dayIndex} itemIndex={itemIndex} place={place} places={places}
+            onReplaced={(text) => setNotice({ text, day: dayIndex + 1 })} />}
+        </>}
+      </WeatherSection>
+    </PinDayPage>
   );
 }
 
@@ -117,42 +122,42 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
       <ForecastBanner place={place} date={day.date} dayNumber={dayIndex + 1} />
 
       <div className="w-compare">
-        <article className="w-card w-place-card" aria-label={t('original')}>
-          <div className="w-card-top"><span className="w-tag w-gray">{t('original')}</span><span className="w-muted">{t('dayLabel', label)}</span></div>
-          <h2>{place.name}</h2>
+        <article className="w-card w-place" aria-label={t('original')}>
+          <div className="w-card-top"><span className="w-tag">{t('original')}</span><span className="w-meta">{t('dayLabel', label)}</span></div>
+          <Typography as="h2" variant="title3" weight="bold">{place.name}</Typography>
           {alternatives.data && (
-            <span className={alternatives.data.origin_indoor_hint ? 'w-badge w-teal' : 'w-badge'}>
-              {alternatives.data.origin_indoor_hint ? <Building2 size={14} /> : <Trees size={14} />}
+            <span className={alternatives.data.origin_indoor_hint ? 'w-badge indoor' : 'w-badge'}>
+              {alternatives.data.origin_indoor_hint ? <Building2 /> : <Trees />}
               {alternatives.data.origin_indoor_hint ? t('indoor', { hint: alternatives.data.origin_indoor_hint }) : t('maybeOutdoor')}
             </span>
           )}
           {place.description && <p className="w-description">{place.description}</p>}
-          <p className="w-address"><MapPin size={14} />{place.address || t('noAddress')}</p>
+          <p className="w-address"><MapPin />{place.address || t('noAddress')}</p>
         </article>
 
-        <div className="w-swap" aria-hidden="true"><span>{t('replaceOnly')}</span><ArrowRight size={20} /></div>
+        <div className="w-swap" aria-hidden="true"><span>{t('replaceOnly')}</span><ArrowRight /></div>
 
         <div className="w-alt-column">
-          {alternatives.isPending && <p className="w-card w-muted w-state">{t('alternativesLoading')}</p>}
-          {alternatives.isError && <p className="w-card w-state w-error">{t('alternativesError')} · {errorText(alternatives.error, t)}</p>}
-          {alternatives.data && !chosen && <p className="w-card w-muted w-state">{t('alternativesEmpty', { km: alternatives.data.radius_km })}</p>}
+          {alternatives.isPending && <div className="w-card w-state" role="status"><Loading /><span className="sr-only">{t('alternativesLoading')}</span></div>}
+          {alternatives.isError && <SectionMessage variant="negative" description={`${t('alternativesError')} · ${errorText(alternatives.error, t)}`} />}
+          {alternatives.data && !chosen && <p className="w-card w-state w-meta">{t('alternativesEmpty', { km: alternatives.data.radius_km })}</p>}
           {chosen && (
-            <article className="w-card w-place-card w-chosen" aria-label={t('alternative')}>
-              <div className="w-card-top"><span className="w-tag w-teal">{t('alternative')}</span><span className="w-muted">{t('dayLabel', label)}</span></div>
-              <h2>{chosen.place.name}</h2>
-              <span className="w-badge w-teal"><Building2 size={14} />{t('indoorCandidate')}</span>
+            <article className="w-card w-place chosen" aria-label={t('alternative')}>
+              <div className="w-card-top"><span className="w-tag accent">{t('alternative')}</span><span className="w-meta">{t('dayLabel', label)}</span></div>
+              <Typography as="h2" variant="title3" weight="bold">{chosen.place.name}</Typography>
+              <span className="w-badge indoor"><Building2 />{t('indoorCandidate')}</span>
               {chosen.place.description && <p className="w-description">{chosen.place.description}</p>}
-              <p className="w-address"><MapPin size={14} />{chosen.place.address || t('noAddress')} · {t('distance', { km: chosen.distance_km })}</p>
+              <p className="w-address"><MapPin />{chosen.place.address || t('noAddress')} · {t('distance', { km: chosen.distance_km })}</p>
             </article>
           )}
           {options.length > 1 && (
-            <section aria-label={t('moreTitle')}>
-              <h3 className="w-more-title">{t('moreTitle')}</h3>
+            <section aria-labelledby="weather-more-title">
+              <Typography id="weather-more-title" as="h3" variant="headline2" weight="bold">{t('moreTitle')}</Typography>
               <ul className="w-more-list">
                 {options.filter((option) => option !== chosen).slice(0, 4).map((option) => (
                   <li key={option.place.id}>
-                    <button className="w-card w-more-item" onClick={() => setChosenId(option.place.id)} aria-label={t('chooseAlternative', { name: option.place.name })}>
-                      <Landmark size={18} />
+                    <button type="button" className="w-more-item" onClick={() => setChosenId(option.place.id)} aria-label={t('chooseAlternative', { name: option.place.name })}>
+                      <Landmark />
                       <span><strong>{option.place.name}</strong><small>{t('distance', { km: option.distance_km })}</small></span>
                     </button>
                   </li>
@@ -167,18 +172,21 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
       {chosen && (
         <section className="w-card w-preview" aria-label={t('previewTitle')}>
           <div className="w-preview-head">
-            <CalendarDays size={22} />
-            <div><h2>{t('previewTitle')}</h2><p className="w-muted">{t('previewDetail', label)}</p></div>
+            <CalendarDays />
+            <div>
+              <Typography as="h2" variant="headline1" weight="bold">{t('previewTitle')}</Typography>
+              <Typography variant="label2" color="semantic.foreground.neutral.secondary">{t('previewDetail', label)}</Typography>
+            </div>
           </div>
           <ol className="w-timeline">
-            {previous && <li className="w-stop"><small>{t('before')}</small><strong>{previous.name}</strong></li>}
-            <li className="w-stop w-replaced"><small>{t('replaced')}</small><strong>{chosen.place.name}</strong></li>
-            {next && <li className="w-stop"><small>{t('after')}</small><strong>{next.name}</strong></li>}
+            {previous && <li className="w-timeline-stop"><small>{t('before')}</small><strong>{previous.name}</strong></li>}
+            <li className="w-timeline-stop replaced"><small>{t('replaced')}</small><strong>{chosen.place.name}</strong></li>
+            {next && <li className="w-timeline-stop"><small>{t('after')}</small><strong>{next.name}</strong></li>}
           </ol>
           <div className="w-actions">
-            <p className="w-info"><Info size={16} />{t('previewNote')}</p>
-            <button className="w-button" onClick={() => navigate(`/schedule?day=${dayIndex + 1}`)}>{t('keep')}</button>
-            <button className="w-button w-cta" onClick={replace}>{t('replace')}<ArrowRight size={18} /></button>
+            <p className="w-info"><Info />{t('previewNote')}</p>
+            <Button variant="outlined" color="assistive" onClick={() => navigate(`/schedule?day=${dayIndex + 1}`)}>{t('keep')}</Button>
+            <Button variant="solid" color="primary" trailingContent={<ArrowRight />} onClick={replace}>{t('replace')}</Button>
           </div>
         </section>
       )}
@@ -189,32 +197,33 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
 function ForecastBanner({ place, date, dayNumber }: { place: Place; date: string; dayNumber: number }) {
   const { t } = useTranslation('weather');
   const forecast = useForecast(place, date);
-  const heading = <span className="w-muted">{dayLabel(t, dayNumber, date)}</span>;
+  const heading = <span className="w-forecast-day">{formatDay(date) ? t('dayTab', { day: dayNumber, date: formatDay(date) }) : t('dayOnly', { day: dayNumber })}</span>;
 
   if (!formatDay(date)) {
-    return <section className="w-card w-forecast" aria-label={t('forecastNoDate')}>{heading}<div><strong>{t('forecastNoDate')}</strong><p className="w-muted">{t('forecastNoDateDetail')}</p></div></section>;
+    return <section className="w-card w-forecast" aria-label={t('forecastNoDate')}>{heading}<div><strong>{t('forecastNoDate')}</strong><p>{t('forecastNoDateDetail')}</p></div></section>;
   }
-
-  if (forecast.isPending) return <section className="w-card w-forecast" aria-live="polite">{heading}<p className="w-muted">{t('forecastLoading')}</p></section>;
+  if (forecast.isPending) {
+    return <section className="w-card w-forecast" role="status">{heading}<Loading /><span className="sr-only">{t('forecastLoading')}</span></section>;
+  }
   if (forecast.isError) {
     return (
-      <section className="w-card w-forecast w-error" role="alert">
+      <section className="w-card w-forecast" role="alert">
         {heading}
-        <div><strong>{t('forecastError')}</strong><p className="w-muted">{errorText(forecast.error, t)}</p></div>
-        <button className="w-button" onClick={() => forecast.refetch()}>{t('forecastRetry')}</button>
+        <div><strong>{t('forecastError')}</strong><p>{errorText(forecast.error, t)}</p></div>
+        <Button size="small" variant="outlined" color="assistive" onClick={() => forecast.refetch()}>{t('forecastRetry')}</Button>
       </section>
     );
   }
   const data = forecast.data;
   if (data.status === 'out_of_range') {
-    return <section className="w-card w-forecast" aria-label={t('forecastUnknown')}>{heading}<div><strong>{t('forecastUnknown')}</strong><p className="w-muted">{t('forecastUnknownDetail')}</p></div></section>;
+    return <section className="w-card w-forecast" aria-label={t('forecastUnknown')}>{heading}<div><strong>{t('forecastUnknown')}</strong><p>{t('forecastUnknownDetail')}</p></div></section>;
   }
   const rain = summarizeRain(data.slots);
   return (
-    <section className={rain.rainy ? 'w-card w-forecast w-rainy' : 'w-card w-forecast'} aria-label={rain.rainy ? t('rainTitle') : t('clearTitle')}>
+    <section className={rain.rainy ? 'w-card w-forecast rainy' : 'w-card w-forecast'} aria-label={rain.rainy ? t('rainTitle') : t('clearTitle')}>
       {heading}
       <div className="w-forecast-main">
-        {rain.rainy ? <CloudRain size={40} /> : <CloudSun size={40} />}
+        {rain.rainy ? <CloudRain className="w-weather-icon" /> : <CloudSun className="w-weather-icon" />}
         <div>
           <strong>{rain.rainy ? t('rainTitle') : t('clearTitle')}</strong>
           <p>{rain.rainy ? t('rainDetail', rain) : t('clearDetail', { max: rain.max, min: rain.minTemp, maxTemp: rain.maxTemp })}</p>
@@ -225,7 +234,5 @@ function ForecastBanner({ place, date, dayNumber }: { place: Place; date: string
     </section>
   );
 }
-
-const dayLabel = (t: TFunction<'weather'>, day: number, date: string) => (formatDay(date) ? t('dayTab', { day, date: formatDay(date) }) : t('dayOnly', { day }));
 
 const errorText = (error: Error, t: TFunction<'weather'>) => (error instanceof ApiError ? error.message : t('networkError'));

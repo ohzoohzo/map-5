@@ -1,33 +1,37 @@
 import { useState } from 'react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
+import { Button, Typography } from '@montage-ui/core';
 import { ArrowRight, Bus, CalendarDays, Car, ExternalLink, Footprints, MapPin, Route } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getConfig, type Place } from '../../api/client';
-import { color, font, layout, radius } from '../../shared/design/tokens';
 import { useTrip } from '../../shared/trip/tripStore';
 import RouteMap from './RouteMap';
 
+const foreground = (name: string) => `var(--semantic-foreground-${name})`;
+const surface = 'var(--semantic-background-neutral-primary)';
+const canvas = 'var(--semantic-background-neutral-secondary)';
+const line = 'var(--semantic-line-neutral-primary)';
+const brand = 'var(--semantic-foreground-brand-primary)';
+
 const Page = styled.main`
-  max-width: ${layout.maxWidth};
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 36px ${layout.gutter};
-  color: ${color.text};
-  font-family: ${font.family};
+  padding: 36px 20px;
+  color: ${foreground('neutral-primary')};
+
+  .directions-button {
+    width: 100%;
+    margin-top: 16px;
+  }
 `;
 
 const Heading = styled.header`
   margin-bottom: 24px;
 
-  h1 {
-    margin: 0;
-    font-size: clamp(26px, 3vw, 38px);
-    letter-spacing: -1px;
-  }
-
   p {
     margin: 8px 0 0;
-    color: ${color.textSub};
+    color: ${foreground('neutral-secondary')};
     font-size: 17px;
   }
 `;
@@ -39,37 +43,19 @@ const DayTabs = styled.div`
   margin-bottom: 18px;
   padding: 4px;
   overflow-x: auto;
-  background: ${color.surface};
-  border: 1px solid ${color.border};
-  border-radius: ${radius.pill};
+  background: ${surface};
+  border: 1px solid ${line};
+  border-radius: 999px;
 
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
+  .day-button {
     min-width: 150px;
-    min-height: ${layout.minTouch};
-    padding: 8px 18px;
-    color: ${color.textSub};
-    background: transparent;
-    border: 0;
-    border-radius: ${radius.pill};
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
     white-space: nowrap;
-  }
-
-  button[aria-pressed='true'] {
-    color: ${color.surface};
-    background: ${color.primary};
   }
 
   @media (max-width: 640px) {
     width: 100%;
 
-    button {
+    .day-button {
       min-width: 130px;
       flex: 1;
       padding: 8px 12px;
@@ -94,10 +80,9 @@ const Content = styled.div`
 const Panel = styled.section`
   min-width: 0;
   padding: 20px;
-  background: ${color.surface};
-  border: 1px solid ${color.border};
-  border-radius: ${radius.lg};
-  box-shadow: 0 4px 16px ${color.primarySoft};
+  background: ${surface};
+  border: 1px solid ${line};
+  border-radius: 12px;
 `;
 
 const PanelHeading = styled.div`
@@ -107,14 +92,8 @@ const PanelHeading = styled.div`
   gap: 12px;
   margin-bottom: 16px;
 
-  h2 {
-    margin: 0;
-    font-size: 19px;
-  }
-
-  span {
-    color: ${color.textMuted};
-    font-size: 14px;
+  .count {
+    color: ${foreground('neutral-tertiary')};
   }
 `;
 
@@ -133,8 +112,8 @@ const PlaceRow = styled.div`
   gap: 12px;
   min-height: 62px;
   padding: 10px 12px;
-  border: 1px solid ${color.border};
-  border-radius: ${radius.md};
+  border: 1px solid ${line};
+  border-radius: 8px;
 
   .number {
     display: grid;
@@ -142,9 +121,9 @@ const PlaceRow = styled.div`
     height: 32px;
     flex: 0 0 32px;
     place-items: center;
-    color: ${color.surface};
-    background: ${color.primary};
-    border-radius: ${radius.pill};
+    color: ${surface};
+    background: ${brand};
+    border-radius: 999px;
     font-weight: 700;
   }
 
@@ -158,20 +137,18 @@ const PlaceRow = styled.div`
 const SegmentRow = styled.div<{ selected: boolean }>`
   margin-left: 16px;
 
-  button {
-    display: flex;
-    align-items: center;
+  .segment-button {
     justify-content: space-between;
-    width: 100%;
-    min-height: ${layout.minTouch};
-    padding: 8px 12px;
-    color: ${({ selected }) => selected ? color.primary : color.textSub};
-    background: ${({ selected }) => selected ? color.primarySoft : color.bg};
-    border: 1px solid ${({ selected }) => selected ? color.borderStrong : color.border};
-    border-radius: ${radius.md};
-    cursor: pointer;
-    font: inherit;
     text-align: left;
+  }
+
+  .segment-button > span {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .segment-button svg {
+    flex-shrink: 0;
   }
 
   .segment-label {
@@ -190,9 +167,9 @@ const SegmentRow = styled.div<{ selected: boolean }>`
 
 const EmptyState = styled.div`
   padding: 26px 16px;
-  color: ${color.textMuted};
-  background: ${color.bg};
-  border-radius: ${radius.md};
+  color: ${foreground('neutral-tertiary')};
+  background: ${canvas};
+  border-radius: 8px;
   line-height: 1.7;
   text-align: center;
 `;
@@ -203,9 +180,9 @@ const RouteSummary = styled.div`
   align-items: center;
   gap: 14px;
   padding: 18px;
-  background: ${color.bg};
-  border: 1px solid ${color.border};
-  border-radius: ${radius.md};
+  background: ${canvas};
+  border: 1px solid ${line};
+  border-radius: 8px;
 
   .endpoint {
     min-width: 0;
@@ -216,7 +193,7 @@ const RouteSummary = styled.div`
     align-items: center;
     gap: 5px;
     margin-bottom: 6px;
-    color: ${color.textMuted};
+    color: ${foreground('neutral-tertiary')};
     font-size: 13px;
   }
 
@@ -229,7 +206,7 @@ const RouteSummary = styled.div`
   .address {
     display: block;
     margin-top: 6px;
-    color: ${color.textSub};
+    color: ${foreground('neutral-secondary')};
     font-size: 13px;
     line-height: 1.5;
   }
@@ -245,64 +222,21 @@ const ModeTabs = styled.div`
   gap: 6px;
   margin: 16px 0 12px;
   padding: 4px;
-  background: ${color.bg};
-  border: 1px solid ${color.border};
-  border-radius: ${radius.pill};
+  background: ${canvas};
+  border: 1px solid ${line};
+  border-radius: 999px;
 
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    min-width: 0;
-    min-height: ${layout.minTouch};
+  .mode-button {
     flex: 1;
-    padding: 8px;
-    color: ${color.textSub};
-    background: transparent;
-    border: 0;
-    border-radius: ${radius.pill};
-    cursor: pointer;
-    font: inherit;
-    font-weight: 700;
-  }
-
-  button[aria-pressed='true'] {
-    color: ${color.surface};
-    background: ${color.primary};
+    min-width: 0;
   }
 `;
 
 const MapNote = styled.p`
   margin: 10px 0 0;
-  color: ${color.textMuted};
+  color: ${foreground('neutral-tertiary')};
   font-size: 13px;
   line-height: 1.6;
-`;
-
-const DirectionsLink = styled.a`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  min-height: 48px;
-  margin-top: 16px;
-  padding: 10px 16px;
-  color: ${color.surface};
-  background: ${color.coral};
-  border-radius: ${radius.md};
-  font-weight: 700;
-  text-align: center;
-  text-decoration: none;
-
-  &:hover {
-    filter: brightness(0.96);
-  }
-
-  &:focus-visible {
-    outline: 3px solid ${color.primary};
-    outline-offset: 2px;
-  }
 `;
 
 interface ScheduledPlace {
@@ -350,25 +284,29 @@ export default function TransportPage() {
   return (
     <Page>
       <Heading>
-        <h1>{t('title')}</h1>
-        <p>{t('subtitle')}</p>
+        <Typography as="h1" variant="title2" weight="bold">{t('title')}</Typography>
+        <Typography as="p" variant="body1" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
       </Heading>
 
       {days.length > 0 && (
         <DayTabs role="group" aria-label={t('dayTabs')}>
           {days.map((day, index) => (
-            <button
+            <Button
               key={day.date}
               type="button"
+              className="day-button"
+              size="medium"
+              variant={index === activeDayIndex ? 'solid' : 'outlined'}
+              color={index === activeDayIndex ? 'primary' : 'assistive'}
               aria-pressed={index === activeDayIndex}
               onClick={() => {
                 setSelectedDayIndex(index);
                 setSelectedSegmentIndex(0);
               }}
+              leadingContent={<CalendarDays size={16} aria-hidden="true" />}
             >
-              <CalendarDays size={16} aria-hidden="true" />
-              {' '}DAY {index + 1} · {formatDate(day.date)}
-            </button>
+              DAY {index + 1} · {formatDate(day.date)}
+            </Button>
           ))}
         </DayTabs>
       )}
@@ -376,8 +314,10 @@ export default function TransportPage() {
       <Content>
         <Panel aria-labelledby="itinerary-heading">
           <PanelHeading>
-            <h2 id="itinerary-heading">{t('itineraryTitle', { day: activeDayIndex + 1 })}</h2>
-            <span>{t('placeCount', { count: itinerary.length })}</span>
+            <Typography id="itinerary-heading" as="h2" variant="headline2" weight="bold">
+              {t('itineraryTitle', { day: activeDayIndex + 1 })}
+            </Typography>
+            <Typography className="count" variant="caption1">{t('placeCount', { count: itinerary.length })}</Typography>
           </PanelHeading>
 
           {itinerary.length > 0 ? (
@@ -390,10 +330,16 @@ export default function TransportPage() {
                   </PlaceRow>
                   {index < itinerary.length - 1 && (
                     <SegmentRow selected={index === selectedSegmentIndex}>
-                      <button
+                      <Button
                         type="button"
+                        className="segment-button"
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        color={index === selectedSegmentIndex ? 'primary' : 'assistive'}
                         aria-pressed={index === selectedSegmentIndex}
                         onClick={() => setSelectedSegmentIndex(index)}
+                        trailingContent={<ArrowRight size={17} aria-hidden="true" />}
                       >
                         <span className="segment-label">
                           <Route size={17} aria-hidden="true" />
@@ -403,8 +349,7 @@ export default function TransportPage() {
                             {itinerary[index + 1]?.place?.name ?? t('unknownPlace')}
                           </span>
                         </span>
-                        <ArrowRight size={17} aria-hidden="true" />
-                      </button>
+                      </Button>
                     </SegmentRow>
                   )}
                 </li>
@@ -417,21 +362,23 @@ export default function TransportPage() {
 
         <Panel aria-labelledby="segment-heading">
           <PanelHeading>
-            <h2 id="segment-heading">{t('selectedSegment')}</h2>
-            <span>{selectedSegment ? t('segmentNumber', { number: selectedSegmentIndex + 1 }) : ''}</span>
+            <Typography id="segment-heading" as="h2" variant="headline2" weight="bold">{t('selectedSegment')}</Typography>
+            <Typography className="count" variant="caption1">
+              {selectedSegment ? t('segmentNumber', { number: selectedSegmentIndex + 1 }) : ''}
+            </Typography>
           </PanelHeading>
 
           {selectedSegment && departure && arrival ? (
             <RouteSummary>
               <div className="endpoint">
                 <span className="endpoint-label"><MapPin size={14} aria-hidden="true" />{t('departure')}</span>
-                <span className="endpoint-name">{departure?.name ?? t('unknownPlace')}</span>
+                <Typography className="endpoint-name" variant="body1" weight="bold">{departure?.name ?? t('unknownPlace')}</Typography>
                 {departure?.address && <span className="address">{departure.address}</span>}
               </div>
-              <ArrowRight color={color.primary} aria-hidden="true" />
+              <ArrowRight color="var(--semantic-foreground-brand-primary)" aria-hidden="true" />
               <div className="endpoint">
                 <span className="endpoint-label"><MapPin size={14} aria-hidden="true" />{t('arrival')}</span>
-                <span className="endpoint-name">{arrival?.name ?? t('unknownPlace')}</span>
+                <Typography className="endpoint-name" variant="body1" weight="bold">{arrival?.name ?? t('unknownPlace')}</Typography>
                 {arrival?.address && <span className="address">{arrival.address}</span>}
               </div>
             </RouteSummary>
@@ -453,33 +400,41 @@ export default function TransportPage() {
                   ['car', Car],
                   ['walk', Footprints],
                 ] as const).map(([mode, Icon]) => (
-                  <button
+                  <Button
                     key={mode}
                     type="button"
+                    className="mode-button"
+                    size="small"
+                    variant={travelMode === mode ? 'solid' : 'outlined'}
+                    color={travelMode === mode ? 'primary' : 'assistive'}
                     aria-pressed={travelMode === mode}
                     onClick={() => setTravelMode(mode)}
+                    leadingContent={<Icon size={18} aria-hidden="true" />}
                   >
-                    <Icon size={18} aria-hidden="true" />
                     {t(`mode.${mode}`)}
-                  </button>
+                  </Button>
                 ))}
               </ModeTabs>
               <MapNote>{t(`modeNote.${travelMode}`)}</MapNote>
-              <DirectionsLink
+              <Button
                 href={kakaoDirectionsUrl(departure, arrival)}
+                as="a"
+                className="directions-button"
                 target="_blank"
                 rel="noopener noreferrer"
+                variant="solid"
+                color="primary"
+                trailingContent={<ExternalLink size={17} aria-hidden="true" />}
               >
                 {t('openDirections')}
-                <ExternalLink size={17} aria-hidden="true" />
-              </DirectionsLink>
+              </Button>
             </>
           )}
         </Panel>
 
         <Panel aria-labelledby="map-heading">
           <PanelHeading>
-            <h2 id="map-heading">{t('mapTitle')}</h2>
+            <Typography id="map-heading" as="h2" variant="headline2" weight="bold">{t('mapTitle')}</Typography>
           </PanelHeading>
           {selectedSegment && departure && arrival ? (
             <>

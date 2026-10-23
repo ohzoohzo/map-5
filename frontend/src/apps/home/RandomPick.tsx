@@ -5,11 +5,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Dices, Heart, Map as MapIcon, MapPin, RotateCcw } from 'lucide-react';
 import { getCatalog, type Place } from '../../api/client';
-import { districtOf } from '../../shared/regions';
+import { districtOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import { color, radius } from '../../shared/design/tokens';
 
-const REGION = '부산광역시';
 const MAX_DRAWS = 3;
 const ROLL_MS = 1500;
 
@@ -32,8 +31,8 @@ const prefersReducedMotion = () => typeof window !== 'undefined' && window.match
 
 type Phase = 'idle' | 'loading' | 'rolling' | 'done';
 
-/** 홈의 "아직 어디 갈지 모르겠다면" 카드: 부산 관광지 하나를 뽑는 미니 게임 */
-export default function RandomPick({ onExplore }: { onExplore: () => void }) {
+/** 홈의 "아직 어디 갈지 모르겠다면" 카드: 현재 여행 지역의 관광지 하나를 뽑는다. */
+export default function RandomPick({ destination, onExplore }: { destination: string; onExplore: () => void }) {
   const { t } = useTranslation('home');
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -42,9 +41,16 @@ export default function RandomPick({ onExplore }: { onExplore: () => void }) {
   const [used, setUsed] = useState(0);
   const [error, setError] = useState(false);
   const timers = useRef<number[]>([]);
+  const mounted = useRef(true);
   const saved = useTrip((trip) => (picked ? trip.candidateIds.includes(picked.id) : false));
 
-  useEffect(() => () => timers.current.forEach((id) => window.clearTimeout(id)), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      timers.current.forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
 
   const remaining = MAX_DRAWS - used;
   const busy = phase === 'loading' || phase === 'rolling';
@@ -55,16 +61,21 @@ export default function RandomPick({ onExplore }: { onExplore: () => void }) {
     setPhase('loading');
     let places: Place[];
     try {
-      // 어디 갈까?의 '부산 전체' 목록과 같은 queryKey 라 이미 받은 목록이 있으면 다시 받지 않는다
-      const catalog = await queryClient.fetchQuery({
-        queryKey: ['travel', 'catalog', REGION, ''],
-        queryFn: ({ signal }) => getCatalog(REGION, '', signal),
+      // 어디 갈까?와 같은 지역·queryKey 를 쓴다. 예전에 저장한 짧은 목적지도 목록으로 확인한다.
+      const catalogFor = (region: string) => queryClient.fetchQuery({
+        queryKey: ['travel', 'catalog', region, ''],
+        queryFn: ({ signal }) => getCatalog(region, '', signal),
         staleTime: Infinity,
       });
+      let catalog = await catalogFor(destination);
+      const province = resolveProvince(destination, provincesOf(catalog.regions));
+      if (!province) throw new Error('여행 지역을 확인하지 못했어요.');
+      if (province !== destination) catalog = await catalogFor(province);
       places = catalog.places;
     } catch {
       places = [];
     }
+    if (!mounted.current) return;
     if (!places.length) {
       setError(true);
       setPhase(picked ? 'done' : 'idle');
@@ -110,7 +121,7 @@ export default function RandomPick({ onExplore }: { onExplore: () => void }) {
       <div className="random-head">
         <div>
           <h2 id="random-title">{t('random.title')}</h2>
-          <p className="card-sub">{t('random.subtitle')}</p>
+          <p className="card-sub">{t('random.subtitle', { place: shortProvince(destination) })}</p>
         </div>
         <span className={busy ? 'illust is-rolling' : 'illust'} aria-hidden>
           <MapIcon size={64} strokeWidth={1.2} />

@@ -66,6 +66,8 @@ export default function HomePage() {
 
   const nights = nightsBetween(startDate, endDate);
   const canStart = nights >= 0;
+  const selectedDestination = DESTINATIONS.find((item) => item.id === destination)!.value;
+  const randomDestination = savedDestination || selectedDestination;
 
   function changeStart(value: string) {
     setStartDate(value);
@@ -78,8 +80,7 @@ export default function HomePage() {
 
   function startTrip() {
     if (!canStart) return;
-    const value = DESTINATIONS.find((item) => item.id === destination)?.value ?? DESTINATIONS[0].value;
-    tripActions.setTrip(value, startDate, endDate);
+    tripActions.setTrip(selectedDestination, startDate, endDate);
     navigate('/explore');
   }
 
@@ -201,7 +202,7 @@ export default function HomePage() {
             <div className="photo" aria-hidden style={{ background: photoBackground(TRAIN_IMAGE, `linear-gradient(160deg, ${color.primarySoft} 0%, ${color.borderStrong} 100%)`) }} />
           </section>
 
-          <RandomPick onExplore={exploreFromRandom} />
+          <RandomPick key={randomDestination} destination={randomDestination} onExplore={exploreFromRandom} />
         </Cards>
 
         <Footer>

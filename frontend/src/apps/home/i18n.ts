@@ -36,7 +36,7 @@ export default {
     },
     random: {
       title: '아직 어디 갈지 모르겠다면',
-      subtitle: '부산 여행지 하나, 가볍게 뽑아볼까요?',
+      subtitle: '{{place}} 여행지 하나, 가볍게 뽑아볼까요?',
       cta: '여행지 랜덤 뽑기',
       loading: '관광지 불러오는 중…',
       rolling: '두근두근, 뽑는 중…',

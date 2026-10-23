@@ -20,7 +20,8 @@ export const Shell = styled.div`
   .header-inner { max-width: 1600px; height: 100%; padding: 0 42px; margin: auto; display: flex; align-items: center; gap: 58px; }
   .brand { display: inline-flex; align-items: center; gap: 11px; color: #254e70; font-size: 23px; font-weight: 820; letter-spacing: -1.3px; }
   .brand-mark { display: grid; place-items: center; height: 38px; width: 38px; border-radius: 13px 13px 13px 4px; color: #fff; background: #325f81; } .brand-dot { color: #eb9767; }
-  .main-nav { align-self: stretch; display: flex; align-items: stretch; gap: 25px; }
+  .main-nav { align-self: stretch; display: flex; align-items: stretch; gap: 25px; overflow-x: auto; scrollbar-width: none; }
+  .main-nav .nav-item { white-space: nowrap; }
   .nav-item { display: flex; align-items: center; gap: 8px; padding: 0 2px; font-size: 13px; font-weight: 650; border-bottom: 2px solid transparent; color: #82909b; } .nav-item.active { color: #2a597c; border-bottom-color: #2a597c; }
   .header-note { margin-left: auto; display: flex; align-items: center; gap: 9px; color: #8d9aa6; font-size: 11px; }
   .workspace-page { max-width: 1600px; margin: auto; padding: 38px 42px 0; }

@@ -1,17 +1,18 @@
 import { Global } from '@emotion/react';
 import { MapPinned, ArrowUpRight } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppDefinition } from './shared/app';
+import { Link, usePathname } from './shared/router';
 import { globalStyles, Shell } from './styles';
 
+// 기능 등록은 apps/<기능>/app.config.tsx 로만 한다. 이 파일은 공통 영역(여원 리뷰).
 const modules = import.meta.glob<{ default: AppDefinition }>('./apps/*/app.config.tsx', { eager: true });
-const apps = Object.values(modules).map((module) => module.default).sort((a, b) => a.id.localeCompare(b.id));
+const apps = Object.values(modules).map((module) => module.default).sort((a, b) => a.order - b.order);
 
 export default function App() {
   const { t } = useTranslation();
-  const [activeId, setActiveId] = useState(apps[0]?.id ?? '');
-  const activeApp = apps.find((app) => app.id === activeId);
+  const pathname = usePathname();
+  const activeApp = apps.find((app) => app.path === pathname) ?? apps.find((app) => app.path === '/');
   const ActiveComponent = activeApp?.component;
 
   return (
@@ -20,15 +21,15 @@ export default function App() {
       <a className="skip-link" href="#main-content">{t('skipToContent')}</a>
       <header className="site-header">
         <div className="header-inner">
-          <a href="/" className="brand" aria-label={t('brand')}>
+          <Link href="/" className="brand" aria-label={t('brand')}>
             <span className="brand-mark"><MapPinned size={23} strokeWidth={1.8} /></span>
             <span>{t('brand')}<span className="brand-dot">.</span></span>
-          </a>
+          </Link>
           <nav className="main-nav" aria-label={t('appTitle')}>
-            {apps.map((app) => (
-              <button key={app.id} className={app.id === activeId ? 'nav-item active' : 'nav-item'} onClick={() => setActiveId(app.id)} aria-current={app.id === activeId ? 'page' : undefined}>
+            {apps.filter((app) => app.nav !== false).map((app) => (
+              <Link key={app.id} href={app.path} className={app === activeApp ? 'nav-item active' : 'nav-item'} aria-current={app === activeApp ? 'page' : undefined}>
                 <app.icon size={16} />{t(app.titleKey)}
-              </button>
+              </Link>
             ))}
           </nav>
           <span className="header-note">{t('headerNote')}<ArrowUpRight size={15} /></span>

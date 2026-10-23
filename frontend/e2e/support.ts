@@ -32,7 +32,7 @@ export async function readCatalog(response: Response): Promise<CatalogResponse> 
 
 export async function openCatalog(page: Page): Promise<CatalogResponse> {
   const loaded = catalogResponse(page);
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/workspace', { waitUntil: 'domcontentloaded' });
   const catalog = await readCatalog(await loaded);
   expect(catalog.places.length, 'The official cleaned CSV must contain real destinations').toBeGreaterThan(2);
   await expect(page.getByRole('combobox', { name: '여행 지역', exact: true })).toBeEnabled();

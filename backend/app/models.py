@@ -66,6 +66,13 @@ class SearchResponse(StrictModel):
     date_max: None
 
 
+class FeatureStatus(StrictModel):
+    """기능 라우터의 연동 상태. 실제 데이터가 없을 때 가짜 값 대신 이 응답으로 상태를 알린다."""
+    feature: str
+    ready: bool
+    message: str
+
+
 class HealthResponse(StrictModel):
     status: Literal["ok"]
 

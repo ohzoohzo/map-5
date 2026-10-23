@@ -8,7 +8,7 @@ errors = []
 for path in (ROOT / "frontend/src").rglob("*"):
     if not path.is_file() or path.suffix not in {".ts", ".tsx", ".js", ".jsx"}:
         continue
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     if "KAKAO_REST_API_KEY" in text:
         errors.append(f"REST key name crossed into browser code: {path.relative_to(ROOT)}")
     if "libraries=services" in text:

@@ -1,0 +1,34 @@
+PinDay integrated travel planner concepts, generated with built-in image_gen.
+
+SCREEN 1 — Home and optional travel personality test
+Use case: ui-mockup. Create a high-fidelity Korean desktop web app screenshot for the new PinDay integrated travel planner. Use the attached prior design ONLY as a reference for clean Korean typography, pale blue/white cards, navy text, coral CTA and professional finish. Redesign the information architecture completely around one shared trip. Do not preserve its brand or old Seoul single-day plan.
+Screen 1: HOME + OPTIONAL TRAVEL PERSONALITY TEST, a 16:10 landscape desktop product screen. Sharp Korean text, restrained polished map pin brand, ocean-blue/teal accent, navy typography, white/pale-blue canvas, 12px radii, beautiful Busan coastal editorial photography in a restrained hero area. Broad, readable composition, no phone mockup. One clear primary action. No login or account creation, no fake reviews, no popularity numbers, no paywalls. No giant gradient or cartoon illustration.
+Persistent top header: brand 'PinDay' small Korean '핀데이', global navigation EXACT labels '홈', '어디 갈까?', '언제 갈까?', '어떻게 갈까?', '날씨 대안', 'AI 도슨트'. 홈 is active. Quiet outlined '나의 여행' at right. No URL/domain in a browser bar.
+A small orientation line '부산 여행 플래너'. Main headline EXACTLY '부산 여행, 핀 하나부터.' Supporting line '가고 싶은 곳을 모아, 나만의 날짜에 담아보세요.'
+Below headline one clear travel setup card with destination field '부산', date field '10.24–10.26', duration badge '2박 3일', travel style chips '맛집', '산책', '전시', and the single coral primary CTA '내 여행 시작하기'.
+Show a simple thin 3-stage journey strip beneath the primary action: '장소 발견' → '날짜에 배치' → '이동·날씨 확인'. It should explain the journey, not resemble a complex dashboard.
+Lower half has TWO secondary entry cards rather than six separate competing apps:
+card1 '내 여행 스타일은?' subtitle '짧은 테스트로 좋아하는 여행을 찾아요' with small choice chips '느긋하게' '알차게', outlined action '성향 테스트 하기', quiet helper '건너뛰고 바로 시작할 수 있어요'.
+card2 '아직 어디 갈지 모르겠다면' subtitle '부산 여행지 하나, 가볍게 뽑아볼까요?' tasteful small map-pin/dice line illustration, outlined action '여행지 랜덤 뽑기'.
+Small footer hint '마음에 드는 곳은 후보함에 저장하고, 원하는 날짜에 추가해요.'
+At bottom modest source placeholder and readable disclaimer EXACTLY '기획 시안 · 장소와 일정은 예시입니다.'
+The IA must make clear the primary journey is start trip, with personality/random as optional paths; do not draw six equally dominant feature tiles. Scene is an app webpage, not a landing-page marketing poster. All controls look functional, clean Pretendard-like Korean fonts, clean vector line icons, no emoji.
+
+SCREEN 2 — Date itinerary, map and contextual AI area docent
+Use case: ui-mockup. Create screen 2 of the PinDay high-fidelity Korean desktop web travel planner, 16:10 landscape. Attached prior app screenshot is style reference only: keep elegant Korean sans-serif, pale blue/white/navy/coral palette and premium finish, redesign all layout and content for Busan and new PinDay navigation. No phone mockup. This is an integrated product workspace with one trip, not a collage of unrelated apps.
+Top header brand 'PinDay' small '핀데이'; exact global menu labels '홈', '어디 갈까?', '언제 갈까?', '어떻게 갈까?', '날씨 대안', 'AI 도슨트'. '언제 갈까?' active. Quiet outlined '나의 여행'.
+Under header a shared trip context bar: '부산 · 2박 3일', '10.24–10.26', quiet '여행 조건 수정', with clearly DISTINCT counters '후보 5곳' and '일정 3곳'. Trip remains same across menus.
+Main title '가고 싶은 곳을, 나의 하루에.' Small supporting line '후보함에서 날짜를 골라 일정을 완성해요.'
+A large coherent workspace, left ~23%, middle ~43%, right ~34%:
+LEFT: actual date-planning panel title '나의 일정', DAY tabs 'DAY 1' active teal, 'DAY 2' orange, 'DAY 3' purple. Clear current date '10.24 토요일'. Three ordered itinerary rows with numbered circles and small thumbnails: '감천문화마을', '국제시장', '흰여울문화마을'. Small text '방문 순서' and reorder affordances. A small bottom area labeled '후보함 · 2곳 미배치', one compact place row '송도해수욕장' with an outlined '이 날짜에 추가' button. It must visibly separate unscheduled saved candidates from scheduled stops, not mix them.
+CENTER: large detailed pale Busan map with discernible coast, Nampo/Gamcheon/Yeongdo geography, three numbered teal markers connected by dotted suggested visiting-order line. Dotted line is not road navigation. Segmented control '날짜별 지도' active / '동네별 지도'. Neighborhood filter chips '남포·감천', '영도', '해운대'. Selected marker '감천문화마을' has small map place popover with quiet '해설 보기' button. Map legend '번호는 방문 순서'. No fake Google brand or copyrighted logo. The map is conceptual, not a verified route.
+RIGHT: an AI docent contextual side panel open over the place-detail area, NOT replacing the itinerary or losing the selected day. Title 'AI 지역 도슨트', close X with explicit small label '일정으로 돌아가기'. Context label '지금 보고 있는 곳', heading '감천문화마을'. Tabs '지역 이야기' active and '최근 소식'. A tasteful photo of colorful Gamcheon hillside houses. A readable editorial question '골목마다 어떤 이야기가 숨어 있을까요?' Short supporting paragraph '이 동네의 역사와 문화를 근거 자료와 함께 만나보세요.' This is a UI example, do not invent precise historical facts or real news headlines. Lower box labeled '근거 자료' with rows '관광정보 원문 보기', '문화유산 자료 확인'; these are concept source affordances, no false verified ticks. Quiet outline action '이 장소를 후보함에 저장'. The panel should look like contextual researched storytelling, not a generic chatbot with empty input.
+Under map a subtle pale-blue forecast alternative banner: rain line icon '내일 오후 비 예보', text '선택한 야외 장소의 실내 대안을 찾아보세요', action '대안 비교'. Show a quiet '어떻게 갈까? · 구간별 이동 확인' link with small transit/walk/car icons. No invented minute travel times. Do not make weather/recentnews look like completed live verified data.
+At bottom small visible disclaimer EXACTLY '기획 시안 · 날씨·해설·경로는 예시입니다.'
+The app must make user goal clear: preserve the shared trip and selected day, place candidate into a date, see map, open contextual docent, close back to original itinerary, compare weather alternative for only a selected stop. Minimal beautiful typography, dense but readable, controlled hierarchy, no emoji, no generic stats dashboard.
+
+TARGETED EDIT SUMMARY — final home v3
+Input: pinday-home-v2.png. Preserve entire design and text; replace the erroneous OpenStreetMap provider word in the footer with 카카오 to match the planned Kakao Maps architecture. Saved final: pinday-home-v3.png.
+
+TARGETED EDIT SUMMARY — final planner v3
+Input: pinday-planner-docent-v2.png. Preserve all layout and content; correct the map label for selected marker 1 to the exact place name 감천문화마을. Saved final: pinday-planner-docent-v3.png.

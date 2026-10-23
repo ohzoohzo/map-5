@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { Button, Typography } from '@montage-ui/core';
 import { MapPin, RefreshCw } from 'lucide-react';
 import type { Place } from '../../api/client';
+import type { TransportRoute, TransportStep } from '../../api/generated/model';
+import { color } from '../../shared/design/tokens';
 
 const foreground = (name: string) => `var(--semantic-foreground-${name})`;
 const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
 const brand = 'var(--semantic-foreground-brand-primary)';
+const STEP_COLORS: Record<TransportStep['mode'], string> = { walk: color.textMuted, bus: color.primary, subway: color.teal };
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
@@ -20,8 +23,10 @@ interface KakaoMapInstance {
 }
 interface KakaoMarker { setMap(map: KakaoMapInstance | null): void }
 interface KakaoPolyline { setMap(map: KakaoMapInstance | null): void }
-interface KakaoSdk {
+interface KakaoLoader {
   load(callback: () => void): void;
+}
+interface KakaoSdk extends KakaoLoader {
   LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
   LatLngBounds: new () => KakaoBounds;
   Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMapInstance;
@@ -78,6 +83,7 @@ const MapFrame = styled.div`
     bottom: 12px;
     left: 12px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: 10px;
     padding: 10px 12px;
@@ -93,20 +99,26 @@ const MapFrame = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .map-legend .line {
     width: 24px;
+    flex: 0 0 24px;
     border-top: 3px dashed ${brand};
   }
 `;
 
 let sdkPromise: Promise<KakaoSdk> | null = null;
 
-function isKakaoSdk(value: unknown): value is KakaoSdk {
+function isKakaoLoader(value: unknown): value is KakaoLoader {
   if (typeof value !== 'object' || value === null) return false;
-  return 'load' in value
-    && typeof value.load === 'function'
+  return 'load' in value && typeof value.load === 'function';
+}
+
+function isKakaoSdk(value: unknown): value is KakaoSdk {
+  return isKakaoLoader(value)
     && 'LatLng' in value
     && typeof value.LatLng === 'function'
     && 'LatLngBounds' in value
@@ -119,10 +131,15 @@ function isKakaoSdk(value: unknown): value is KakaoSdk {
     && typeof value.Polyline === 'function';
 }
 
-function getKakaoSdk(): KakaoSdk | undefined {
+function getKakaoMaps(): unknown {
   const kakao: unknown = Reflect.get(window, 'kakao');
   if (typeof kakao !== 'object' || kakao === null || !('maps' in kakao)) return undefined;
-  return isKakaoSdk(kakao.maps) ? kakao.maps : undefined;
+  return kakao.maps;
+}
+
+function getKakaoSdk(): KakaoSdk | undefined {
+  const maps = getKakaoMaps();
+  return isKakaoSdk(maps) ? maps : undefined;
 }
 
 function loadSdk(key: string): Promise<KakaoSdk> {
@@ -135,27 +152,38 @@ function loadSdk(key: string): Promise<KakaoSdk> {
     script.id = 'transport-kakao-map-sdk';
     script.async = true;
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&autoload=false`;
-    const timeout = window.setTimeout(() => {
-      script.remove();
-      reject(new Error('map-timeout'));
-    }, 15_000);
-
-    script.onerror = () => {
+    const fail = (error: Error) => {
       window.clearTimeout(timeout);
+      script.onload = null;
+      script.onerror = null;
       script.remove();
-      reject(new Error('map-load-failed'));
+      reject(error);
     };
+    const timeout = window.setTimeout(() => fail(new Error('map-timeout')), 15_000);
+
+    script.onerror = () => fail(new Error('map-load-failed'));
     script.onload = () => {
-      const sdk = getKakaoSdk();
-      if (!sdk) {
-        window.clearTimeout(timeout);
-        reject(new Error('map-unavailable'));
+      // autoload=false exposes maps.load before the map constructors exist.
+      const loader = getKakaoMaps();
+      if (!isKakaoLoader(loader)) {
+        fail(new Error('map-unavailable'));
         return;
       }
-      sdk.load(() => {
-        window.clearTimeout(timeout);
-        resolve(sdk);
-      });
+      try {
+        loader.load(() => {
+          const sdk = getKakaoSdk();
+          if (!sdk) {
+            fail(new Error('map-unavailable'));
+            return;
+          }
+          window.clearTimeout(timeout);
+          script.onload = null;
+          script.onerror = null;
+          resolve(sdk);
+        });
+      } catch {
+        fail(new Error('map-unavailable'));
+      }
     };
     document.head.appendChild(script);
   }).catch((error: unknown) => {
@@ -172,6 +200,7 @@ interface Props {
   keyError: boolean;
   departure: Place;
   arrival: Place;
+  route?: TransportRoute;
   labels: {
     mapLabel: string;
     loading: string;
@@ -182,7 +211,10 @@ interface Props {
     retry: string;
     departure: string;
     arrival: string;
-    examplePath: string;
+    walkLine: string;
+    busLine: string;
+    subwayLine: string;
+    markersOnly: string;
   };
   onRetryKey: () => void;
 }
@@ -195,6 +227,7 @@ export default function RouteMap({
   keyError,
   departure,
   arrival,
+  route,
   labels,
   onRetryKey,
 }: Props) {
@@ -237,7 +270,7 @@ export default function RouteMap({
     };
   }, [apiKey, attempt, departure.latitude, departure.longitude, keyError, loadingKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (status !== 'ready' || !map.current || !sdk.current) return;
     const loadedSdk = sdk.current;
     const origin = new loadedSdk.LatLng(departure.latitude, departure.longitude);
@@ -245,28 +278,31 @@ export default function RouteMap({
     const bounds = new loadedSdk.LatLngBounds();
     bounds.extend(origin);
     bounds.extend(destination);
+    const paths = route?.steps.map((step) => ({
+      mode: step.mode,
+      points: step.path.map((point) => new loadedSdk.LatLng(point.latitude, point.longitude)),
+    })) ?? [];
+    paths.forEach((path) => path.points.forEach((point) => bounds.extend(point)));
     map.current.setBounds(bounds, 64, 48, 64, 48);
 
     const markers = [
       new loadedSdk.Marker({ position: origin, map: map.current, title: departure.name }),
       new loadedSdk.Marker({ position: destination, map: map.current, title: arrival.name }),
     ];
-    const line = new loadedSdk.Polyline({
-      map: map.current,
-      path: [origin, destination],
+    const lines = paths.filter((path) => path.points.length >= 2).map((path) => new loadedSdk.Polyline({
+      map: map.current!,
+      path: path.points,
       strokeWeight: 4,
-      strokeColor: getComputedStyle(document.documentElement)
-        .getPropertyValue('--semantic-foreground-brand-primary')
-        .trim(),
+      strokeColor: STEP_COLORS[path.mode],
       strokeOpacity: 0.9,
-      strokeStyle: 'shortdash',
-    });
+      strokeStyle: path.mode === 'walk' ? 'shortdash' : 'solid',
+    }));
 
     return () => {
       markers.forEach((marker) => marker.setMap(null));
-      line.setMap(null);
+      lines.forEach((line) => line.setMap(null));
     };
-  }, [arrival.latitude, arrival.longitude, arrival.name, departure.latitude, departure.longitude, departure.name, status]);
+  }, [arrival.latitude, arrival.longitude, arrival.name, departure.latitude, departure.longitude, departure.name, route, status]);
 
   useEffect(() => {
     if (!container.current || status !== 'ready') return;
@@ -284,7 +320,9 @@ export default function RouteMap({
         ? labels.missingKey
         : status === 'error'
           ? labels.failed
-          : null;
+          : status === 'loading'
+            ? labels.loading
+            : null;
 
   return (
     <MapFrame>
@@ -321,9 +359,12 @@ export default function RouteMap({
           <Typography className="map-legend-item" variant="caption1">
             <MapPin size={15} aria-hidden="true" />{departure.name} → {arrival.name}
           </Typography>
-          <Typography className="map-legend-item" variant="caption1">
-            <i className="line" />{labels.examplePath}
-          </Typography>
+          {route ? (['walk', 'bus', 'subway'] as const).filter((mode) => route.steps.some((step) => step.mode === mode && step.path.length >= 2)).map((mode) => (
+            <Typography key={mode} className="map-legend-item" variant="caption1">
+              <i className="line" style={{ borderTopColor: STEP_COLORS[mode], borderTopStyle: mode === 'walk' ? 'dashed' : 'solid' }} />
+              {labels[`${mode}Line`]}
+            </Typography>
+          )) : <Typography variant="caption1">{labels.markersOnly}</Typography>}
         </div>
       )}
     </MapFrame>

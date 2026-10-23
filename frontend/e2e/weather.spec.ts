@@ -166,3 +166,13 @@ test('a matching tourism photo replaces the icon, with its credit, and a broken 
   await expect(preview.getByRole('img', { name: `${night.name} 사진` })).toHaveCount(0);
   await expect(preview.getByText('지역 사진', { exact: true })).toBeVisible();
 });
+
+test('the center "이 장소만 교체" button replaces the stop just like the bottom button', async ({ page }) => {
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const first = alternatives.alternatives[0]!.place;
+  await page.getByRole('button', { name: `${beach.name}을(를) ${first.name}(으)로 교체` }).click();
+  await expect(page.getByRole('status').filter({ hasText: '바꿨어요' })).toContainText(`${beach.name}을(를) ${first.name}(으)로 바꿨어요.`);
+  const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
+  expect(saved.days[1]!.items.map((item) => item.placeId)).toEqual([cafe.id, first.id, night.id]);
+});

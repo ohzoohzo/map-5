@@ -39,6 +39,7 @@ export default {
     indoorShort: '실내 후보',
     distance: '직선 {{km}}km',
     replaceOnly: '이 장소만 교체',
+    replaceOnlyNamed: '{{from}}을(를) {{to}}(으)로 교체',
     moreTitle: '이런 곳도 있어요',
     chooseAlternative: '{{name}}을(를) 바꿀 장소로 보기',
     showMore: '다른 후보 {{count}}곳 더 보기',

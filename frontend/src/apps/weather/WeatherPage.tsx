@@ -39,7 +39,7 @@ export default function WeatherPage() {
   const heading = (
     <div className="w-hero-copy">
       <Typography as="h1" variant="title1" weight="bold">{t('title')}</Typography>
-      <Typography variant="headline2" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
+      <Typography as="p" className="w-subtitle" variant="headline2" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
       {!empty && (
         <div className="w-pickers">
           <label className="field"><span>{t('pickDay')}</span>
@@ -152,7 +152,11 @@ function Compare({ day, dayIndex, itemIndex, place, places, onReplaced }: Compar
           <PlaceVisual place={place} kind={originIndoor ? 'indoor' : 'outdoor'} large />
         </article>
 
-        <div className="w-swap" aria-hidden="true"><span>{t('replaceOnly')}</span><ArrowRight /></div>
+        {/* 시안 가운데 '이 장소만 교체' — 아래 '이 장소로 교체하기'와 같은 동작 */}
+        <button type="button" className="w-swap" onClick={replace} disabled={!chosen}
+          aria-label={chosen ? t('replaceOnlyNamed', { from: place.name, to: chosen.place.name }) : t('replaceOnly')}>
+          <span>{t('replaceOnly')}</span><ArrowRight />
+        </button>
 
         <div className="w-alt-column">
           {alternatives.isPending && <div className="w-card w-state" role="status"><Loading /><span className="sr-only">{t('alternativesLoading')}</span></div>}

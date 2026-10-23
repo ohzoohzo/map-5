@@ -33,6 +33,7 @@ export default {
     searchDisabled: '장소 검색이 꺼져 있어요',
     searchDisabledDetail: '카카오 REST API 키가 없어 맛집·카페·쇼핑과 검색을 쓸 수 없어요. 관광지 탭은 그대로 쓸 수 있어요.',
     loadError: '장소를 불러오지 못했어요',
+    regionsLoadError: '여행 지역을 불러오지 못했어요',
     emptyResults: '조건에 맞는 장소가 없어요',
     emptyResultsDetail: '다른 동네나 종류를 골라 보세요.',
     resetFilters: '조건 초기화',

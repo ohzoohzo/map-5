@@ -105,14 +105,3 @@ test('a day carried over without a date asks for travel dates instead of request
   await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
   expect(forecastCalls).toBe(0);
 });
-
-test('a day carried over without a date asks for travel dates instead of requesting a forecast', async ({ page }) => {
-  let forecastCalls = 0;
-  page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/weather/forecast') forecastCalls += 1; });
-  const undated: Trip = { ...trip, startDate: '', endDate: '', days: trip.days.map((day) => ({ ...day, date: '' })) };
-  await openWeather(page, { status: 200, body: forecast('ok', []) }, undated);
-  await expect(page.getByRole('tab', { name: 'DAY 2', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('region', { name: '여행 날짜가 아직 없어요' })).toBeVisible();
-  await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
-  expect(forecastCalls).toBe(0);
-});

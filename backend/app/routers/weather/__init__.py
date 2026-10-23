@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, Query
 from ...models import ErrorResponse, FeatureStatus
 from ...settings import Settings, env, get_settings
 from .alternatives import find_alternatives
-from .models import WeatherAlternatives, WeatherForecast
+from .models import WeatherAlternatives, WeatherForecast, WeatherPhotoResponse
+from .photos import find_photo
 from .service import get_forecast
 
 router = APIRouter(prefix="/api/weather", tags=["weather"])
@@ -47,3 +48,15 @@ def weather_alternatives(
 ) -> WeatherAlternatives:
     """원래 장소 근처(직선 30km)에서 이름으로 실내로 보이는 관광지를 가까운 순으로."""
     return find_alternatives(settings.catalog_path, latitude, longitude, name)
+
+
+@router.get(
+    "/photo", response_model=WeatherPhotoResponse, operation_id="weather_photo",
+    responses={502: {"model": ErrorResponse}},
+)
+def weather_photo(
+    name: Annotated[str, Query(min_length=1, max_length=100)],
+    address: Annotated[str, Query(max_length=200)] = "",
+) -> WeatherPhotoResponse:
+    """한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순. 장소 사진이 아니면 match 로 알린다."""
+    return WeatherPhotoResponse(photo=find_photo(name, address))

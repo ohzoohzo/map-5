@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Place } from '../../api/client';
-import { weatherAlternatives, weatherForecast } from '../../api/generated/weather/weather';
+import { weatherAlternatives, weatherForecast, weatherPhoto } from '../../api/generated/weather/weather';
 import type { WeatherSlot } from '../../api/generated/model';
 
 // 생성 함수는 4xx/5xx 에서 ApiError 를 던진다 (#26). 장소가 정해지기 전엔 요청하지 않도록 enabled 로 막는다.
@@ -19,6 +19,16 @@ export function useAlternatives(place: Place | undefined) {
     queryFn: ({ signal }) => weatherAlternatives({ latitude: place!.latitude, longitude: place!.longitude, name: place!.name }, { signal }),
     enabled: place !== undefined,
     staleTime: Infinity,
+  });
+}
+
+/** 한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순 (match 로 어느 사진인지 알 수 있다) */
+export function usePlacePhoto(place: Place) {
+  return useQuery({
+    queryKey: ['weather', 'photo', place.name, place.address],
+    queryFn: ({ signal }) => weatherPhoto({ name: place.name, address: place.address }, { signal }),
+    staleTime: Infinity,
+    retry: false,
   });
 }
 

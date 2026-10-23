@@ -809,6 +809,72 @@
           }
         }
       }
+    },
+    "/api/weather/photo": {
+      "get": {
+        "tags": [
+          "weather"
+        ],
+        "summary": "Weather Photo",
+        "description": "한국관광공사 관광사진 한 장: 장소 → 이름의 주요 단어 → 구·군 → 시·도 순. 장소 사진이 아니면 match 로 알린다.",
+        "operationId": "weather_photo",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherPhotoResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1514,6 +1580,75 @@
           "fetched_at"
         ],
         "title": "WeatherForecast"
+      },
+      "WeatherPhoto": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "photographer": {
+            "type": "string",
+            "title": "Photographer"
+          },
+          "match": {
+            "type": "string",
+            "enum": [
+              "place",
+              "related",
+              "area"
+            ],
+            "title": "Match"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "title",
+          "photographer",
+          "match",
+          "label",
+          "source",
+          "source_url"
+        ],
+        "title": "WeatherPhoto"
+      },
+      "WeatherPhotoResponse": {
+        "properties": {
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeatherPhoto"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "photo"
+        ],
+        "title": "WeatherPhotoResponse"
       },
       "WeatherSlot": {
         "properties": {

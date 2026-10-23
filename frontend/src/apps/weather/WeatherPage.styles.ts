@@ -24,10 +24,11 @@ export const WeatherSection = styled.div`
 
   /* 1. 머리글 + 예보 */
   .w-hero { display: grid; grid-template-columns: ${columns}; gap: 16px; align-items: stretch; }
-  .w-hero-copy { display: grid; align-content: center; gap: 6px; }
-  .w-hero-copy h1 { margin: 0; letter-spacing: -1px; word-break: keep-all; color: ${fg('neutral-strong')}; }
+  .w-hero-copy { display: grid; align-content: center; gap: 12px; padding: 24px 0 28px; }
+  .w-hero-copy h1 { margin: 0; font-size: 3.2rem; line-height: 1.25; letter-spacing: -1.5px; word-break: keep-all; color: ${fg('neutral-strong')}; }
+  .w-hero-copy .w-subtitle { margin: 0; font-size: 1.5rem; line-height: 1.5; letter-spacing: -0.3px; word-break: keep-all; }
   .w-pickers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; max-width: 560px; margin-top: 14px; }
-  .w-forecast { grid-column: 3; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 24px; }
+  .w-forecast { grid-column: 3; align-self: center; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 24px; }
   .w-forecast.rainy { background: ${brandSoft}; border-color: transparent; }
   .w-forecast-left { display: grid; gap: 10px; min-width: 0; }
   .w-forecast-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 600; color: ${fg('neutral-secondary')}; }
@@ -63,10 +64,17 @@ export const WeatherSection = styled.div`
   .w-visual svg { width: 56px; height: 56px; } .w-visual.small svg { width: 26px; height: 26px; }
   .w-visual.outdoor { background: linear-gradient(160deg, #8fd0f5 0%, #3d8bfd 55%, #e8d5a8 100%); }
   .w-visual.indoor { background: linear-gradient(150deg, #7fd3dc 0%, ${teal} 100%); }
+  .w-visual.photo { position: relative; margin: 0; overflow: hidden; background: ${canvas}; }
+  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .w-visual.photo figcaption { position: absolute; right: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 8px; border-radius: 999px; background: #000000a6; color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .w-visual.photo.small figcaption { right: 4px; bottom: 4px; padding: 1px 6px; font-size: 10px; }
   .w-visual.neutral { background: linear-gradient(150deg, #c9d3df 0%, #8a97a8 100%); }
 
-  .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; word-break: keep-all; font-size: 14px; font-weight: 700; color: ${fg('neutral-strong')}; }
-  .w-swap svg { width: 52px; height: 52px; padding: 14px; border-radius: 50%; background: ${brandSoft}; color: ${brand}; }
+  .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 4px; border-radius: 16px; text-align: center; word-break: keep-all; font-size: 14px; font-weight: 700; color: ${fg('neutral-strong')}; transition: background .15s; }
+  .w-swap svg { width: 52px; height: 52px; padding: 14px; border-radius: 50%; background: ${brandSoft}; color: ${brand}; transition: background .15s, color .15s; }
+  .w-swap:not(:disabled):hover { background: ${canvas}; }
+  .w-swap:not(:disabled):hover svg { background: ${brand}; color: #fff; }
+  .w-swap:disabled { opacity: .4; }
 
   .w-alt-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .w-more { display: grid; gap: 10px; justify-items: start; }
@@ -129,6 +137,9 @@ export const WeatherSection = styled.div`
     .w-card { padding: 16px; }
     .w-place { padding: 16px; }
     .w-pickers { grid-template-columns: 1fr; }
+    .w-hero-copy { padding: 12px 0 16px; }
+    .w-hero-copy h1 { font-size: 2rem; }
+    .w-hero-copy .w-subtitle { font-size: 1.125rem; }
     .w-forecast { grid-template-columns: 1fr; }
     .w-advice { padding: 12px 0 0; border-left: 0; border-top: 1px solid ${line}; max-width: none; }
     .w-timeline { grid-auto-flow: row; gap: 28px; }

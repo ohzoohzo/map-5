@@ -7,6 +7,15 @@
 
 export * from './catalogResponse.ts';
 export * from './configResponse.ts';
+export * from './docentNews.ts';
+export * from './docentNewsItem.ts';
+export * from './docentNewsParams.ts';
+export * from './docentReference.ts';
+export * from './docentReferenceKind.ts';
+export * from './docentSection.ts';
+export * from './docentSectionKey.ts';
+export * from './docentStory.ts';
+export * from './docentStoryParams.ts';
 export * from './errorResponse.ts';
 export * from './featureStatus.ts';
 export * from './getCatalogParams.ts';

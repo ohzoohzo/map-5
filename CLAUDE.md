@@ -16,7 +16,7 @@
 ## 충돌 방지 규칙 (꼭 지킬 것)
 - **내 폴더만 수정한다.** 프론트 `frontend/src/apps/<내 기능>/`, 백엔드 `backend/app/routers/<내 기능>/`, 테스트 `backend/tests/test_<내 기능>.py`, `frontend/e2e/<내 기능>.spec.ts`.
 - 화면 등록은 `apps/<기능>/app.config.tsx`, 문구는 `apps/<기능>/i18n.ts` 로 자동 등록된다 → `App.tsx`, `src/i18n.ts` 는 건드리지 않는다.
-- **공통 영역**(`App.tsx`, `src/i18n.ts`, `src/styles.ts`, `src/shared/**`, `backend/app/main.py|models.py|settings.py`, `.env.example`, CI)은 수정 전 사용자에게 확인받고, 기능 PR 과 분리한 작은 PR 로 올린다 (리뷰: 여원).
+- **공통 영역**(`App.tsx`, `src/i18n.ts`, `src/styles.ts`, `src/shared/**`, `backend/app/main.py|models.py|settings.py`, `.env.example`)은 수정 전 사용자에게 확인받고, 기능 PR 과 분리한 작은 PR 로 올린다 (리뷰: 여원).
 - 백엔드 모델 이름은 기능 접두어를 붙인다 (`WeatherForecast`). 새 키는 `settings.env("이름")` 으로 읽는다.
 - 여행 상태(후보·일정·선택 장소)는 `shared/trip/tripStore.ts` 의 `useTrip` / `tripActions` 만 사용한다.
 - 디자인은 `shared/design/tokens.ts` 값과 `design/` 시안을 따른다. 색을 직접 쓰지 않는다.
@@ -24,5 +24,5 @@
 
 ## 커밋·PR
 - 커밋: `feat(weather): 예보 카드` 형식. push·PR 은 사용자가 원할 때만.
-- PR 전: `python -m pytest backend/tests -q`, `cd frontend && bun run build`.
+- PR 전(CI 없음 — 직접 확인): `python -m pytest backend/tests -q`, `cd frontend && bun run build`, 화면을 바꿨으면 `cd frontend && node node_modules/@playwright/test/cli.js test`.
 - main 에 직접 push 하지 않는다. 작업 시작 전·PR 전 `git pull origin main` 으로 최신화.

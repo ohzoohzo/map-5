@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+frontend/dist/
+bazel-*
+.DS_Store
+**/data/*_raw.*
+frontend/e2e/artifacts/
+frontend/test-results/
+frontend/playwright-report/

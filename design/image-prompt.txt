@@ -1,0 +1,23 @@
+Use case: ui-mockup.
+Create a polished, high-fidelity Korean travel-planning web app concept board, landscape. One large desktop browser viewport fills most of the board, with a smaller matching mobile viewport on the right. This is a concrete usable product UI, not a marketing poster or generic dashboard. All Korean typography must be sharp, correctly spelled, legible. Plenty of white space, excellent hierarchy, restrained sky-blue and navy palette with a warm coral/orange primary CTA. Off-white canvas, white panels, subtle borders, 12-16px radii, minimal shadows, clean Korean sans-serif similar to Pretendard. Simple consistent line icons, no emoji. Warm, calm travel editorial feeling with small authentic-looking destination thumbnails, not giant hero photos. No giant 3D artwork, no perspective device mockups, no gradients everywhere.
+
+Product name text EXACTLY: "날씨따라".
+Desktop header has small sun/cloud logo with name, a simple "여행 설계" active section and "저장한 일정".
+Main heading EXACTLY: "비가 와도, 좋은 여행은 계속."
+Subheading: "날씨와 취향에 맞춘 나만의 하루 코스".
+A compact input bar: labels "어디로" with "서울 종로", "언제" with "10월 24일 (토)", "취향" with selected chips "전시" and "카페", time "10:00–18:00", primary orange action "내 코스 추천받기".
+
+Under input bar build a crisp three-part work area:
+left slim conditions/weather panel with a large clear cloud/rain line icon, title "오후 비 예보", text "14–17시 · 강수확률 70%", helpful pale-blue card "비 오는 오후는 실내 위주로", and clear hourly forecast strip for 10시/13시/16시.
+center large convincing vector street map of Seoul Jongno/Anguk/Bukchon/Insadong with pale roads and parks, four numbered blue map pins 1–4 connected by a dotted blue itinerary line. It is a conceptual map, not satellite photography. A small legend "방문 순서". No invented Google logo or misleading verified Kakao branding. Small label "지도 · 경로 예시".
+right wider itinerary panel title "나의 하루 코스", subtitle "토요일 · 종로에서 천천히". Four timeline cards:
+"10:00" "북촌 산책" with small label "오전 야외 산책";
+"12:00" "인사동 점심" with small label "가까운 식당에서";
+"14:00" "서울공예박물관" with small label "비 예보 시간대 · 실내";
+"16:00" "익선동 카페" with small label "천천히 쉬어가는 마무리".
+Each card has a small genuine-feeling thumbnail and quiet control "바꾸기"; show a low-key save CTA "이 일정 저장".
+Three compact metric tiles: "방문 장소 4곳", "실내 장소 3곳", "직선거리 2.4km".
+Footer provenance text "관광정보 · TourAPI   장소 · 카카오   예보 · OpenWeather".
+Always readable small concept disclaimer EXACTLY: "기획 시안 · 날씨와 일정은 예시입니다."
+
+Mobile viewport shows same product with the brand, destination/date compact chips, weather note, clear map preview and beginning of the same itinerary cards. Mobile has a visible switch "지도" / "일정", with 일정 active. Keep all critical text readable and controls clearly tappable. The desktop should feel immediately understandable: input preferences -> see weather -> see proposed route -> swap a place -> save. Balanced 16:10-like board composition, finished premium product design.

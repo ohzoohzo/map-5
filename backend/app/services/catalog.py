@@ -54,7 +54,8 @@ def get_catalog(path: Path, region: str, query: str) -> CatalogResponse:
     normalized_query = query.casefold().strip()
     selected = []
     for entry in entries:
-        if region and entry.region != region:
+        # A whole province ("부산광역시") or one district ("부산광역시 중구"), never a partial name.
+        if region and entry.region != region and not entry.region.startswith(region + " "):
             continue
         place = entry.place
         searchable = " ".join([place.name, place.address, place.category, place.description]).casefold()

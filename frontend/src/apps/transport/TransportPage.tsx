@@ -8,6 +8,7 @@ import { getConfig, type Place } from '../../api/client';
 import { transportRoutes } from '../../api/generated/transport/transport';
 import type { TransportRoute, TransportRoutesParams } from '../../api/generated/model';
 import { useTrip } from '../../shared/trip/tripStore';
+import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import RouteMap from './RouteMap';
 
 const foreground = (name: string) => `var(--semantic-foreground-${name})`;
@@ -167,6 +168,9 @@ const SegmentRow = styled.div<{ selected: boolean }>`
 `;
 
 const EmptyState = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: 12px;
   padding: 26px 16px;
   color: ${foreground('neutral-tertiary')};
   background: ${canvas};
@@ -440,6 +444,7 @@ export default function TransportPage() {
             </RouteSummary>
           ) : (
             <EmptyState>
+              {itinerary.length < 2 && <EmptyStateArt kind="transport" size={140} />}
               {itinerary.length < 2
                 ? t('needTwoPlaces')
                 : !selectedSegment

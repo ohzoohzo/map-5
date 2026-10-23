@@ -9,6 +9,7 @@ import KakaoMap, { type MapPin } from '../../shared/map/KakaoMap';
 import { districtOf, districtsOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { navigate } from '../../shared/router';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import PlacePhoto from '../../shared/media/PlacePhoto';
 import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar, { regionsQuery } from '../../shared/trip/TripBar';
@@ -157,8 +158,11 @@ export default function ExplorePage() {
 
       <aside className="candidate-tray" aria-labelledby="tray-title" data-testid={TRAVEL_TEST_IDS.CANDIDATE_TRAY}>
         <div className="tray-summary">
-          <Typography id="tray-title" as="h2" variant="headline2" weight="bold">{t('trayTitle', { count: candidates.length })}</Typography>
-          <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{candidates.length ? t('trayUnscheduled', { total: candidates.length, count: unscheduled }) : t('trayEmpty')}</Typography>
+          {!candidates.length && <EmptyStateArt kind="candidates" size={64} />}
+          <div className="tray-summary-copy">
+            <Typography id="tray-title" as="h2" variant="headline2" weight="bold">{t('trayTitle', { count: candidates.length })}</Typography>
+            <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{candidates.length ? t('trayUnscheduled', { total: candidates.length, count: unscheduled }) : t('trayEmpty')}</Typography>
+          </div>
         </div>
         <ul className="tray-list">
           {candidates.map((place) => <li key={place.id} className="tray-item">

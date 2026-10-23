@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "created": "2026-10-23",
+  "tool": "built-in image_gen",
+  "purpose": "Five decorative illustrations for empty candidates, empty itinerary, docent guidance, weather preparation and transport guidance.",
+  "session": "codex://threads/01a167ef-4b4e-7c93-bc11-584daed04f07",
+  "assets": [
+    {
+      "file": "frontend/public/images/pinday/empty-candidates.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Match an established polished travel editorial art direction: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory and restrained warm coral accents. Sophisticated and friendly, crisp enough to remain legible at a small web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding around it. No words, letters, numerals, typography, labels, logos, watermark, UI screenshots, background rectangle, border or checkerboard pattern. Real alpha transparency, no solid background. Decorative conceptual illustration, no claim of depicting a real tourist attraction. Subject: an inviting empty travel collection waiting for a first saved place. A small open ivory travel folder or keepsake box with a simple cobalt bookmark tab, a folded aqua map resting lightly inside, and one large cobalt location pin floating just above the open folder as if ready to be saved. A restrained coral four-point sparkle and two tiny aqua motion strokes. Mostly open uncluttered composition, a calm welcoming mood. The folder looks clean and ready, not abandoned or broken. No dice, no person, no text.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "a7a844786ab283eb1c418da5228d1a749522520f4e1c3ab1b7d47c7dfa8a6812"
+    },
+    {
+      "file": "frontend/public/images/pinday/empty-itinerary.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Match an established polished travel editorial art direction: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory and restrained warm coral accents. Sophisticated and friendly, crisp enough to remain legible at a small web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding around it. No words, letters, numerals, typography, labels, logos, watermark, UI screenshots, background rectangle, border or checkerboard pattern. Real alpha transparency, no solid background. Decorative conceptual illustration, no claim of depicting a real tourist attraction. Subject: build your first travel day. A slightly angled upright ivory desk calendar with cobalt binding, a simple unnumbered grid of blank date squares, and a single large cobalt location pin poised over an aqua highlighted cell. A small folded aqua route map at the calendar's base and a restrained coral sparkle to suggest the next action of adding a place to a day. Elegant clear silhouette, calm optimistic planning mood. No numbers or text on the calendar, no floating UI panels, no people, no clock.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "196921841058d888ab0ff51859cd4a42a9a3a1f6591096d531bbaf6359c12075"
+    },
+    {
+      "file": "frontend/public/images/pinday/docent-guide.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Match an established polished travel editorial art direction: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory and restrained warm coral accents. Sophisticated and friendly, crisp enough to remain legible at a small web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding around it. No words, letters, numerals, typography, labels, logos, watermark, UI screenshots, background rectangle, border or checkerboard pattern. Real alpha transparency, no solid background. Decorative conceptual illustration, no claim of depicting a real tourist attraction. Subject: a warm approachable young adult local travel guide inviting the user to choose a place to hear its story. A friendly woman with softly gathered dark brown hair, simple cobalt blue overshirt over an ivory top, holding a small open aqua travel guidebook in one hand while her other hand makes a gentle welcoming open-palm gesture toward a large simple blue location pin beside her. Three-quarter waist-up composition with the book, hands and pin fully visible; subtle coral accent on the book's bookmark. Natural believable hand anatomy and mature adult proportions. Character-first composition, minimal props, no museum room or landscape, no speech bubble, no robot, no exaggerated childish mascot features.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "23e15063407d9e6f047117ecae33f37cd89bbebe373b5e5f96f149431385492d"
+    },
+    {
+      "file": "frontend/public/images/pinday/weather-preparation.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Same cohesive travel editorial style as the PinDay empty-itinerary and empty-candidates assets: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory, and restrained warm coral accents. Sophisticated, friendly, visually clear at 140px web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding. No words, letters, numerals, typography, labels, logos, watermark, UI screenshot, background rectangle, border or checkerboard. Real alpha transparency, no solid background. Decorative conceptual illustration, not factual weather information or a real route/map. Subject: preparing for a trip in changing weather. A compact ivory and cobalt travel backpack with a folded cobalt umbrella leaning alongside, a small aqua water bottle and a neatly rolled pale-aqua jacket. A small warm coral sun and a single pale-aqua cloud float together behind the backpack as a decorative all-weather motif. Welcoming, prepared, calm mood. The umbrella is folded and there are no raindrops, weather numbers or forecast cards. No people. Simple readable silhouette with minimal props, same navy outlines and watercolor texture.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "fc80402481046f289aacf2a0099145b752e858479466c9d69179c8a211c81111"
+    },
+    {
+      "file": "frontend/public/images/pinday/transport-route-guide.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster illustration asset for PinDay, a Korean travel planner for adults in their twenties and thirties. Same cohesive travel editorial style as the PinDay empty-itinerary and empty-candidates assets: fine clean navy outlines, soft watercolor and paper-grain color blocks, gentle dimensional shading, cobalt blue #0066ff, pale aqua and turquoise, ivory, and restrained warm coral accents. Sophisticated, friendly, visually clear at 140px web display size. Square transparent cutout with one compact focal group centered, all main objects fully visible, generous transparent padding. No words, letters, numerals, typography, labels, logos, watermark, UI screenshot, background rectangle, border or checkerboard. Real alpha transparency, no solid background. Decorative conceptual illustration, not factual weather information or a real route/map. Subject: choose how to travel between two places. A folded pale-aqua illustrated route map forms the base. Two simple cobalt and coral location pins connected by one short curved dotted navy line. A small charming blue-and-ivory city bus is the dominant object; a tiny ivory car and one small navy walking-shoe motif sit nearby to suggest public transport, car and walking. All objects form one balanced compact group, not separate panels. Generic decorative geography with no street names or destination labels, no real transit brand, no numbers, no people. Refined travel editorial illustration, readable small details and softly shaded ivory surfaces.",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "4de935e155a5a50900fede3ced673dcada68c7815d16001e9aba7ac17f697e23"
+    }
+  ]
+}

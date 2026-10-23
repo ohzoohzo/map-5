@@ -12,5 +12,6 @@ export * from './featureStatus.ts';
 export * from './getCatalogParams.ts';
 export * from './healthResponse.ts';
 export * from './place.ts';
+export * from './searchPlacesCategory.ts';
 export * from './searchPlacesParams.ts';
 export * from './searchResponse.ts';

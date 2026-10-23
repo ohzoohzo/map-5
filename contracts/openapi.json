@@ -206,6 +206,28 @@
               "maxLength": 100,
               "title": "Query"
             }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "FD6",
+                    "CE7",
+                    "AT4",
+                    "CT1"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
           }
         ],
         "responses": {

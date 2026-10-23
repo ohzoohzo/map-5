@@ -68,8 +68,11 @@ def request_json(url: str, params: dict[str, str | int], settings: Settings) -> 
     return payload
 
 
-def search_places(query: str, settings: Settings) -> SearchResponse:
-    payload = request_json(SEARCH_API, {"query": query, "size": 15}, settings)
+def search_places(query: str, settings: Settings, category: str | None = None) -> SearchResponse:
+    params: dict[str, str | int] = {"query": query, "size": 15}
+    if category:
+        params["category_group_code"] = category
+    payload = request_json(SEARCH_API, params, settings)
     try:
         documents = KakaoSearchPayload.model_validate(payload).documents
         if len(documents) > 15:

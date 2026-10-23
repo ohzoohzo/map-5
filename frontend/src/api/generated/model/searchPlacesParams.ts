@@ -4,6 +4,7 @@
  * 5조 여행 설계 API
  * OpenAPI spec version: 0.1.0
  */
+import type { SearchPlacesCategory } from './searchPlacesCategory.ts';
 
 export type SearchPlacesParams = {
 /**
@@ -11,4 +12,5 @@ export type SearchPlacesParams = {
  * @maxLength 100
  */
 query: string;
+category?: SearchPlacesCategory;
 };

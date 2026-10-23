@@ -6,8 +6,8 @@
 
 ## 할 일
 - [x] 선택 장소(`useTrip(t => t.selectedPlaceId)`) 기반 해설 화면 (장소 목록 + 탭 골격)
-- [ ] 백엔드: TourAPI·국가유산청 근거 + OpenAI 해설 (`OPENAI_API_KEY`)
-- [ ] 최근 소식 탭: 출처·발행일 표시
+- [x] 백엔드: TourAPI·국가유산청 근거 + OpenAI 해설 (`OPENAI_API_KEY`)
+- [x] 최근 소식 탭: 출처·발행일 표시
 - [x] 언제 갈까? 패널에서 쓸 수 있게 `DocentPanel` 컴포넌트로 분리 (export 만, 배치는 여원)
 
 ## 메모
@@ -15,4 +15,12 @@
   공공데이터 소개·근거 원문·후보함 저장. AI 해설·최근 소식은 "연동 전"으로 표시 (가짜 문장 없음).
 - 여원님 사용법: `import DocentPanel from '../docent/DocentPanel'` 후 `<DocentPanel place={place} />`.
 - 주의: 전역 `styles.ts` 에 `.intro`, `.panel`, `.button` 등이 있어 같은 클래스명은 피할 것.
-- 다음: `.env` 에 `OPENAI_API_KEY`, `DATA_GO_KR_SERVICE_KEY` 받으면 백엔드 해설 API.
+- 2026-10-23 해설 API `GET /api/docent/story` (routers/docent/: sources.py 근거 수집, writer.py OpenAI):
+  근거 = 공공 카탈로그 소개 + TourAPI 개요(이름 일치·3km 이내) + 반경 1km 국가유산 최대 3건.
+  `gpt-5-mini`(env `OPENAI_MODEL` 로 변경 가능), JSON 스키마 출력, 섹션별 근거 번호, 근거 없으면 생성 안 함.
+  장소별 결과는 서버 메모리 캐시 (재시작 시 초기화). 응답 약 8초.
+- 프론트: 생성 fetch 는 오류 응답을 throw 하지 않아 `getDocentStoryUrl` + 공용 `request()` 사용.
+- 2026-10-23 최근 소식 API `GET /api/docent/news` (routers/docent/news.py): OpenAI web_search + JSON 스키마.
+  검증: 실제 검색 출처 목록(`web_search_call.action.sources`)에 있는 URL만, 발행일 YYYY-MM-DD 이고 6개월 이내만 남김.
+  결과 있으면 6시간 캐시, 0건이면 캐시 안 함. 응답 20~40초라 탭을 열 때만 조회.
+- 다음 후보: 주변 추천 장소·미니 지도(시안 왼쪽), 해설 결과 영구 캐시(재시작 시 재과금 방지).

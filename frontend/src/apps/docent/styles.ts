@@ -50,6 +50,19 @@ export const Panel = styled(Card)`
   .section strong { display: flex; align-items: center; gap: 6px; font-size: 14px; }
   .section p { margin-top: 4px; font-size: 12px; color: ${color.textMuted}; }
   .pending { margin-top: 8px; font-size: 12px; color: ${color.teal}; }
+  .loading { margin-top: 18px; font-size: 14px; color: ${color.teal}; }
+  .error { margin-top: 18px; display: flex; align-items: center; gap: 12px; color: ${color.coral}; font-size: 14px; }
+  .summary { margin-top: 16px; font-size: 16px; line-height: 1.8; color: ${color.text}; }
+  .section-body { margin-top: 8px !important; font-size: 13px !important; line-height: 1.7; color: ${color.textSub} !important; }
+  .ref-chips { display: flex; gap: 4px; margin-top: 8px !important; }
+  .ref-chips span { padding: 1px 6px; border-radius: ${radius.sm}; background: ${color.primarySoft}; color: ${color.primary}; font-size: 11px; }
+  .news-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .news-list a { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 1px solid ${color.border}; border-radius: ${radius.md}; }
+  .news-list a:hover { border-color: ${color.borderStrong}; background: ${color.bg}; }
+  .news-list strong { display: flex; align-items: center; gap: 4px; font-size: 15px; color: ${color.navyDeep}; }
+  .news-meta { font-size: 12px; color: ${color.teal}; }
+  .news-summary { font-size: 13px; line-height: 1.7; color: ${color.textSub}; }
+  .ai-note { margin-top: 12px; font-size: 12px; color: ${color.textMuted}; }
   .refs { margin-top: 22px; }
   .refs p { margin-top: 4px; font-size: 12px; color: ${color.textMuted}; }
   .ref-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding: 12px 14px; border: 1px solid ${color.border}; border-radius: ${radius.md}; color: ${color.primary}; font-size: 14px; }

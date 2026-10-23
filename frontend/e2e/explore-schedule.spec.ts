@@ -103,3 +103,16 @@ test('Playwright 추적 HTML을 저장해도 개발 서버가 새로고침하지
     await unlink(probe);
   }
 });
+
+test('홈에서 시작한 여행(짧은 목적지 이름)도 어디 갈까?에 그 시·도 관광지를 보여준다', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const loaded = catalogResponse(page, '부산광역시');
+  await page.getByRole('button', { name: '내 여행 시작하기' }).click();
+  await expect(page).toHaveURL(/\/explore$/);
+  const busan = await readCatalog(await loaded);
+  expect(busan.total).toBeGreaterThan(0);
+  await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(busan.total));
+  await expect(page.getByRole('heading', { name: '부산의 어디를 담아볼까요?' })).toBeVisible();
+});

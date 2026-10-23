@@ -19,7 +19,7 @@ export interface VisitItem { placeId: string; memo: string; visited: boolean }
 export interface TripDay { date: string; items: VisitItem[] }
 export interface Trip {
   version: 1;
-  destination: string;
+  destination: string;                // 시·도. 전체 이름('부산광역시') 권장, 짧은 이름('부산')도 resolveProvince 로 풀린다
   startDate: string; // YYYY-MM-DD
   endDate: string;
   taste: string | null;               // 취향 테스트 결과 유형 id

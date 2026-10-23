@@ -92,6 +92,240 @@
         }
       }
     },
+    "/api/docent/story": {
+      "get": {
+        "tags": [
+          "docent"
+        ],
+        "summary": "Docent Story",
+        "operationId": "docent_story",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "title": "Place Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 39.0,
+              "minimum": 33.0,
+              "title": "Latitude"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 132.0,
+              "minimum": 124.0,
+              "title": "Longitude"
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocentStory"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/api/docent/news": {
+      "get": {
+        "tags": [
+          "docent"
+        ],
+        "summary": "Docent News",
+        "operationId": "docent_news",
+        "parameters": [
+          {
+            "name": "place_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "title": "Place Id"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocentNews"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
     "/api/taste/status": {
       "get": {
         "tags": [
@@ -602,6 +836,254 @@
           "place_search_enabled"
         ],
         "title": "ConfigResponse"
+      },
+      "DocentNews": {
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "title": "Place Id"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DocentNewsItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "searched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Searched At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "place_id",
+          "ready",
+          "message",
+          "items",
+          "model",
+          "searched_at"
+        ],
+        "title": "DocentNews"
+      },
+      "DocentNewsItem": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "published_date": {
+            "type": "string",
+            "title": "Published Date"
+          },
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "summary",
+          "published_date",
+          "source_name",
+          "url"
+        ],
+        "title": "DocentNewsItem"
+      },
+      "DocentReference": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "catalog",
+              "tour",
+              "heritage"
+            ],
+            "title": "Kind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "index",
+          "kind",
+          "label",
+          "source",
+          "url",
+          "date"
+        ],
+        "title": "DocentReference",
+        "description": "해설의 근거 원문. 번호(index)로 섹션과 연결된다."
+      },
+      "DocentSection": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "history",
+              "feature",
+              "tip"
+            ],
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "reference_indexes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Reference Indexes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "body",
+          "reference_indexes"
+        ],
+        "title": "DocentSection"
+      },
+      "DocentStory": {
+        "properties": {
+          "place_id": {
+            "type": "string",
+            "title": "Place Id"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/DocentSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "references": {
+            "items": {
+              "$ref": "#/components/schemas/DocentReference"
+            },
+            "type": "array",
+            "title": "References"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "place_id",
+          "ready",
+          "message",
+          "summary",
+          "sections",
+          "references",
+          "model",
+          "generated_at"
+        ],
+        "title": "DocentStory"
       },
       "ErrorResponse": {
         "properties": {

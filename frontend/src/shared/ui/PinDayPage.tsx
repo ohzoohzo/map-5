@@ -47,7 +47,7 @@ const PinDayPage = styled.div`
   .place-card.selected { border-color: ${brand}; box-shadow: 0 0 0 1px ${brand}; }
   .place-card > button:last-child { margin: 0 16px 16px; }
   .place-card-main { display: flex; flex-direction: column; align-items: stretch; text-align: left; flex: 1; width: 100%; }
-  .place-visual { position: relative; width: 100%; height: 96px; display: grid; place-items: center; color: #fff; }
+  .place-visual { position: relative; width: 100%; min-height: 180px; display: grid; place-items: center; color: #fff; }
   .kind-attraction .place-visual { background: linear-gradient(135deg, #3d8bfd, #0066ff); } .kind-food .place-visual { background: linear-gradient(135deg, #ff9f5a, #f2662f); }
   .kind-cafe .place-visual { background: linear-gradient(135deg, #b08a6e, #7a5a43); } .kind-shopping .place-visual { background: linear-gradient(135deg, #b178f5, #8d4ced); }
   .place-index { position: absolute; left: 12px; top: 12px; min-width: 26px; height: 26px; border-radius: 13px; background: #ffffffe6; color: ${fg('neutral-strong')}; font-size: 13px; font-weight: 700; display: grid; place-items: center; padding: 0 6px; }
@@ -81,7 +81,7 @@ const PinDayPage = styled.div`
   .tray-summary { display: grid; gap: 2px; min-width: 200px; max-width: 240px; } .tray-summary h2 { margin: 0; }
   .tray-list { list-style: none; margin: 0; padding: 0 0 2px; display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 0; }
   .tray-item { display: flex; align-items: center; gap: 4px; border: 1px solid ${line}; border-radius: 12px; padding: 8px 6px 8px 12px; flex-shrink: 0; }
-  .tray-name { display: grid; text-align: left; } .tray-name strong { font-size: 14px; color: ${fg('neutral-strong')}; } .tray-name span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
+  .tray-name { display: grid; text-align: left; width: 240px; } .tray-copy { display: grid; text-align: left; min-width: 0; } .tray-copy > strong { font-size: 14px; color: ${fg('neutral-strong')}; } .tray-copy > span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
   .tray-remove { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: ${fg('neutral-tertiary')}; } .tray-remove:hover { background: ${canvas}; } .tray-remove svg { width: 16px; height: 16px; }
   .tray-cta { flex-shrink: 0; }
 
@@ -98,11 +98,12 @@ const PinDayPage = styled.div`
   .day-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .visit-list, .unscheduled-list { list-style: none; margin: 0; padding: 0; }
   .visit { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid ${line}; }
-  .visit:first-of-type { border-top: 0; } .visit.selected .visit-name strong { color: ${brand}; }
+  .visit:first-of-type { border-top: 0; } .visit.selected .visit-copy > strong { color: ${brand}; }
   .visit-number { width: 26px; height: 26px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
-  .visit-name { display: grid; gap: 2px; text-align: left; min-width: 0; }
-  .visit-name strong { font-size: 15px; color: ${fg('neutral-strong')}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .visit-name span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
+  .visit-name { display: grid; align-items: center; text-align: left; min-width: 0; flex: 1; }
+  .visit-copy { display: grid; gap: 2px; min-width: 0; }
+  .visit-copy > strong { font-size: 15px; color: ${fg('neutral-strong')}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .visit-copy > span { font-size: 12px; color: ${fg('neutral-tertiary')}; }
   .visit-actions { display: flex; gap: 2px; }
   .day-empty { padding: 16px 0 14px; margin: 0; }
   .unscheduled { display: grid; gap: 10px; } .muted { color: ${fg('neutral-tertiary')}; font-weight: 500; }

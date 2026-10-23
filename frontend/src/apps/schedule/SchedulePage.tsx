@@ -11,6 +11,7 @@ import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar from '../../shared/trip/TripBar';
 import { scheduledDayOf, tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import PlacePhoto from '../../shared/media/PlacePhoto';
 import DocentPanel from '../docent/DocentPanel';
 
 // 하루마다 한 색: DAY 탭, 방문 번호, 지도 핀이 같은 색을 쓴다.
@@ -104,7 +105,7 @@ export default function SchedulePage() {
               <ol className="visit-list" data-testid={TRAVEL_TEST_IDS.ITINERARY_LIST}>
                 {visits.map((place, index) => <li key={place.id} className={place.id === selectedId ? 'visit selected' : 'visit'}>
                   <span className="visit-number" style={{ background: dayColor(day) }}>{index + 1}</span>
-                  <button type="button" className="visit-name" onClick={() => setSelectedId(place.id)}><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></button>
+                  <button type="button" className="visit-name" onClick={() => setSelectedId(place.id)}><PlacePhoto place={place} variant="thumbnail"><span className="visit-copy"><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></span></PlacePhoto></button>
                   <span className="visit-actions">
                     <IconButton size="small" disabled={index === 0} onClick={() => tripActions.moveItem(day, index, index - 1)} aria-label={t('moveUp', { name: place.name })}><IconArrowUp /></IconButton>
                     <IconButton size="small" disabled={index === visits.length - 1} onClick={() => tripActions.moveItem(day, index, index + 1)} aria-label={t('moveDown', { name: place.name })}><IconArrowDown /></IconButton>
@@ -121,7 +122,7 @@ export default function SchedulePage() {
                 ? <FallbackView padding="compact"><FallbackViewText title={t('noCandidates')} description={t('noCandidatesDetail')} /><Button size="small" variant="solid" leadingContent={<IconSearch />} onClick={() => navigate('/explore')}>{t('goExplore')}</Button></FallbackView>
                 : <ul className="unscheduled-list" data-testid={TRAVEL_TEST_IDS.UNSCHEDULED_LIST}>
                   {unscheduled.map((place) => <li key={place.id}>
-                    <button type="button" className="visit-name" onClick={() => setSelectedId(place.id)}><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></button>
+                    <button type="button" className="visit-name" onClick={() => setSelectedId(place.id)}><PlacePhoto place={place} variant="thumbnail"><span className="visit-copy"><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></span></PlacePhoto></button>
                     <Button size="small" variant="outlined" color="primary" leadingContent={<IconPlus />} onClick={() => tripActions.addToDay(day, place.id)}><span className="sr-only">{place.name} DAY {day + 1}에 추가 · </span>{t('scheduleHere')}</Button>
                   </li>)}
                   {!unscheduled.length && <li className="all-placed">{t('allPlaced')}</li>}
@@ -144,6 +145,7 @@ export default function SchedulePage() {
               legend={mapMode === 'day' ? t('legendRoute') : <>{trip.days.map((_, index) => <span key={index} className="legend-day"><span className="legend-dot" style={{ background: dayColor(index) }} />DAY {index + 1}</span>)}<span className="legend-day"><span className="legend-dot" />{t('legendUnscheduled')}</span></>}>
               {selected && <article className="map-popup" aria-label={selected.name}>
                 <button type="button" className="popup-close" onClick={() => setSelectedId(null)} aria-label={t('closeDetails')}><IconClose /></button>
+                <PlacePhoto place={selected} variant="popup" />
                 <Typography as="h3" variant="headline2" weight="bold">{selected.name}</Typography>
                 <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{selectedDay === null ? t('notScheduled') : `DAY ${selectedDay + 1} · ${dayLabel(selectedDay)}`}</Typography>
                 <Typography variant="label2" color="semantic.foreground.neutral.secondary" className="popup-text">{selected.address || t('noAddress')}</Typography>

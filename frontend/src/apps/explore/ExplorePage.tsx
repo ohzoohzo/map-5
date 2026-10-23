@@ -9,6 +9,7 @@ import KakaoMap, { type MapPin } from '../../shared/map/KakaoMap';
 import { districtOf, districtsOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { navigate } from '../../shared/router';
 import PinDayPage from '../../shared/ui/PinDayPage';
+import PlacePhoto from '../../shared/media/PlacePhoto';
 import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar, { regionsQuery } from '../../shared/trip/TripBar';
 import { tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
@@ -140,6 +141,7 @@ export default function ExplorePage() {
               legend={<><span className="legend-dot saved" />{t('legendSaved')}<span className="legend-dot idle" />{t('legendIdle')}</>}>
               {selected && <article className="map-popup" aria-label={selected.name}>
                 <button type="button" className="popup-close" onClick={() => setSelectedId(null)} aria-label={t('closeDetails')}><IconClose /></button>
+                <PlacePhoto place={selected} variant="popup" />
                 <Typography as="h3" variant="headline2" weight="bold">{selected.name}</Typography>
                 <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{[selected.category, districtOf(selected)].filter(Boolean).join(' · ')}</Typography>
                 <Typography variant="label2" color="semantic.foreground.neutral.secondary" className="popup-text">{selected.description || selected.address || t('noAddress')}</Typography>
@@ -160,7 +162,7 @@ export default function ExplorePage() {
         </div>
         <ul className="tray-list">
           {candidates.map((place) => <li key={place.id} className="tray-item">
-            <button type="button" className="tray-name" onClick={() => setSelectedId(place.id)}><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></button>
+            <button type="button" className="tray-name" onClick={() => setSelectedId(place.id)}><PlacePhoto place={place} variant="thumbnail"><span className="tray-copy"><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></span></PlacePhoto></button>
             <button type="button" className="tray-remove" onClick={() => tripActions.removeCandidate(place.id)} aria-label={t('removeCandidate', { name: place.name })}><IconClose /></button>
           </li>)}
         </ul>
@@ -179,11 +181,10 @@ function kindOf(place: Place, kind: Kind, query: string): Kind {
 
 function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: { place: Place; index: number; saved: boolean; selected: boolean; kind: Kind; onSelect: () => void; onToggle: () => void }) {
   const { t } = useTranslation('explore');
-  const Icon = KINDS[kind].icon;
   return (
     <li id={`place-${place.id}`} className={`place-card kind-${kind}${selected ? ' selected' : ''}`}>
       <button type="button" className="place-card-main" onClick={onSelect} aria-label={t('showOnMap', { name: place.name })}>
-        <span className="place-visual" aria-hidden="true"><Icon size={30} strokeWidth={1.6} /><span className="place-index">{index + 1}</span>{saved && <span className="saved-flag">{t('savedFlag')}</span>}</span>
+        <span className="place-visual"><PlacePhoto place={place} variant="card" /><span className="place-index">{index + 1}</span>{saved && <span className="saved-flag">{t('savedFlag')}</span>}</span>
         <span className="place-copy"><strong>{place.name}</strong><span>{[place.category || t(`kind_${kind}`), districtOf(place)].filter(Boolean).join(' · ')}</span></span>
       </button>
       <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>

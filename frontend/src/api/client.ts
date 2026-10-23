@@ -1,5 +1,5 @@
-import type { CatalogResponse, ConfigResponse, SearchResponse } from './generated/model';
-export type { Place, CatalogResponse, ConfigResponse, SearchResponse } from './generated/model';
+import type { CatalogResponse, ConfigResponse, SearchPlacesCategory, SearchResponse } from './generated/model';
+export type { Place, CatalogResponse, ConfigResponse, SearchPlacesCategory, SearchResponse } from './generated/model';
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
@@ -25,7 +25,8 @@ export const getCatalog = (region: string, query: string, signal?: AbortSignal) 
   const params = new URLSearchParams({ region, query });
   return request<CatalogResponse>(`/api/travel/catalog?${params}`, signal);
 };
-export const searchPlaces = (query: string, signal?: AbortSignal) => {
+export const searchPlaces = (query: string, category: SearchPlacesCategory | null, signal?: AbortSignal) => {
   const params = new URLSearchParams({ query });
+  if (category) params.set('category', category);
   return request<SearchResponse>(`/api/travel/search?${params}`, signal);
 };

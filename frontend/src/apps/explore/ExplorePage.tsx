@@ -1,13 +1,192 @@
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Button, FallbackView, FallbackViewText, Loading, SegmentedControl, SegmentedControlItem, TextField, Typography } from '@montage-ui/core';
+import { IconArrowRight, IconBookmark, IconBookmarkFill, IconClose, IconExternalLink, IconSearch } from '@montage-ui/icon';
+import { Coffee, Dices, Landmark, ShoppingBag, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link } from '../../shared/router';
-import PagePlaceholder from '../../shared/ui/PagePlaceholder';
+import { ApiError, getCatalog, getConfig, searchPlaces, type Place, type SearchPlacesCategory } from '../../api/client';
+import KakaoMap, { type MapPin } from '../../shared/map/KakaoMap';
+import { districtOf, districtsOf, shortProvince } from '../../shared/regions';
+import { navigate } from '../../shared/router';
+import PinDayPage from '../../shared/ui/PinDayPage';
+import { TRAVEL_TEST_IDS } from '../../shared/testIds';
+import TripBar, { regionsQuery } from '../../shared/trip/TripBar';
+import { tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
+
+type Kind = 'attraction' | 'food' | 'cafe' | 'shopping';
+// 관광지 comes from the public catalog; the rest from Kakao Local, narrowed by group code where one exists.
+const KINDS: Record<Kind, { icon: LucideIcon; keyword: string; category: SearchPlacesCategory | null }> = {
+  attraction: { icon: Landmark, keyword: '', category: null },
+  food: { icon: UtensilsCrossed, keyword: '맛집', category: 'FD6' },
+  cafe: { icon: Coffee, keyword: '카페', category: 'CE7' },
+  shopping: { icon: ShoppingBag, keyword: '쇼핑', category: null },
+};
+const EMPTY: Place[] = [];
 
 // 시안: design/pinday-explore-v2.png
 export default function ExplorePage() {
   const { t } = useTranslation('explore');
+  const trip = useTrip((current) => current);
+  const candidates = useMemo(() => trip.candidateIds.map((id) => trip.places[id]!), [trip.candidateIds, trip.places]);
+  const [kind, setKind] = useState<Kind>('attraction');
+  const [district, setDistrict] = useState('');
+  const [queryInput, setQueryInput] = useState('');
+  const [query, setQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState('list');
+  const short = shortProvince(trip.destination);
+  const config = useQuery({ queryKey: ['config'], queryFn: ({ signal }) => getConfig(signal), staleTime: Infinity });
+  const regions = useQuery(regionsQuery);
+  const districts = districtsOf(regions.data?.regions ?? [], trip.destination);
+  const area = [short, district].filter(Boolean).join(' ');
+  const usesKakao = query !== '' || kind !== 'attraction';
+  const searchText = query ? `${area} ${query}` : `${area} ${KINDS[kind].keyword}`;
+  const searchCategory = query ? null : KINDS[kind].category;
+  const kakaoReady = config.data?.place_search_enabled === true;
+  const catalog = useQuery({
+    queryKey: ['travel', 'catalog', district ? `${trip.destination} ${district}` : trip.destination, ''],
+    queryFn: ({ signal }) => getCatalog(district ? `${trip.destination} ${district}` : trip.destination, '', signal),
+    enabled: trip.destination !== '' && !usesKakao,
+  });
+  const search = useQuery({
+    queryKey: ['travel', 'search', searchText, searchCategory],
+    queryFn: ({ signal }) => searchPlaces(searchText, searchCategory, signal),
+    enabled: trip.destination !== '' && usesKakao && kakaoReady,
+  });
+  const result = usesKakao ? search : catalog;
+  const places = result.data?.places ?? EMPTY;
+  const savedIds = useMemo(() => new Set(trip.candidateIds), [trip.candidateIds]);
+  const selected = places.find((place) => place.id === selectedId) ?? (selectedId ? trip.places[selectedId] ?? null : null);
+  const pins = useMemo<MapPin[]>(() => places.map((place, index) => ({ place, label: String(index + 1), tone: savedIds.has(place.id) ? 'saved' : 'idle' })), [places, savedIds]);
+  const unscheduled = unscheduledIds(trip).length;
+  const searchBlocked = usesKakao && config.data?.place_search_enabled === false;
+  const loading = !searchBlocked && result.isLoading && result.fetchStatus !== 'idle';
+
+  function toggleSave(place: Place) {
+    if (savedIds.has(place.id)) tripActions.removeCandidate(place.id);
+    else tripActions.addCandidate(place);
+  }
+  function submitSearch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setQuery(queryInput.trim()); setSelectedId(null); }
+  function clearSearch() { setQuery(''); setQueryInput(''); setSelectedId(null); }
+  function pickRandom() {
+    const pool = places.filter((place) => !savedIds.has(place.id));
+    const choices = pool.length ? pool : places;
+    const pick = choices[Math.floor(Math.random() * choices.length)];
+    if (!pick) return;
+    setSelectedId(pick.id);
+    document.getElementById(`place-${pick.id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  const errorMessage = result.error instanceof ApiError ? result.error.message : t('networkError');
+
   return (
-    <PagePlaceholder title={t('title')} subtitle={t('subtitle')} owner="여원" design="pinday-explore-v2.png">
-      <p>기존 탐색·일정 화면: <Link href="/workspace">/workspace</Link> (이 화면으로 옮겨올 예정)</p>
-    </PagePlaceholder>
+    <PinDayPage>
+      <TripBar page="explore" />
+      {trip.destination !== '' && <>
+        <header className="page-head">
+          <div>
+            <Typography as="h1" variant="title2" weight="bold">{t('exploreTitle', { place: short })}</Typography>
+            <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('exploreSubtitle')}</Typography>
+          </div>
+          <div className="page-head-actions">
+            <form className="search-form" onSubmit={submitSearch} role="search">
+              <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
+              <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
+            </form>
+            <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
+          </div>
+        </header>
+
+        <div className="explore-grid">
+          <section className="explore-list" aria-label={t('placeListLabel')}>
+            <div className="filter-row">
+              {query ? <span className="query-chip">{t('searchResultFor', { query })}<button type="button" onClick={clearSearch} aria-label={t('clearSearch')}><IconClose /></button></span>
+                : <div className="kind-tabs" role="tablist" aria-label={t('kindLabel')}>
+                  {(Object.keys(KINDS) as Kind[]).map((key) => {
+                    const Icon = KINDS[key].icon;
+                    return <button key={key} type="button" role="tab" aria-selected={kind === key} className={kind === key ? 'kind-tab active' : 'kind-tab'} onClick={() => { setKind(key); setSelectedId(null); }}><Icon size={16} />{t(`kind_${key}`)}</button>;
+                  })}
+                </div>}
+              <div className="district-chips" role="group" aria-label={t('districtLabel')}>
+                {['', ...districts].map((name) => <button key={name || 'all'} type="button" aria-pressed={district === name} className={district === name ? 'chip active' : 'chip'} onClick={() => { setDistrict(name); setSelectedId(null); }}>{name || t('allDistricts', { place: short })}</button>)}
+              </div>
+            </div>
+            <div className="mobile-view-toggle">
+              <SegmentedControl value={mobileView} onValueChange={setMobileView} size="small" name="explore-view">
+                <SegmentedControlItem value="list">{t('viewList')}</SegmentedControlItem>
+                <SegmentedControlItem value="map">{t('viewMap')}</SegmentedControlItem>
+              </SegmentedControl>
+            </div>
+            <div className={`list-body ${mobileView === 'list' ? 'mobile-active' : ''}`}>
+              <div className="result-line">
+                <Typography variant="label1" color="semantic.foreground.neutral.secondary">{t('resultCount')} <strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</Typography>
+                <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
+              </div>
+              {searchBlocked ? <Fallback title={t('searchDisabled')} description={t('searchDisabledDetail')} />
+                : loading ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
+                : result.isError ? <Fallback title={t('loadError')} description={errorMessage} action={<Button size="small" variant="outlined" onClick={() => { void result.refetch(); }}>{t('retry')}</Button>} />
+                : !places.length ? <Fallback title={t('emptyResults')} description={t('emptyResultsDetail')} action={district || query ? <Button size="small" variant="outlined" onClick={() => { setDistrict(''); clearSearch(); }}>{t('resetFilters')}</Button> : undefined} />
+                : <ul className="place-grid" data-testid={TRAVEL_TEST_IDS.PLACE_GRID}>
+                  {places.map((place, index) => <PlaceCard key={place.id} place={place} index={index} saved={savedIds.has(place.id)} selected={place.id === selectedId} kind={usesKakao ? kindOf(place, kind, query) : 'attraction'} onSelect={() => setSelectedId(place.id)} onToggle={() => toggleSave(place)} />)}
+                </ul>}
+            </div>
+          </section>
+          <div className={`explore-map ${mobileView === 'map' ? 'mobile-active' : ''}`}>
+            <KakaoMap jsKey={config.data?.js_key} configLoading={config.isLoading} pins={pins} selectedId={selectedId} onSelect={setSelectedId} fitKey={`${result.dataUpdatedAt}-${searchText}-${district}`} title={t('exploreMapTitle')}
+              legend={<><span className="legend-dot saved" />{t('legendSaved')}<span className="legend-dot idle" />{t('legendIdle')}</>}>
+              {selected && <article className="map-popup" aria-label={selected.name}>
+                <button type="button" className="popup-close" onClick={() => setSelectedId(null)} aria-label={t('closeDetails')}><IconClose /></button>
+                <Typography as="h3" variant="headline2" weight="bold">{selected.name}</Typography>
+                <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{[selected.category, districtOf(selected)].filter(Boolean).join(' · ')}</Typography>
+                <Typography variant="label2" color="semantic.foreground.neutral.secondary" className="popup-text">{selected.description || selected.address || t('noAddress')}</Typography>
+                <div className="popup-actions">
+                  <Button size="small" variant={savedIds.has(selected.id) ? 'outlined' : 'solid'} color="primary" leadingContent={savedIds.has(selected.id) ? <IconBookmarkFill /> : <IconBookmark />} onClick={() => toggleSave(selected)} aria-pressed={savedIds.has(selected.id)}>{t(savedIds.has(selected.id) ? 'saved' : 'save')}</Button>
+                  {/^https?:\/\//.test(selected.url) && <a className="popup-link" href={selected.url} target="_blank" rel="noopener noreferrer">{t(selected.id.startsWith('kakao:') ? 'openKakao' : 'openSource')}<IconExternalLink /></a>}
+                </div>
+              </article>}
+            </KakaoMap>
+          </div>
+        </div>
+      </>}
+
+      <aside className="candidate-tray" aria-labelledby="tray-title" data-testid={TRAVEL_TEST_IDS.CANDIDATE_TRAY}>
+        <div className="tray-summary">
+          <Typography id="tray-title" as="h2" variant="headline2" weight="bold">{t('trayTitle', { count: candidates.length })}</Typography>
+          <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{candidates.length ? t('trayUnscheduled', { total: candidates.length, count: unscheduled }) : t('trayEmpty')}</Typography>
+        </div>
+        <ul className="tray-list">
+          {candidates.map((place) => <li key={place.id} className="tray-item">
+            <button type="button" className="tray-name" onClick={() => setSelectedId(place.id)}><strong>{place.name}</strong><span>{[place.category, districtOf(place)].filter(Boolean).join(' · ')}</span></button>
+            <button type="button" className="tray-remove" onClick={() => tripActions.removeCandidate(place.id)} aria-label={t('removeCandidate', { name: place.name })}><IconClose /></button>
+          </li>)}
+        </ul>
+        <Button className="tray-cta" variant="solid" color="primary" size="large" trailingContent={<IconArrowRight />} disabled={!candidates.length} onClick={() => navigate('/schedule')}>{t('goPlanner')}</Button>
+      </aside>
+    </PinDayPage>
   );
 }
+
+function kindOf(place: Place, kind: Kind, query: string): Kind {
+  if (!query) return kind;
+  if (place.category.includes('음식')) return 'food';
+  if (place.category.includes('카페')) return 'cafe';
+  return 'attraction';
+}
+
+function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: { place: Place; index: number; saved: boolean; selected: boolean; kind: Kind; onSelect: () => void; onToggle: () => void }) {
+  const { t } = useTranslation('explore');
+  const Icon = KINDS[kind].icon;
+  return (
+    <li id={`place-${place.id}`} className={`place-card kind-${kind}${selected ? ' selected' : ''}`}>
+      <button type="button" className="place-card-main" onClick={onSelect} aria-label={t('showOnMap', { name: place.name })}>
+        <span className="place-visual" aria-hidden="true"><Icon size={30} strokeWidth={1.6} /><span className="place-index">{index + 1}</span>{saved && <span className="saved-flag">{t('savedFlag')}</span>}</span>
+        <span className="place-copy"><strong>{place.name}</strong><span>{[place.category || t(`kind_${kind}`), districtOf(place)].filter(Boolean).join(' · ')}</span></span>
+      </button>
+      <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>
+    </li>
+  );
+}
+
+function Fallback({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
+  return <FallbackView padding="compact"><FallbackViewText title={title} description={description} />{action}</FallbackView>;
+}
+

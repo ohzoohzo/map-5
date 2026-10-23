@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 export default defineConfig({
@@ -15,5 +16,7 @@ export default defineConfig({
     proxy: { "/api": "http://127.0.0.1:8001" },
     watch: { ignored: ["**/e2e/**", "**/test-results/**", "**/playwright-report/**"] },
   },
+  // Playwright specs live in e2e/ and run against the live app, not in vitest.
+  test: { include: ["src/**/*.test.ts"] },
   preview: { host: "127.0.0.1", port: 8501, strictPort: true },
 });

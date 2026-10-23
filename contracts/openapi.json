@@ -440,6 +440,28 @@
               "maxLength": 100,
               "title": "Query"
             }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "FD6",
+                    "CE7",
+                    "AT4",
+                    "CT1"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
           }
         ],
         "responses": {
@@ -533,6 +555,189 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/weather/forecast": {
+      "get": {
+        "tags": [
+          "weather"
+        ],
+        "summary": "Weather Forecast",
+        "description": "장소 좌표의 그 날짜(한국 시간) 3시간 단위 예보. 5일 범위 밖이면 status=out_of_range.",
+        "operationId": "weather_forecast",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 39.0,
+              "minimum": 33.0,
+              "title": "Latitude"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 132.0,
+              "minimum": 124.0,
+              "title": "Longitude"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherForecast"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/api/weather/alternatives": {
+      "get": {
+        "tags": [
+          "weather"
+        ],
+        "summary": "Weather Alternatives",
+        "description": "원래 장소 근처(직선 30km)에서 이름으로 실내로 보이는 관광지를 가까운 순으로.",
+        "operationId": "weather_alternatives",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 39.0,
+              "minimum": 33.0,
+              "title": "Latitude"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "maximum": 132.0,
+              "minimum": 124.0,
+              "title": "Longitude"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherAlternatives"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
           }
         }
       }
@@ -1057,6 +1262,166 @@
           "date_max"
         ],
         "title": "SearchResponse"
+      },
+      "WeatherAlternative": {
+        "properties": {
+          "place": {
+            "$ref": "#/components/schemas/Place"
+          },
+          "distance_km": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Distance Km"
+          },
+          "indoor_hint": {
+            "type": "string",
+            "title": "Indoor Hint"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "place",
+          "distance_km",
+          "indoor_hint"
+        ],
+        "title": "WeatherAlternative"
+      },
+      "WeatherAlternatives": {
+        "properties": {
+          "origin_indoor_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Indoor Hint"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherAlternative"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Alternatives"
+          },
+          "radius_km": {
+            "type": "number",
+            "title": "Radius Km"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "origin_indoor_hint",
+          "alternatives",
+          "radius_km",
+          "source",
+          "source_url"
+        ],
+        "title": "WeatherAlternatives"
+      },
+      "WeatherForecast": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "out_of_range"
+            ],
+            "title": "Status"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/WeatherSlot"
+            },
+            "type": "array",
+            "title": "Slots"
+          },
+          "rain_threshold": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Rain Threshold"
+          },
+          "source": {
+            "type": "string",
+            "const": "OpenWeather 5 Day / 3 Hour Forecast",
+            "title": "Source"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "status",
+          "slots",
+          "rain_threshold",
+          "source",
+          "source_url",
+          "fetched_at"
+        ],
+        "title": "WeatherForecast"
+      },
+      "WeatherSlot": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "title": "Time"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "rain_probability": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Rain Probability"
+          },
+          "condition": {
+            "type": "string",
+            "title": "Condition"
+          },
+          "rain_expected": {
+            "type": "boolean",
+            "title": "Rain Expected"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "time",
+          "temperature",
+          "rain_probability",
+          "condition",
+          "rain_expected"
+        ],
+        "title": "WeatherSlot",
+        "description": "3시간 단위 예보 한 칸. time 은 API 가 실제 반환한 시각을 한국 시간으로 바꾼 값."
       }
     }
   }

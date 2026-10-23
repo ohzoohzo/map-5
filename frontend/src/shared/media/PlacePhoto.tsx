@@ -25,7 +25,6 @@ const Photo = styled.span`
   .photo-frame img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; }
   .photo-state { display: grid; justify-items: center; gap: 6px; padding: 8px; font-size: 12px; line-height: 1.4; text-align: center; }
   .photo-state svg { width: 24px; height: 24px; }
-  .photo-credit { display: block; padding: 5px 8px; background: ${color.surface}; color: ${color.textSub}; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
   &[data-variant='popup'] { border-radius: ${radius.sm}; }
   &[data-variant='popup'] .photo-frame { height: 150px; }
   &[data-variant='thumbnail'] { grid-template-columns: 64px minmax(0, 1fr); gap: 0 10px; align-items: center; }
@@ -33,10 +32,9 @@ const Photo = styled.span`
   &[data-variant='thumbnail'] .photo-copy { min-width: 0; }
   &[data-variant='thumbnail'] .photo-state { gap: 3px; padding: 3px; font-size: 10px; }
   &[data-variant='thumbnail'] .photo-state svg { width: 20px; height: 20px; }
-  &[data-variant='thumbnail'] .photo-credit { grid-column: 1 / -1; padding: 5px 0 0; font-size: 10px; line-height: 1.3; word-break: keep-all; }
 `;
 
-/** 원본 비율과 출처·이용 조건을 유지한다. 버튼 안에서도 쓸 수 있도록 상호작용 요소를 넣지 않는다. */
+/** 사진은 원본 비율로 표시하고, 사진별 출처·이용조건은 출처 페이지에서 제공한다. */
 export default function PlacePhoto({ place, variant, className, children }: PlacePhotoProps) {
   const { t } = useTranslation('media');
   const element = useRef<HTMLSpanElement>(null);
@@ -63,8 +61,6 @@ export default function PlacePhoto({ place, variant, className, children }: Plac
   const broken = photo !== undefined && brokenUrl === photo.url;
   const unavailable = photos.isError || photos.isSuccess && !photo || broken;
   const reason = t(broken ? 'photoBroken' : photos.isError ? 'photoError' : 'photoEmpty');
-  const credit = photo && photos.data ? t('photoCredit', { source: photos.data.source, license: photo.license }) : '';
-
   return (
     <Photo ref={element} data-variant={variant} className={className}>
       <span className="photo-frame">
@@ -78,7 +74,6 @@ export default function PlacePhoto({ place, variant, className, children }: Plac
         )}
       </span>
       {variant === 'thumbnail' && children && <span className="photo-copy">{children}</span>}
-      {photo && !broken && <span className="photo-credit" title={`${credit} · ${photos.data?.source_url}`}>{credit}</span>}
     </Photo>
   );
 }

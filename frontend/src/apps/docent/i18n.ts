@@ -41,7 +41,6 @@ export default {
     newsLoadingCaption: '소식을 찾는 동안 {{name}} 둘러보기',
     storyLoadingCaption: '해설을 준비하는 동안 {{name}} 둘러보기',
     photosLabel: '{{name}} 사진',
-    photoCredit: '사진: 한국관광공사 · {{license}}',
     newsError: '최근 소식을 불러오지 못했어요.',
     publishedDate: '발행 {{date}}',
     newsNote: '출처: 부산시 · 부산관광공사 · Visit Busan · 부산일보 · 국제신문 · KNN (Google 뉴스 RSS) · 조회 {{time}}',

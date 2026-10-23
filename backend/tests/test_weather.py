@@ -225,9 +225,82 @@ def test_photo_rejects_non_https_and_hides_key(photo_client, monkeypatch):
 def test_photo_failures_are_not_cached(photo_client, monkeypatch):
     client, photos = photo_client
     monkeypatch.setattr(photos.httpx, "get", Mock(side_effect=httpx.ConnectError("down")))
-    assert photo_of(client, "해운대해수욕장") is None
+    response = client.get("/api/weather/photo", params={"name": "해운대해수욕장"})
+    assert response.status_code == 502
+    assert KEY not in response.text
     monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("해운대해수욕장"))))
     assert photo_of(client, "해운대해수욕장")["title"] == "해운대해수욕장"
+
+
+def test_photo_successful_empty_search_is_still_no_photo(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery()))
+
+    response = client.get("/api/weather/photo", params={"name": "사진 없는 장소", "address": "부산광역시 중구"})
+
+    assert response.status_code == 200
+    assert response.json() == {"photo": None}
+
+
+def test_photo_provider_error_payload_is_not_cached_as_empty(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=httpx.Response(200, json={
+        "response": {"header": {"resultCode": "22", "resultMsg": "secret " + KEY}, "body": {"items": ""}},
+    })))
+
+    response = client.get("/api/weather/photo", params={"name": "해운대해수욕장"})
+
+    assert response.status_code == 502
+    assert KEY not in response.text
+    monkeypatch.setattr(photos.httpx, "get", Mock(return_value=gallery(gallery_item("해운대해수욕장"))))
+    assert photo_of(client, "해운대해수욕장")["title"] == "해운대해수욕장"
+
+
+def test_photo_can_use_a_later_area_result_after_an_upstream_failure(photo_client, monkeypatch):
+    client, photos = photo_client
+
+    def search(url, params, **kwargs):
+        if params["keyword"] == "국립수산과학관":
+            raise httpx.ReadTimeout("secret " + KEY)
+        return gallery(gallery_item("해동용궁사", location="부산광역시 기장군"))
+
+    monkeypatch.setattr(photos.httpx, "get", Mock(side_effect=search))
+
+    response = client.get("/api/weather/photo", params={"name": "국립수산과학관", "address": "부산광역시 기장군"})
+
+    assert response.status_code == 200
+    assert (response.json()["photo"]["match"], response.json()["photo"]["label"]) == ("area", "기장군")
+
+
+def test_photo_rejects_another_province_with_the_same_county(photo_client, monkeypatch):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", by_keyword({
+        "고성군": gallery(gallery_item("고성 통일전망대", location="강원특별자치도 고성군")),
+        "경상남도": gallery(gallery_item("당항포관광지", "https://x/gyeongnam.jpg", location="경남 고성군")),
+    }))
+
+    photo = photo_of(client, "고성박물관", "경상남도 고성군 고성읍")
+
+    assert (photo["label"], photo["url"]) == ("경상남도", "https://x/gyeongnam.jpg")
+
+
+@pytest.mark.parametrize("address,wrong_location,right_location", [
+    ("경상남도 창원시", "경상북도 경주시", "경남 창원시"),
+    ("충청남도 공주시", "충청북도 청주시", "충남 공주시"),
+    ("전라남도 목포시", "전라북도 전주시", "전남 목포시"),
+    ("경북 경주시", "경상남도 창원시", "경상북도 경주시"),
+    ("강원특별자치도 고성군", "경남 고성군", "강원도 고성군"),
+    ("전북특별자치도 전주시", "전남 목포시", "전라북도 전주시"),
+    ("부산광역시 해운대구", "충청북도 청주시 부산길", "부산 해운대구"),
+])
+def test_photo_matches_full_province_and_its_established_short_name(photo_client, monkeypatch, address, wrong_location, right_location):
+    client, photos = photo_client
+    monkeypatch.setattr(photos.httpx, "get", by_keyword({"관광박물관": gallery(
+        gallery_item("관광박물관", "https://x/wrong.jpg", location=wrong_location),
+        gallery_item("관광박물관", "https://x/right.jpg", location=right_location),
+    )}))
+
+    assert photo_of(client, "관광박물관", address)["url"] == "https://x/right.jpg"
 
 
 def test_photo_without_key_skips_upstream(monkeypatch):

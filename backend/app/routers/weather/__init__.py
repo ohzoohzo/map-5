@@ -50,7 +50,10 @@ def weather_alternatives(
     return find_alternatives(settings.catalog_path, latitude, longitude, name)
 
 
-@router.get("/photo", response_model=WeatherPhotoResponse, operation_id="weather_photo")
+@router.get(
+    "/photo", response_model=WeatherPhotoResponse, operation_id="weather_photo",
+    responses={502: {"model": ErrorResponse}},
+)
 def weather_photo(
     name: Annotated[str, Query(min_length=1, max_length=100)],
     address: Annotated[str, Query(max_length=200)] = "",

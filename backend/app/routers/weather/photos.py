@@ -2,6 +2,7 @@ import re
 from functools import lru_cache
 
 import httpx
+from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from ...settings import env
@@ -11,8 +12,14 @@ from .models import WeatherPhoto
 GALLERY_API = "https://apis.data.go.kr/B551011/PhotoGalleryService1/gallerySearchList1"
 SOURCE = "한국관광공사 관광사진"
 SOURCE_URL = "https://www.data.go.kr/data/15101914/openapi.do"
-# 여러 시·도에 같은 이름이 있는 구 — 이 이름만으로는 지역을 확정하지 않는다
-AMBIGUOUS_DISTRICTS = {"중구", "동구", "서구", "남구", "북구", "강서구"}
+# frontend/src/shared/regions.ts의 전체명·짧은명 기준. 경남/경북처럼 앞 두 글자가 같은 도를 구분한다.
+PROVINCE_ALIASES = {
+    "서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구", "인천광역시": "인천",
+    "광주광역시": "광주", "대전광역시": "대전", "울산광역시": "울산", "세종특별자치시": "세종",
+    "경기도": "경기", "강원도": "강원", "강원특별자치도": "강원", "충청북도": "충북",
+    "충청남도": "충남", "전라북도": "전북", "전북특별자치도": "전북", "전라남도": "전남",
+    "경상북도": "경북", "경상남도": "경남", "제주특별자치도": "제주", "전남광주통합특별시": "전남·광주",
+}
 
 
 class GalleryItem(BaseModel):
@@ -33,6 +40,12 @@ def _normalize(text: str) -> str:
     return re.sub(r"\(.*?\)|\s", "", text)
 
 
+def _province(address: str) -> str:
+    parts = address.split()
+    first = parts[0] if parts else ""
+    return PROVINCE_ALIASES.get(first, first)
+
+
 @lru_cache(maxsize=512)
 def _gallery(keyword: str) -> tuple[GalleryItem, ...]:
     try:
@@ -43,7 +56,10 @@ def _gallery(keyword: str) -> tuple[GalleryItem, ...]:
         )
         if response.status_code != 200:
             raise _Unavailable
-        items = response.json()["response"]["body"]["items"]
+        payload = response.json()["response"]
+        if payload["header"]["resultCode"] not in {"0000", "00"}:
+            raise _Unavailable
+        items = payload["body"]["items"]
         raw = items.get("item", []) if isinstance(items, dict) else []
         found = tuple(GalleryItem.model_validate(item) for item in (raw if isinstance(raw, list) else []))
     except (httpx.HTTPError, ValueError, KeyError, TypeError, ValidationError):
@@ -69,7 +85,7 @@ def _pick(items: list[GalleryItem], seed: str) -> GalleryItem:
 
 def find_photo(name: str, address: str = "") -> WeatherPhoto | None:
     """장소 사진 → 이름의 주요 단어 사진 → 구·군 사진 → 시·도 사진 순으로 한 장.
-    장소 사진이 아니면 match 와 label 로 그 사실을 화면에 알린다. 키가 없거나 다 실패하면 None."""
+    장소 사진이 아니면 match 와 label 로 알린다. 정상 검색에 결과가 없으면 None, 검색 실패는 502."""
     name = name.strip()
     if not env("DATA_GO_KR_SERVICE_KEY") or not name:
         return None
@@ -78,12 +94,10 @@ def find_photo(name: str, address: str = "") -> WeatherPhoto | None:
     district = parts[1] if len(parts) > 1 and re.search(r"(구|군|시)$", parts[1]) else ""
 
     def in_province(item: GalleryItem) -> bool:
-        return not province or province[:2] in item.galPhotographyLocation
+        return not province or _province(address) == _province(item.galPhotographyLocation)
 
     def in_district(item: GalleryItem) -> bool:
-        if district not in item.galPhotographyLocation:
-            return False
-        return district not in AMBIGUOUS_DISTRICTS or in_province(item)
+        return in_province(item) and district in item.galPhotographyLocation.split()[1:]
 
     steps = [(name, lambda item: _names(item, name) and in_province(item), "place", name)]
     main_word = max(name.split(), key=len) if " " in name else ""
@@ -94,11 +108,15 @@ def find_photo(name: str, address: str = "") -> WeatherPhoto | None:
     if province:
         steps.append((province, in_province, "area", province))
 
+    unavailable = False
     for keyword, accept, match, label in steps:
         try:
             items = [item for item in _gallery(keyword) if accept(item)]
         except _Unavailable:
+            unavailable = True
             continue
         if items:
             return _photo(items[0] if match == "place" else _pick(items, name), match, label)
+    if unavailable:
+        raise HTTPException(502, "관광사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.")
     return None

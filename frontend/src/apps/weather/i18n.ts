@@ -8,6 +8,7 @@ export default {
     emptyTitle: '아직 날짜별 일정이 없어요',
     emptyDescription: '‘언제 갈까?’에서 날짜에 장소를 담으면, 그 장소의 날씨를 확인하고 실내 대안과 비교할 수 있어요.',
     goSchedule: '언제 갈까?로 가기',
+    compareTarget: '비교할 일정 선택',
     pickDay: '날짜',
     pickPlace: '확인할 장소',
     dayTab: 'DAY {{day}} · {{date}}',

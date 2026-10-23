@@ -50,10 +50,33 @@ def _tour_params() -> dict | None:
     return {"serviceKey": key, "MobileOS": "ETC", "MobileApp": "PinDay", "_type": "json"} if key else None
 
 
+class TourUnavailable(Exception):
+    """공급자 실패를 정상적인 검색 결과 없음과 구별한다."""
+
+
 def _items(payload: dict) -> list[dict]:
-    items = payload["response"]["body"]["items"] or {}
-    items = items.get("item", []) if isinstance(items, dict) else []
-    return items if isinstance(items, list) else []
+    items = payload["response"]["body"]["items"]
+    if items is None or items == "":
+        return []
+    if not isinstance(items, dict):
+        raise ValueError("Invalid TourAPI items")
+    entries = items.get("item", [])
+    if not isinstance(entries, list) or not all(isinstance(item, dict) for item in entries):
+        raise ValueError("Invalid TourAPI item list")
+    return entries
+
+
+def _request_tour_items(operation: str, params: dict) -> list[dict]:
+    try:
+        response = httpx.get(f"{TOUR_API}/{operation}", params=params, timeout=10.0)
+        if response.status_code != 200:
+            raise TourUnavailable
+        payload = response.json()
+        if payload["response"]["header"]["resultCode"] not in {"0000", "00"}:
+            raise TourUnavailable
+        return _items(payload)
+    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        raise TourUnavailable from None
 
 
 def find_tour_item(name: str, latitude: float, longitude: float) -> dict | None:
@@ -61,11 +84,7 @@ def find_tour_item(name: str, latitude: float, longitude: float) -> dict | None:
     base = _tour_params()
     if base is None:
         return None
-    try:
-        found = httpx.get(f"{TOUR_API}/searchKeyword2", params={**base, "keyword": name, "numOfRows": 20, "pageNo": 1}, timeout=10.0).json()
-        items = _items(found)
-    except (httpx.HTTPError, ValueError, KeyError, TypeError):
-        return None
+    items = _request_tour_items("searchKeyword2", {**base, "keyword": name, "numOfRows": 20, "pageNo": 1})
     target = _normalize_title(name)
 
     def score(item: dict) -> tuple[int, float]:
@@ -84,13 +103,12 @@ def find_tour_item(name: str, latitude: float, longitude: float) -> dict | None:
 
 
 def tour_overview(name: str, latitude: float, longitude: float) -> Evidence | None:
-    best = find_tour_item(name, latitude, longitude)
-    if best is None:
-        return None
     try:
-        detail = httpx.get(f"{TOUR_API}/detailCommon2", params={**_tour_params(), "contentId": best["contentid"]}, timeout=10.0).json()
-        info = _items(detail)[0]
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+        best = find_tour_item(name, latitude, longitude)
+        if best is None:
+            return None
+        info = _request_tour_items("detailCommon2", {**_tour_params(), "contentId": best["contentid"]})[0]
+    except (TourUnavailable, ValueError, KeyError, IndexError, TypeError):
         return None
     overview = clean(info.get("overview", ""))
     if not overview:
@@ -110,12 +128,14 @@ def tour_photos(name: str, latitude: float, longitude: float) -> list[dict]:
     if best is None:
         return []
     photos: list[dict] = []
-    if best.get("firstimage") and best.get("cpyrhtDivCd") in LICENSES:
+    if isinstance(best.get("firstimage"), str) and best["firstimage"].startswith("https://") and best.get("cpyrhtDivCd") in LICENSES:
         photos.append({"url": best["firstimage"], "thumbnail_url": best.get("firstimage2") or best["firstimage"],
                        "title": best.get("title", name), "license": LICENSES[best["cpyrhtDivCd"]]})
     try:
-        images = _items(httpx.get(f"{TOUR_API}/detailImage2", params={**_tour_params(), "contentId": best["contentid"], "imageYN": "Y", "numOfRows": 20}, timeout=10.0).json())
-    except (httpx.HTTPError, ValueError, KeyError, TypeError):
+        images = _request_tour_items("detailImage2", {**_tour_params(), "contentId": best["contentid"], "imageYN": "Y", "numOfRows": 20})
+    except (TourUnavailable, KeyError, TypeError):
+        if not photos:
+            raise TourUnavailable from None
         images = []
     for image in images:
         url = image.get("originimgurl", "")

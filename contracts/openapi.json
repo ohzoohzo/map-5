@@ -322,7 +322,7 @@
           "docent"
         ],
         "summary": "Docent Photos",
-        "description": "한국관광공사 사진 (최근 소식 검색을 기다리는 동안 보여준다). 실패하면 빈 목록.",
+        "description": "한국관광공사 사진. 정상적으로 사진이 없으면 빈 목록, 공급자 실패는 502.",
         "operationId": "docent_photos",
         "parameters": [
           {
@@ -390,6 +390,16 @@
               }
             },
             "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           }
         }
       }

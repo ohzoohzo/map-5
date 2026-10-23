@@ -14,6 +14,10 @@ PARAMS = {"place_id": "kakao:1", "name": "검증 장소", "address": "부산광�
 EVIDENCE = Evidence("tour", "검증 장소 관광정보", "한국관광공사 TourAPI", "https://www.data.go.kr/data/15101578/openapi.do", "2026-10-01", "검증용 원문")
 
 
+def tour_payload(*items: dict) -> dict:
+    return {"response": {"header": {"resultCode": "0000"}, "body": {"items": {"item": list(items)} if items else ""}}}
+
+
 @pytest.fixture(autouse=True)
 def isolate(monkeypatch):
     docent._cache.clear()
@@ -70,11 +74,11 @@ def test_openai_errors_are_sanitized(monkeypatch):
 
 def test_tour_title_match_prefers_exact_name_nearby(monkeypatch):
     monkeypatch.setattr(sources, "env", lambda name: "key")
-    search = {"response": {"body": {"items": {"item": [
+    search = tour_payload(
         {"contentid": "1", "title": "범어사 성보박물관", "mapx": "129.07", "mapy": "35.28"},
         {"contentid": "2", "title": "범어사(부산)", "mapx": "129.07", "mapy": "35.28"},
-    ]}}}}
-    detail = {"response": {"body": {"items": {"item": [{"title": "범어사(부산)", "overview": "<b>원문</b>", "modifiedtime": "20260624000000"}]}}}}
+    )
+    detail = tour_payload({"title": "범어사(부산)", "overview": "<b>원문</b>", "modifiedtime": "20260624000000"})
     calls = []
 
     def fake_get(url, params, timeout):
@@ -180,17 +184,124 @@ def test_news_successful_empty_result_is_cached(monkeypatch):
 def test_photos_keep_only_licensed_https_images(monkeypatch):
     docent._photo_cache.clear()
     monkeypatch.setattr(sources, "env", lambda name: "key")
-    search = {"response": {"body": {"items": {"item": [
+    search = tour_payload(
         {"contentid": "2", "title": "검증 장소", "mapx": "129.0", "mapy": "35.1",
          "firstimage": "https://img.example/first.jpg", "firstimage2": "https://img.example/first_s.jpg", "cpyrhtDivCd": "Type1"},
-    ]}}}}
-    images = {"response": {"body": {"items": {"item": [
+    )
+    images = tour_payload(
         {"originimgurl": "https://img.example/a.jpg", "smallimageurl": "https://img.example/a_s.jpg", "imgname": "A", "cpyrhtDivCd": "Type3"},
         {"originimgurl": "https://img.example/b.jpg", "imgname": "B", "cpyrhtDivCd": ""},           # 라이선스 불명 → 제외
         {"originimgurl": "http://img.example/c.jpg", "imgname": "C", "cpyrhtDivCd": "Type1"},       # http → 제외
         {"originimgurl": "https://img.example/first.jpg", "imgname": "dup", "cpyrhtDivCd": "Type1"},  # 중복
-    ]}}}}
+    )
     monkeypatch.setattr(sources.httpx, "get", lambda url, params, timeout: httpx.Response(200, json=search if url.endswith("searchKeyword2") else images))
     data = TestClient(app).get("/api/docent/photos", params={"place_id": "p:1", "name": "검증 장소", "latitude": 35.1, "longitude": 129.0}).json()
     assert [photo["url"] for photo in data["photos"]] == ["https://img.example/first.jpg", "https://img.example/a.jpg"]
     assert data["photos"][1]["license"].startswith("공공누리 제3유형")
+
+
+PHOTO_PARAMS = {"place_id": "photo:retry", "name": "검증 장소", "latitude": 35.1, "longitude": 129.0}
+TOUR_PLACE = {"contentid": "2", "title": "검증 장소", "mapx": "129.0", "mapy": "35.1"}
+TOUR_IMAGE = {"originimgurl": "https://img.example/recovered.jpg", "imgname": "복구 사진", "cpyrhtDivCd": "Type1"}
+
+
+@pytest.mark.parametrize("failure", [
+    httpx.ConnectError("secret-key"),
+    httpx.ReadTimeout("secret-key"),
+    httpx.Response(500, json=tour_payload()),
+    httpx.Response(200, text="secret-key invalid json"),
+    httpx.Response(200, json={"response": {"header": {"resultCode": "22", "resultMsg": "secret-key"}, "body": {"items": ""}}}),
+    httpx.Response(200, json={"response": {"header": {"resultCode": "0000"}, "body": {"items": "unexpected schema"}}}),
+])
+def test_photo_upstream_failure_is_not_successfully_cached_and_can_recover(monkeypatch, failure):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "secret-key")
+    upstream = Mock(side_effect=failure) if isinstance(failure, Exception) else Mock(return_value=failure)
+    monkeypatch.setattr(sources.httpx, "get", upstream)
+    client = TestClient(app)
+
+    response = client.get("/api/docent/photos", params=PHOTO_PARAMS)
+
+    assert response.status_code == 502
+    assert "secret-key" not in response.text
+    assert PHOTO_PARAMS["place_id"] not in docent._photo_cache
+    monkeypatch.setattr(sources.httpx, "get", Mock(side_effect=[
+        httpx.Response(200, json=tour_payload(TOUR_PLACE)),
+        httpx.Response(200, json=tour_payload(TOUR_IMAGE)),
+    ]))
+    recovered = client.get("/api/docent/photos", params=PHOTO_PARAMS)
+    assert recovered.status_code == 200
+    assert [photo["url"] for photo in recovered.json()["photos"]] == [TOUR_IMAGE["originimgurl"]]
+
+
+def test_photo_successful_empty_result_remains_success(monkeypatch):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    monkeypatch.setattr(sources.httpx, "get", Mock(return_value=httpx.Response(200, json=tour_payload())))
+
+    response = TestClient(app).get("/api/docent/photos", params=PHOTO_PARAMS)
+
+    assert response.status_code == 200 and response.json()["photos"] == []
+
+
+def test_photo_without_key_still_skips_upstream(monkeypatch):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "")
+    upstream = Mock()
+    monkeypatch.setattr(sources.httpx, "get", upstream)
+
+    response = TestClient(app).get("/api/docent/photos", params=PHOTO_PARAMS)
+
+    assert response.status_code == 200 and response.json()["photos"] == []
+    upstream.assert_not_called()
+
+
+@pytest.mark.parametrize("representative,expected", [
+    ({"firstimage": "https://img.example/representative.jpg", "cpyrhtDivCd": "Type1"}, 200),
+    ({"firstimage": "http://img.example/representative.jpg", "cpyrhtDivCd": "Type1"}, 502),
+    ({"firstimage": "https://img.example/representative.jpg", "cpyrhtDivCd": ""}, 502),
+])
+def test_photo_detail_failure_uses_only_a_valid_representative(monkeypatch, representative, expected):
+    docent._photo_cache.clear()
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    monkeypatch.setattr(sources.httpx, "get", Mock(side_effect=[
+        httpx.Response(200, json=tour_payload({**TOUR_PLACE, **representative})),
+        httpx.ConnectError("secret-key"),
+    ]))
+
+    response = TestClient(app).get("/api/docent/photos", params=PHOTO_PARAMS)
+
+    assert response.status_code == expected
+    assert "secret-key" not in response.text
+    if expected == 200:
+        assert [photo["url"] for photo in response.json()["photos"]] == [representative["firstimage"]]
+    else:
+        assert PHOTO_PARAMS["place_id"] not in docent._photo_cache
+
+
+def test_story_can_keep_other_evidence_when_tour_search_fails(monkeypatch):
+    catalog = Evidence("catalog", "카탈로그 소개", "관광지 표준 데이터", "https://example.com/catalog", None, "검증용 카탈로그 원문")
+    monkeypatch.setattr(docent, "catalog_evidence", lambda *_: catalog)
+    monkeypatch.setattr(docent, "tour_overview", sources.tour_overview)
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    monkeypatch.setattr(docent, "env", lambda name: "key")
+    monkeypatch.setattr(sources.httpx, "get", Mock(side_effect=httpx.ConnectError("secret-key")))
+    write = Mock(return_value={"summary": "카탈로그 기반 요약", "sections": []})
+    monkeypatch.setattr(docent, "write_story", write)
+
+    response = TestClient(app).get("/api/docent/story", params=PARAMS)
+
+    assert response.status_code == 200
+    assert response.json()["ready"] is True
+    assert [reference["kind"] for reference in response.json()["references"]] == ["catalog"]
+    assert write.call_args.args[2] == [catalog]
+
+
+def test_tour_overview_detail_failure_remains_optional(monkeypatch):
+    monkeypatch.setattr(sources, "env", lambda name: "key")
+    monkeypatch.setattr(sources.httpx, "get", Mock(side_effect=[
+        httpx.Response(200, json=tour_payload(TOUR_PLACE)),
+        httpx.Response(200, text="secret-key invalid json"),
+    ]))
+
+    assert sources.tour_overview("검증 장소", 35.1, 129.0) is None

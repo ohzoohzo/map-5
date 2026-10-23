@@ -1,8 +1,9 @@
 import { useState, type MouseEvent } from 'react';
 import styled from '@emotion/styled';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Backpack, CalendarDays, Check, ChevronDown, Dices, Map as MapIcon, MapPin, Plus, Search, Tag, Umbrella } from 'lucide-react';
+import { ArrowRight, Backpack, CalendarDays, Check, ChevronDown, Map as MapIcon, MapPin, Plus, Search, Tag, Umbrella } from 'lucide-react';
 import { navigate } from '../../shared/router';
+import RandomPick from './RandomPick';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import { color, font, layout, radius } from '../../shared/design/tokens';
 
@@ -55,6 +56,7 @@ export default function HomePage() {
   const { t } = useTranslation('home');
   const savedStart = useTrip((trip) => trip.startDate);
   const savedEnd = useTrip((trip) => trip.endDate);
+  const savedDestination = useTrip((trip) => trip.destination);
 
   const [destination, setDestination] = useState<DestinationId>(DESTINATIONS[0].id);
   // 저장된 여행이 있으면 그 날짜, 없으면 내일부터 2박 3일
@@ -64,6 +66,8 @@ export default function HomePage() {
 
   const nights = nightsBetween(startDate, endDate);
   const canStart = nights >= 0;
+  const selectedDestination = DESTINATIONS.find((item) => item.id === destination)!.value;
+  const randomDestination = savedDestination || selectedDestination;
 
   function changeStart(value: string) {
     setStartDate(value);
@@ -76,9 +80,14 @@ export default function HomePage() {
 
   function startTrip() {
     if (!canStart) return;
-    const value = DESTINATIONS.find((item) => item.id === destination)?.value ?? DESTINATIONS[0].value;
-    tripActions.setTrip(value, startDate, endDate);
+    tripActions.setTrip(selectedDestination, startDate, endDate);
     navigate('/explore');
+  }
+
+  // 랜덤 뽑기에서 "어디 갈까?에서 보기": 아직 여행 조건이 없으면 검색창의 목적지·날짜로 시작한다
+  function exploreFromRandom() {
+    if (!savedDestination && canStart) startTrip();
+    else navigate('/explore');
   }
 
   const steps = [
@@ -193,21 +202,7 @@ export default function HomePage() {
             <div className="photo" aria-hidden style={{ background: photoBackground(TRAIN_IMAGE, `linear-gradient(160deg, ${color.primarySoft} 0%, ${color.borderStrong} 100%)`) }} />
           </section>
 
-          <section className="card random-card">
-            <div className="random-head">
-              <div>
-                <h2>{t('random.title')}</h2>
-                <p className="card-sub">{t('random.subtitle')}</p>
-              </div>
-              <span className="illust" aria-hidden>
-                <MapIcon size={64} strokeWidth={1.2} />
-                <MapPin className="pin" size={46} fill={color.primary} color={color.surface} strokeWidth={1.5} />
-                <Dices className="dice" size={38} strokeWidth={1.5} />
-              </span>
-            </div>
-            {/* 랜덤 뽑기 기능은 다음 작업에서 연결 (docs/team/woohyun.md) */}
-            <button type="button" className="outline">{t('random.cta')}</button>
-          </section>
+          <RandomPick key={randomDestination} destination={randomDestination} onExplore={exploreFromRandom} />
         </Cards>
 
         <Footer>

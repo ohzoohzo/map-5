@@ -39,7 +39,23 @@ export function summarizeRain(slots: WeatherSlot[]): RainSummary {
   return { rainy: true, start: hourOf(rainy[0]!), end: Math.min(24, hourOf(rainy[rainy.length - 1]!) + 3), max };
 }
 
+/** 비 구간을 시안처럼 '오전/오후/저녁/종일'로 부른다. 애매하면 빈 문자열 */
+export function rainPeriod(start: number, end: number): string {
+  if (start <= 3 && end >= 21) return '종일';
+  if (start >= 18) return '저녁';
+  if (start >= 12) return '오후';
+  if (end <= 12) return '오전';
+  return '';
+}
+
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** '2026-10-25' → '10.25 일요일' (예보 카드 머리글) */
+export function formatDayLong(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+  const day = new Date(`${date}T00:00:00`);
+  return `${day.getMonth() + 1}.${day.getDate()} ${WEEKDAYS[day.getDay()]}요일`;
+}
 
 /** '2026-10-25' → '10.25 (일)'. 날짜가 아직 없는 DAY(이전 일정에서 옮겨 온 경우)는 빈 문자열 */
 export function formatDay(date: string) {
@@ -47,9 +63,6 @@ export function formatDay(date: string) {
   const day = new Date(`${date}T00:00:00`);
   return `${day.getMonth() + 1}.${day.getDate()} (${WEEKDAYS[day.getDay()]})`;
 }
-
-/** '2026-10-25T15:00+09:00' → 15 */
-export const formatHour = (time: string) => Number(time.slice(11, 13));
 
 /** '2026-10-23T16:46:04+09:00' → '16:46' */
 export const formatClock = (time: string) => time.slice(11, 16);

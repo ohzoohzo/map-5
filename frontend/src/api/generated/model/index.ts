@@ -33,6 +33,7 @@ export * from './transportRoutesMode.ts';
 export * from './transportRoutesParams.ts';
 export * from './transportRoutesResponse.ts';
 export * from './transportRoutesResponseMode.ts';
+export * from './transportRoutesResponseSource.ts';
 export * from './transportRoutesResponseStatus.ts';
 export * from './transportRouteType.ts';
 export * from './transportStep.ts';

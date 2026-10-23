@@ -281,7 +281,7 @@ function formatDistance(meters: number) {
     : `${new Intl.NumberFormat('ko-KR').format(Math.round(meters))} m`;
 }
 
-const STEP_ICONS = { walk: Footprints, bus: Bus, subway: TrainFront };
+const STEP_ICONS = { walk: Footprints, bus: Bus, subway: TrainFront, car: Car };
 
 function formatDate(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
@@ -314,9 +314,8 @@ export default function TransportPage() {
     : null;
   const departure = selectedSegment?.[0]?.place;
   const arrival = selectedSegment?.[1]?.place;
-  const routeMode = travelMode === 'car' ? null : travelMode;
-  const routeParams: TransportRoutesParams | null = departure && arrival && routeMode ? {
-    mode: routeMode,
+  const routeParams: TransportRoutesParams | null = departure && arrival ? {
+    mode: travelMode,
     start_latitude: departure.latitude,
     start_longitude: departure.longitude,
     end_latitude: arrival.latitude,
@@ -328,13 +327,13 @@ export default function TransportPage() {
     staleTime: 5 * 60_000,
     retry: false,
     queryFn: ({ signal }) => {
-      if (routeParams === null) throw new Error('Select a walking or transit segment first');
+      if (routeParams === null) throw new Error('Select an itinerary segment first');
       return transportRoutes(routeParams, { signal });
     },
   });
   const routeSelectionKey = JSON.stringify([selectedDay?.date, selectedSegmentIndex, travelMode, routeParams]);
   const [routeChoice, setRouteChoice] = useState<{ key: string; index: number } | null>(null);
-  const alternatives = travelMode !== 'car' && routes.isSuccess && routes.data.status === 'ok' ? routes.data.routes : [];
+  const alternatives = routes.isSuccess && routes.data.status === 'ok' ? routes.data.routes : [];
   const requestedRouteIndex = routeChoice?.key === routeSelectionKey ? routeChoice.index : 0;
   const routeIndex = requestedRouteIndex >= 0 && requestedRouteIndex < alternatives.length ? requestedRouteIndex : 0;
   const activeRoute = alternatives[routeIndex];
@@ -477,31 +476,29 @@ export default function TransportPage() {
                 ))}
               </ModeTabs>
               <MapNote>{t(`modeNote.${travelMode}`)}</MapNote>
-              {travelMode !== 'car' && (
-                <Guidance aria-label={t('guidanceLabel')}>
-                  {routes.isPending ? <MapNote role="status">{t('routesLoading')}</MapNote>
-                    : routes.isError ? <div role="alert">
-                      <Typography as="p" variant="body2">{t('routesError')}</Typography>
-                      <Button size="small" variant="outlined" color="primary" onClick={() => { void routes.refetch(); }}>{t('retryRoutes')}</Button>
-                    </div>
-                      : !activeRoute ? <MapNote role="status">{t('noRoutes')}</MapNote>
-                        : <>
-                          {alternatives.length > 1 && <div className="route-options" role="group" aria-label={t('routeOptions')}>
-                            {alternatives.map((option, index) => <Button key={index} className="route-option" fullWidth size="small"
-                              variant={index === routeIndex ? 'solid' : 'outlined'} color={index === routeIndex ? 'primary' : 'assistive'}
-                              aria-pressed={index === routeIndex} onClick={() => setRouteChoice({ key: routeSelectionKey, index })}>
-                              <span className="route-option-copy">
-                                <span>{t('routeOption', { number: index + 1, minutes: Math.ceil(option.duration_seconds / 60), distance: formatDistance(option.distance_m) })}</span>
-                                <Typography variant="caption1">{t(`routeType.${option.type}`)}</Typography>
-                              </span>
-                            </Button>)}
-                          </div>}
-                          <RouteGuidance route={activeRoute} />
-                          <Typography as="p" variant="caption1" className="route-source">{t('routeSource', { source: routes.data?.source })}</Typography>
-                          <Typography as="p" variant="caption1" color="semantic.foreground.neutral.secondary">{t('routeCaveat')}</Typography>
-                        </>}
-                </Guidance>
-              )}
+              <Guidance aria-label={t('guidanceLabel')}>
+                {routes.isPending ? <MapNote role="status">{t('routesLoading')}</MapNote>
+                  : routes.isError ? <div role="alert">
+                    <Typography as="p" variant="body2">{t('routesError')}</Typography>
+                    <Button size="small" variant="outlined" color="primary" onClick={() => { void routes.refetch(); }}>{t('retryRoutes')}</Button>
+                  </div>
+                    : !activeRoute ? <MapNote role="status">{t('noRoutes')}</MapNote>
+                      : <>
+                        {alternatives.length > 1 && <div className="route-options" role="group" aria-label={t('routeOptions')}>
+                          {alternatives.map((option, index) => <Button key={index} className="route-option" fullWidth size="small"
+                            variant={index === routeIndex ? 'solid' : 'outlined'} color={index === routeIndex ? 'primary' : 'assistive'}
+                            aria-pressed={index === routeIndex} onClick={() => setRouteChoice({ key: routeSelectionKey, index })}>
+                            <span className="route-option-copy">
+                              <span>{t('routeOption', { number: index + 1, minutes: Math.ceil(option.duration_seconds / 60), distance: formatDistance(option.distance_m) })}</span>
+                              <Typography variant="caption1">{t(`routeType.${option.type}`)}</Typography>
+                            </span>
+                          </Button>)}
+                        </div>}
+                        <RouteGuidance route={activeRoute} />
+                        <Typography as="p" variant="caption1" className="route-source">{t('routeSource', { source: routes.data?.source })}</Typography>
+                        <Typography as="p" variant="caption1" color="semantic.foreground.neutral.secondary">{t('routeCaveat')}</Typography>
+                      </>}
+              </Guidance>
               <Button
                 href={kakaoDirectionsUrl(departure, arrival, travelMode)}
                 as="a"
@@ -545,6 +542,7 @@ export default function TransportPage() {
                   walkLine: t('walkLine'),
                   busLine: t('busLine'),
                   subwayLine: t('subwayLine'),
+                  carLine: t('carLine'),
                   markersOnly: t('markersOnly'),
                 }}
                 onRetryKey={() => { void config.refetch(); }}
@@ -568,8 +566,9 @@ function RouteGuidance({ route }: { route: TransportRoute }) {
     <div className="route-metrics">
       <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
       <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
-      {route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
-      {route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
+      {route.type !== 'car' && route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
+      {route.type !== 'car' && route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
+      {route.type === 'car' && typeof route.toll_won === 'number' && <Typography variant="body2">{t('toll', { won: new Intl.NumberFormat('ko-KR').format(route.toll_won) })}</Typography>}
     </div>
     <ol className="route-steps" aria-label={t('stepsLabel')}>
       {route.steps.map((step, index) => {

@@ -11,4 +11,5 @@ export type TransportRoutesResponseMode = typeof TransportRoutesResponseMode[key
 export const TransportRoutesResponseMode = {
   transit: 'transit',
   walk: 'walk',
+  car: 'car',
 } as const;

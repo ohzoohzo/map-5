@@ -11,6 +11,7 @@ export default {
     pickTitle: '어느 장소의 날씨를 볼까요?',
     dayTab: 'DAY {{day}} · {{date}}',
     dayOnly: 'DAY {{day}}',
+    placesInDay: '장소 {{count}}곳',
     dayEmpty: '이 날은 담은 장소가 없어요.',
     forecastLoading: '예보를 불러오는 중이에요',
     forecastError: '날씨를 불러오지 못했어요',

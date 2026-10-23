@@ -65,7 +65,7 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   await expect(preview.getByRole('listitem')).toHaveText([`이전 일정 (그대로)${cafe.name}`, `교체될 장소${second!.place.name}`, `이후 일정 (그대로)${night.name}`]);
 
   await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
-  await expect(page.getByRole('status')).toContainText(`DAY 2의 ${beach.name}을(를) ${second!.place.name}(으)로 바꿨어요.`);
+  await expect(page.getByRole('status').filter({ hasText: '바꿨어요' })).toContainText(`DAY 2의 ${beach.name}을(를) ${second!.place.name}(으)로 바꿨어요.`);
   const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
   expect(saved.days[1]!.items).toEqual([
     { placeId: cafe.id, memo: '', visited: false },
@@ -91,7 +91,8 @@ test('a forecast failure explains the problem and keeps the comparison usable', 
 test('without a dated schedule the page points to where stops are added', async ({ page }) => {
   await openWeather(page, { status: 200, body: forecast('ok', []) }, null);
   await expect(page.getByText('아직 날짜별 일정이 없어요')).toBeVisible();
-  await expect(page.getByRole('link', { name: '언제 갈까?로 가기' })).toHaveAttribute('href', '/schedule');
+  await page.getByRole('button', { name: '언제 갈까?로 가기' }).click();
+  await expect(page).toHaveURL(/\/schedule$/);
 });
 
 test('a day carried over without a date asks for travel dates instead of requesting a forecast', async ({ page }) => {
@@ -99,7 +100,7 @@ test('a day carried over without a date asks for travel dates instead of request
   page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/weather/forecast') forecastCalls += 1; });
   const undated: Trip = { ...trip, startDate: '', endDate: '', days: trip.days.map((day) => ({ ...day, date: '' })) };
   await openWeather(page, { status: 200, body: forecast('ok', []) }, undated);
-  await expect(page.getByRole('tab', { name: 'DAY 2', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'DAY 2 장소 3곳' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('region', { name: '여행 날짜가 아직 없어요' })).toBeVisible();
   await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
   expect(forecastCalls).toBe(0);

@@ -53,7 +53,7 @@ const ExploreLayout = styled(PinDayPage)`
 
   @media (max-width: 1100px) {
     .explore-grid { display: flex; flex-direction: column; gap: 0; }
-    .explore-grid > .explore-map { position: static; top: auto; right: auto; width: 100%; }
+    .explore-grid > .explore-map { position: static; top: auto; right: auto; align-self: flex-end; width: 420px; max-width: 100%; }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
     .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
     .filter-row { order: 0; width: 100%; background: ${color.surface}; margin: 0; padding: 0 0 12px; overflow: visible; }
@@ -63,6 +63,7 @@ const ExploreLayout = styled(PinDayPage)`
     .map-legend { display: none; }
     .explore-list { order: 3; width: 100%; margin-top: 12px; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }
+    .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   @media (max-width: 720px) {

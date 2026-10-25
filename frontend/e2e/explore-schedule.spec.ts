@@ -66,7 +66,7 @@ test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버�
   await expect(page).toHaveURL(/\/transport$/);
 });
 
-test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일반 지도와 결과를 배치한다', async ({ page }) => {
+test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일반 지도와 결과를 배치한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startTrip(page);
 
@@ -121,7 +121,7 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일�
   expect(layout.filterOverflowX).not.toBe('auto');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
-  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
+  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const controls = await Promise.all([searchField, searchButton, randomButton].map((locator) => locator.boundingBox()));
   const controlCenters = controls.map((box) => box!.y + box!.height / 2);
   expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThan(1);
@@ -171,7 +171,7 @@ test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('3');
 });
 
-test('모바일 언제 갈까?: 일정 정보보다 먼저 250px sticky 지도를 표시한다', async ({ page }) => {
+test('모바일 언제 갈까?: 일정 정보보다 먼저 300px 일반 지도를 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const busan = await startTrip(page);
   const place = busan.places[0]!;
@@ -182,12 +182,12 @@ test('모바일 언제 갈까?: 일정 정보보다 먼저 250px sticky 지도�
   const panel = page.locator('.schedule-panel');
   await expect(map).toBeVisible();
   await expect(panel).toBeVisible();
-  expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
-  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
+  expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
+  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   expect((await map.boundingBox())!.y).toBeLessThan((await panel.boundingBox())!.y);
   await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => page.locator('.trip-bar-wrap').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
-  await expect.poll(() => map.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(148);
+  expect(await map.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBeLessThan(0);
 });
 
 test('카카오 검색 탭은 키가 있으면 시·도·동네로 좁힌 카테고리 검색을, 없으면 이유를 보여준다', async ({ page }) => {

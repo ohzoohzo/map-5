@@ -72,8 +72,9 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   const popup = page.locator('.map-popup').filter({ hasText: place.name });
   const popupImage = await expectPhoto(popup, place);
   expect(await popupImage.evaluate((image) => image.getBoundingClientRect().height)).toBe(72);
+  expect(await popupImage.evaluate((image) => getComputedStyle(image).objectFit)).toBe('cover');
   expect(await popupImage.evaluate((image) => image.getBoundingClientRect().width))
-    .toBeLessThan(await popup.locator('.photo-frame').evaluate((frame) => frame.getBoundingClientRect().width));
+    .toBe(await popup.locator('.photo-frame').evaluate((frame) => frame.getBoundingClientRect().width));
 
   await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
   const unscheduled = page.getByTestId(IDS.UNSCHEDULED_LIST).locator('li').filter({ hasText: place.name });
@@ -82,7 +83,12 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   const visit = page.getByTestId(IDS.ITINERARY_LIST).locator('li').filter({ hasText: place.name });
   await expectPhoto(visit, place);
   await visit.locator('.visit-name').click();
-  await expectPhoto(page.locator('.map-popup').filter({ hasText: place.name }), place);
+  const schedulePopup = page.locator('.map-popup').filter({ hasText: place.name });
+  const schedulePopupImage = await expectPhoto(schedulePopup, place);
+  expect(await schedulePopupImage.evaluate((image) => image.getBoundingClientRect().height)).toBe(72);
+  expect(await schedulePopupImage.evaluate((image) => getComputedStyle(image).objectFit)).toBe('cover');
+  expect(await schedulePopupImage.evaluate((image) => image.getBoundingClientRect().width))
+    .toBe(await schedulePopup.locator('.photo-frame').evaluate((frame) => frame.getBoundingClientRect().width));
   await expectPhoto(page.getByRole('region', { name: 'AI 도슨트', exact: true }), place, true);
 
   await page.getByRole('link', { name: 'AI 도슨트', exact: true }).click();

@@ -10,13 +10,14 @@ test('390px에서 지도를 먼저 표시하고 장소 카드와 일정 화면�
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeVisible();
   await expect(page.getByTestId(IDS.PLACE_GRID)).toBeVisible();
   expect(await page.locator('.explore-map').evaluate((element) => getComputedStyle(element).position)).toBe('static');
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   await page.screenshot({ path: testInfo.outputPath('explore-390.png') });
 
   await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeVisible();
-  expect(await page.locator('.planner-map').evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
+  expect(await page.locator('.planner-map').evaluate((element) => getComputedStyle(element).position)).toBe('static');
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
+  expect(await page.locator('.trip-bar-wrap').evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(255, 255, 255)');
   await page.getByRole('button', { name: `${chosen.name} DAY 1에 추가` }).click();
   await expectNames(page, IDS.ITINERARY_LIST, [chosen.name]);
   await noHorizontalOverflow(page);
@@ -48,7 +49,7 @@ test('항상 표시되는 모바일 지도는 크기 변경 뒤에도 사용자�
   await expect(page.getByTestId(IDS.MAP_FRAME)).toHaveAttribute('data-map-status', 'ready');
   await expect.poll(async () => (await bounds()).length).toBeGreaterThan(0);
   expect((await bounds()).every((call) => call.width > 0 && call.height > 0)).toBe(true);
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const before = (await bounds()).length;
   await page.evaluate(() => {
     const runtime = window as unknown as { __testMap: { setCenter(center: { lat: number; lng: number }): void } };
@@ -64,7 +65,7 @@ test('항상 표시되는 모바일 지도는 크기 변경 뒤에도 사용자�
   await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
   await page.getByRole('button', { name: '날짜별 일정 짜기', exact: true }).click();
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeVisible();
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   await page.getByRole('button', { name: `${place.name} DAY 1에 추가`, exact: false }).click();
   // Kakao rounds center coordinates to map pixels: apply the final zoom before
   // centering a lone pin, otherwise world-zoom rounding becomes a large offset.

@@ -14,6 +14,7 @@ import { scheduledDayOf, tripActions, unscheduledIds, useTrip } from '../../shar
 import PinDayPage from '../../shared/ui/PinDayPage';
 import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import PlacePhoto from '../../shared/media/PlacePhoto';
+import { color } from '../../shared/design/tokens';
 import DocentPanel from '../docent/DocentPanel';
 
 // 하루마다 한 색: DAY 탭, 방문 번호, 지도 핀이 같은 색을 쓴다.
@@ -22,19 +23,17 @@ const dayColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length]!;
 const number = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 });
 
 const ScheduleLayout = styled(PinDayPage)`
-  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: var(--semantic-background-neutral-secondary, #f7f7f8); }
+  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
+  .planner-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+  .planner-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
 
   @media (max-width: 1100px) {
     .planner-grid { display: flex; flex-direction: column; gap: 16px; }
-    .planner-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
-    .map-frame { height: 250px; min-height: 250px; }
+    .planner-map { order: -1; position: static; width: 100%; }
+    .map-frame { height: 300px; min-height: 300px; }
     .map-legend { display: none; }
     .schedule-panel, .docent-side { width: 100%; }
-  }
-
-  @media (max-width: 720px) {
-    .planner-map { top: 148px; }
   }
 `;
 

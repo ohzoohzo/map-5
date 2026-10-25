@@ -168,6 +168,7 @@ test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목�
   const map = page.locator('.explore-map');
   await expect(map).toBeVisible();
   expect((await map.boundingBox())!.width).toBe(300);
+  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(220);
   const exploreGrid = page.locator('.explore-grid');
   const list = page.locator('.explore-list');
   const gridBounds = await exploreGrid.boundingBox();

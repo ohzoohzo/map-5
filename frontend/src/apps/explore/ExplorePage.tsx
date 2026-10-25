@@ -46,21 +46,17 @@ const ExploreLayout = styled(PinDayPage)`
   .explore-actions .search-form > :last-child,
   .explore-actions > button { flex-shrink: 0; white-space: nowrap; }
 
-  .explore-grid { position: relative; grid-template-columns: minmax(0, 1fr) minmax(300px, min(36%, 420px)); }
+  .explore-grid { position: relative; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 24px; }
   .explore-grid > .filter-row { grid-column: 1; grid-row: 1; margin-bottom: 0; padding-bottom: 16px; }
   .explore-grid > .explore-actions { grid-column: 1; grid-row: 2; }
   .explore-grid > .explore-list { grid-column: 1; grid-row: 3; }
-  .explore-grid > .explore-map { position: absolute; top: 0; right: 0; width: min(36%, 420px); }
+  .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 1 / span 3; width: 300px; min-width: 300px; }
 
-  @media (min-width: 1101px) and (max-width: 1279px) {
+  @media (min-width: 1101px) {
     .explore-grid .place-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
   @media (min-width: 1280px) {
-    .explore-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 300px); column-gap: 24px; }
-    .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 1 / span 2; width: 300px; min-width: 300px; flex-shrink: 0; }
-    .explore-grid > .explore-list { grid-column: 1 / -1; grid-row: 3; width: 100%; margin-top: 24px; }
-    .explore-grid .place-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   }
 

@@ -6,6 +6,7 @@ import { IconArrowRight, IconBookmark, IconBookmarkFill, IconClose, IconExternal
 import { Coffee, Dices, Landmark, ShoppingBag, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, getCatalog, getConfig, searchPlaces, type Place, type SearchPlacesCategory } from '../../api/client';
+import { color } from '../../shared/design/tokens';
 import KakaoMap, { type MapPin } from '../../shared/map/KakaoMap';
 import { districtOf, districtsOf, provincesOf, resolveProvince, shortProvince } from '../../shared/regions';
 import { navigate } from '../../shared/router';
@@ -30,17 +31,21 @@ const ExploreLayout = styled(PinDayPage)`
   .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: var(--semantic-background-neutral-secondary, #f7f7f8); }
   .photo-frame img { object-fit: cover; }
 
+  .explore-grid > .filter-row { grid-column: 1; grid-row: 1; }
+  .explore-grid > .explore-list { grid-column: 1; grid-row: 2; }
+  .explore-grid > .explore-map { grid-column: 2; grid-row: 1 / span 2; }
+
   @media (max-width: 1100px) {
-    .explore-grid { display: flex; flex-direction: column; gap: 12px; }
-    .explore-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
-    .map-frame { height: 250px; min-height: 250px; }
+    .explore-grid { display: flex; flex-direction: column; gap: 0; }
+    .filter-row { order: 0; background: ${color.surface}; margin-bottom: 0; overflow: visible; }
+    .explore-map { order: 1; position: static; width: 100%; }
+    .map-frame { height: 350px; min-height: 350px; }
     .map-legend { display: none; }
-    .filter-row { margin-bottom: 0; overflow: visible; }
+    .explore-list { order: 2; margin-top: 12px; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }
   }
 
   @media (max-width: 720px) {
-    .explore-map { top: 148px; }
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
     .place-grid { grid-template-columns: 1fr; }
@@ -124,33 +129,18 @@ export default function ExplorePage() {
         : null}
       {province !== '' && <>
         <div className="explore-grid">
-          <section className="explore-list" aria-label={t('placeListLabel')}>
-            <div className="filter-row">
-              {query ? <span className="query-chip">{t('searchResultFor', { query })}<button type="button" onClick={clearSearch} aria-label={t('clearSearch')}><IconClose /></button></span>
-                : <div className="kind-tabs" role="tablist" aria-label={t('kindLabel')}>
-                  {(Object.keys(KINDS) as Kind[]).map((key) => {
-                    const Icon = KINDS[key].icon;
-                    return <button key={key} type="button" role="tab" aria-selected={kind === key} className={kind === key ? 'kind-tab active' : 'kind-tab'} onClick={() => { setKind(key); setSelectedId(null); }}><Icon size={16} />{t(`kind_${key}`)}</button>;
-                  })}
-                </div>}
-              <div className="district-chips" role="group" aria-label={t('districtLabel')}>
-                {['', ...districts].map((name) => <button key={name || 'all'} type="button" aria-pressed={district === name} className={district === name ? 'chip active' : 'chip'} onClick={() => { setDistrict(name); setSelectedId(null); }}>{name || t('allDistricts', { place: short })}</button>)}
-              </div>
+          <div className="filter-row">
+            {query ? <span className="query-chip">{t('searchResultFor', { query })}<button type="button" onClick={clearSearch} aria-label={t('clearSearch')}><IconClose /></button></span>
+              : <div className="kind-tabs" role="tablist" aria-label={t('kindLabel')}>
+                {(Object.keys(KINDS) as Kind[]).map((key) => {
+                  const Icon = KINDS[key].icon;
+                  return <button key={key} type="button" role="tab" aria-selected={kind === key} className={kind === key ? 'kind-tab active' : 'kind-tab'} onClick={() => { setKind(key); setSelectedId(null); }}><Icon size={16} />{t(`kind_${key}`)}</button>;
+                })}
+              </div>}
+            <div className="district-chips" role="group" aria-label={t('districtLabel')}>
+              {['', ...districts].map((name) => <button key={name || 'all'} type="button" aria-pressed={district === name} className={district === name ? 'chip active' : 'chip'} onClick={() => { setDistrict(name); setSelectedId(null); }}>{name || t('allDistricts', { place: short })}</button>)}
             </div>
-            <div className="list-body mobile-active">
-              <div className="result-line">
-                <Typography variant="label1" color="semantic.foreground.neutral.secondary">{t('resultCount')} <strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</Typography>
-                <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
-              </div>
-              {searchBlocked ? <Fallback title={t('searchDisabled')} description={t('searchDisabledDetail')} />
-                : loading ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
-                : result.isError ? <Fallback title={t('loadError')} description={errorMessage} action={<Button size="small" variant="outlined" onClick={() => { void result.refetch(); }}>{t('retry')}</Button>} />
-                : !places.length ? <Fallback title={t('emptyResults')} description={t('emptyResultsDetail')} action={district || query ? <Button size="small" variant="outlined" onClick={() => { setDistrict(''); clearSearch(); }}>{t('resetFilters')}</Button> : undefined} />
-                : <ul className="place-grid" data-testid={TRAVEL_TEST_IDS.PLACE_GRID}>
-                  {places.map((place, index) => <PlaceCard key={place.id} place={place} index={index} saved={savedIds.has(place.id)} selected={place.id === selectedId} kind={usesKakao ? kindOf(place, kind, query) : 'attraction'} onSelect={() => setSelectedId(place.id)} onToggle={() => toggleSave(place)} />)}
-                </ul>}
-            </div>
-          </section>
+          </div>
           <div className="explore-map mobile-active">
             <KakaoMap jsKey={config.data?.js_key} configLoading={config.isLoading} pins={pins} selectedId={selectedId} onSelect={setSelectedId} fitKey={`${result.dataUpdatedAt}-${searchText}-${district}`} title={t('exploreMapTitle')}
               legend={<><span className="legend-dot saved" />{t('legendSaved')}<span className="legend-dot idle" />{t('legendIdle')}</>}>
@@ -167,6 +157,21 @@ export default function ExplorePage() {
               </article>}
             </KakaoMap>
           </div>
+          <section className="explore-list" aria-label={t('placeListLabel')}>
+            <div className="list-body mobile-active">
+              <div className="result-line">
+                <Typography variant="label1" color="semantic.foreground.neutral.secondary">{t('resultCount')} <strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</Typography>
+                <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
+              </div>
+              {searchBlocked ? <Fallback title={t('searchDisabled')} description={t('searchDisabledDetail')} />
+                : loading ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
+                : result.isError ? <Fallback title={t('loadError')} description={errorMessage} action={<Button size="small" variant="outlined" onClick={() => { void result.refetch(); }}>{t('retry')}</Button>} />
+                : !places.length ? <Fallback title={t('emptyResults')} description={t('emptyResultsDetail')} action={district || query ? <Button size="small" variant="outlined" onClick={() => { setDistrict(''); clearSearch(); }}>{t('resetFilters')}</Button> : undefined} />
+                : <ul className="place-grid" data-testid={TRAVEL_TEST_IDS.PLACE_GRID}>
+                  {places.map((place, index) => <PlaceCard key={place.id} place={place} index={index} saved={savedIds.has(place.id)} selected={place.id === selectedId} kind={usesKakao ? kindOf(place, kind, query) : 'attraction'} onSelect={() => setSelectedId(place.id)} onToggle={() => toggleSave(place)} />)}
+                </ul>}
+            </div>
+          </section>
         </div>
       </>}
 

@@ -66,7 +66,7 @@ test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버�
   await expect(page).toHaveURL(/\/transport$/);
 });
 
-test('모바일 어디 갈까?: 필터 다음에 250px sticky 지도를 두고 장소 카드를 아래로 배치한다', async ({ page }) => {
+test('모바일 어디 갈까?: 흰색 필터 바로 아래에 350px 일반 지도를 두고 결과를 배치한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startTrip(page);
 
@@ -80,9 +80,13 @@ test('모바일 어디 갈까?: 필터 다음에 250px sticky 지도를 두고 �
     const listElement = document.querySelector('.result-line')!;
     return {
       filterTop: filterElement.getBoundingClientRect().top,
+      filterBottom: filterElement.getBoundingClientRect().bottom,
       mapTop: mapElement.getBoundingClientRect().top,
+      mapBottom: mapElement.getBoundingClientRect().bottom,
       listTop: listElement.getBoundingClientRect().top,
       filterOverflowX: getComputedStyle(filterElement).overflowX,
+      filterBackground: getComputedStyle(filterElement).backgroundColor,
+      filterMarginBottom: getComputedStyle(filterElement).marginBottom,
       filterClientWidth: filterElement.clientWidth,
       filterScrollWidth: filterElement.scrollWidth,
     };
@@ -92,16 +96,15 @@ test('모바일 어디 갈까?: 필터 다음에 250px sticky 지도를 두고 �
   await expect(map).toBeVisible();
   await expect(frame).toBeVisible();
   await expect(list).toBeVisible();
-  expect(layout.mapTop).toBeLessThan(layout.filterTop);
-  expect(layout.filterTop).toBeLessThan(layout.listTop);
+  expect(layout.filterBottom).toBe(layout.mapTop);
+  expect(layout.mapBottom).toBeLessThan(layout.listTop);
+  expect(layout.filterBackground).toBe('rgb(255, 255, 255)');
+  expect(layout.filterMarginBottom).toBe('0px');
   expect(layout.filterScrollWidth).toBeLessThanOrEqual(layout.filterClientWidth);
   expect(layout.filterOverflowX).not.toBe('auto');
-  expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
+  expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
-  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
-  await page.evaluate(() => window.scrollTo(0, 700));
-  await expect.poll(() => page.locator('.trip-bar-wrap').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
-  await expect.poll(() => map.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(148);
+  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
 });
 
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {

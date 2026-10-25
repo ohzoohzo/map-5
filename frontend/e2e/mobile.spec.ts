@@ -9,8 +9,8 @@ test('390px에서 지도를 먼저 표시하고 장소 카드와 일정 화면�
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
   await expect(page.getByTestId(IDS.MAP_FRAME)).toBeVisible();
   await expect(page.getByTestId(IDS.PLACE_GRID)).toBeVisible();
-  expect(await page.locator('.explore-map').evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
+  expect(await page.locator('.explore-map').evaluate((element) => getComputedStyle(element).position)).toBe('static');
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
   await page.screenshot({ path: testInfo.outputPath('explore-390.png') });
 
   await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
@@ -48,7 +48,7 @@ test('항상 표시되는 모바일 지도는 크기 변경 뒤에도 사용자�
   await expect(page.getByTestId(IDS.MAP_FRAME)).toHaveAttribute('data-map-status', 'ready');
   await expect.poll(async () => (await bounds()).length).toBeGreaterThan(0);
   expect((await bounds()).every((call) => call.width > 0 && call.height > 0)).toBe(true);
-  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
+  expect(await page.getByTestId(IDS.MAP_FRAME).evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
   const before = (await bounds()).length;
   await page.evaluate(() => {
     const runtime = window as unknown as { __testMap: { setCenter(center: { lat: number; lng: number }): void } };

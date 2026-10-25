@@ -64,11 +64,11 @@ const ExploreLayout = styled(PinDayPage)`
   }
 
   @media (max-width: 1100px) {
-    .explore-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 16px; row-gap: 0; }
+    .explore-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; row-gap: 0; }
     .explore-grid > .filter-row { grid-column: 1 / -1; grid-row: 1; }
     .explore-grid > .explore-actions { grid-column: 1 / -1; grid-row: 2; }
     .explore-grid > .explore-list { grid-column: 1; grid-row: 3; width: 100%; margin-top: 12px; }
-    .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 3; width: 300px; min-width: 300px; margin-top: 12px; }
+    .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 3; width: 100%; min-width: 0; margin-top: 12px; }
     .map-frame { height: 300px; min-height: 300px; }
     .map-legend { display: none; }
     .filter-row { width: 100%; background: ${color.surface}; margin: 0; padding: 0 0 12px; overflow: visible; }
@@ -79,7 +79,7 @@ const ExploreLayout = styled(PinDayPage)`
     .trip-bar-wrap { top: 66px; }
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
-    .explore-grid { grid-template-columns: minmax(0, 1fr) 300px; column-gap: 8px; }
+    .explore-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; }
     .explore-grid .place-grid { grid-template-columns: minmax(0, 1fr); }
   }
 

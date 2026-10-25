@@ -71,7 +71,7 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
   const popup = page.locator('.map-popup').filter({ hasText: place.name });
   const popupImage = await expectPhoto(popup, place);
-  expect(await popupImage.evaluate((image) => image.getBoundingClientRect().height)).toBe(150);
+  expect(await popupImage.evaluate((image) => image.getBoundingClientRect().height)).toBe(72);
   expect(await popupImage.evaluate((image) => getComputedStyle(image).objectFit)).toBe('cover');
   expect(await popupImage.evaluate((image) => image.getBoundingClientRect().width))
     .toBe(await popup.locator('.photo-frame').evaluate((frame) => frame.getBoundingClientRect().width));
@@ -135,9 +135,8 @@ test('넓은 반응형 화면의 지도 팝업은 작은 사진으로 높이를 
   await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
   const popup = page.locator('.map-popup').filter({ hasText: place.name });
   const image = await expectPhoto(popup, place);
-  expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBeCloseTo(
-    await page.locator('.map-frame').evaluate((element) => element.clientWidth - 32),
-    0,
+  expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBe(
+    Math.min(320, await page.locator('.map-frame').evaluate((element) => element.clientWidth - 32)),
   );
   expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(72);
   expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe('cover');

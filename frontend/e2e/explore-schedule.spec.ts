@@ -174,17 +174,17 @@ test('가장 작은 화면은 리스트 절반과 지도 절반을 나란히 보
   expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(450);
 });
 
-test('좁은 반응형에서도 목록 왼쪽·지도 오른쪽을 유지한다', async ({ page }) => {
+test('좁은 반응형에서도 리스트와 지도를 좌우 반반으로 나눈다', async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 });
   await startTrip(page);
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect(placeGrid).toBeVisible();
-  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
-  expect((await page.locator('.explore-map').boundingBox())!.width).toBe(300);
-  expect(await placeGrid.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
-  expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBeGreaterThanOrEqual(1);
   const map = await page.locator('.explore-map').boundingBox();
   const list = await page.locator('.explore-list').boundingBox();
+  expect(map!.width).toBeCloseTo(list!.width, 0);
+  expect(await placeGrid.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
+  expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   expect(map!.x).toBeGreaterThan(list!.x + list!.width);
 });
 

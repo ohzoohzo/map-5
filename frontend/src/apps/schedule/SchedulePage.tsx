@@ -27,9 +27,7 @@ const ScheduleLayout = styled(PinDayPage)`
   .trip-bar-wrap .count-chip.active { background: #0066ff; border-color: #0066ff; color: ${color.surface}; font-weight: 700; }
   .trip-bar-wrap .count-chip.active strong { color: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
-  .planner-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   .planner-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-
   @media (max-width: 1100px) {
     .planner-grid { display: flex; flex-direction: column; gap: 16px; }
     .planner-map { order: -1; position: static; width: 100%; }
@@ -39,6 +37,8 @@ const ScheduleLayout = styled(PinDayPage)`
   }
   @media (max-width: 720px) {
     .trip-bar-wrap { top: 66px; }
+    .planner-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+    .planner-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
   }
 `;
 

@@ -36,7 +36,7 @@ const ExploreLayout = styled(PinDayPage)`
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
   .explore-grid .place-card:has(.place-visual > [data-photo-missing='true']) .place-copy { padding-top: 48px; }
-  .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+  .explore-grid .place-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
   .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
   .explore-actions { width: 100%; max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: 8px; }
   .explore-actions .search-form { width: 100%; min-width: 0; align-items: center; gap: 8px; }
@@ -56,12 +56,14 @@ const ExploreLayout = styled(PinDayPage)`
     .explore-map { order: 2; position: static; width: 100%; margin-top: 12px; }
     .map-frame { height: 300px; min-height: 300px; }
     .map-legend { display: none; }
-    .explore-list { order: 3; margin-top: 12px; }
+    .explore-list { order: 3; width: 100%; margin-top: 12px; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }
   }
 
   @media (max-width: 720px) {
     .trip-bar-wrap { top: 66px; }
+    .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+    .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
     .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

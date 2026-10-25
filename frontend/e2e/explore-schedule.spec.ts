@@ -138,6 +138,14 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
   expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
 });
 
+test('넓은 목록 영역은 장소 카드를 세 열로 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 960, height: 900 });
+  await startTrip(page);
+  const placeGrid = page.getByTestId(IDS.PLACE_GRID);
+  await expect(placeGrid).toBeVisible();
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+});
+
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {
   const busan = await startTrip(page);
   const [a, b, c] = busan.places;

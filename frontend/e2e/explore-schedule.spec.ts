@@ -118,11 +118,14 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
   expect(layout.tripBarBackground).toBe('rgb(255, 255, 255)');
   const steps = page.locator('.trip-bar-wrap .count-chip');
   await expect(steps).toHaveCount(2);
-  for (const index of [0, 1]) {
-    await expect(steps.nth(index)).toHaveCSS('background-color', 'rgb(21, 87, 167)');
-    await expect(steps.nth(index)).toHaveCSS('color', 'rgb(255, 255, 255)');
-    await expect(steps.nth(index)).toHaveCSS('font-weight', '700');
-  }
+  await expect(steps.nth(0)).toHaveClass(/active/);
+  await expect(steps.nth(0)).toHaveCSS('background-color', 'rgb(0, 102, 255)');
+  await expect(steps.nth(0)).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(0)).toHaveCSS('font-weight', '700');
+  await expect(steps.nth(1)).not.toHaveClass(/active/);
+  await expect(steps.nth(1)).not.toHaveCSS('background-color', 'rgb(0, 102, 255)');
+  await expect(steps.nth(1)).not.toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(1)).not.toHaveCSS('font-weight', '700');
   expect(layout.filterMarginBottom).toBe('0px');
   expect(layout.filterScrollWidth).toBeLessThanOrEqual(layout.filterClientWidth);
   expect(layout.filterOverflowX).not.toBe('auto');
@@ -192,11 +195,14 @@ test('모바일 언제 갈까?: 일정 정보보다 먼저 300px 일반 지도�
   await expect(panel).toBeVisible();
   const steps = tripBar.locator('.count-chip');
   await expect(steps).toHaveCount(2);
-  for (const index of [0, 1]) {
-    await expect(steps.nth(index)).toHaveCSS('background-color', 'rgb(21, 87, 167)');
-    await expect(steps.nth(index)).toHaveCSS('color', 'rgb(255, 255, 255)');
-    await expect(steps.nth(index)).toHaveCSS('font-weight', '700');
-  }
+  await expect(steps.nth(0)).not.toHaveClass(/active/);
+  await expect(steps.nth(0)).not.toHaveCSS('background-color', 'rgb(0, 102, 255)');
+  await expect(steps.nth(0)).not.toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(0)).not.toHaveCSS('font-weight', '700');
+  await expect(steps.nth(1)).toHaveClass(/active/);
+  await expect(steps.nth(1)).toHaveCSS('background-color', 'rgb(0, 102, 255)');
+  await expect(steps.nth(1)).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(1)).toHaveCSS('font-weight', '700');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   expect((await map.boundingBox())!.y).toBeLessThan((await panel.boundingBox())!.y);

@@ -30,10 +30,8 @@ const EMPTY: Place[] = [];
 
 const ExploreLayout = styled(PinDayPage)`
   .trip-bar-wrap { position: sticky; top: 78px; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
-  .trip-bar-wrap .count-chip { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; font-weight: 700; }
-  .trip-bar-wrap .count-chip:hover,
-  .trip-bar-wrap .count-chip.active { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; }
-  .trip-bar-wrap .count-chip strong { color: ${color.surface}; }
+  .trip-bar-wrap .count-chip.active { background: #0066ff; border-color: #0066ff; color: ${color.surface}; font-weight: 700; }
+  .trip-bar-wrap .count-chip.active strong { color: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }

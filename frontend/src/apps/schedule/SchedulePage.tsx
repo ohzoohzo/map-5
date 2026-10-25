@@ -24,10 +24,8 @@ const number = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 });
 
 const ScheduleLayout = styled(PinDayPage)`
   .trip-bar-wrap { position: sticky; top: 78px; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
-  .trip-bar-wrap .count-chip { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; font-weight: 700; }
-  .trip-bar-wrap .count-chip:hover,
-  .trip-bar-wrap .count-chip.active { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; }
-  .trip-bar-wrap .count-chip strong { color: ${color.surface}; }
+  .trip-bar-wrap .count-chip.active { background: #0066ff; border-color: #0066ff; color: ${color.surface}; font-weight: 700; }
+  .trip-bar-wrap .count-chip.active strong { color: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
   .planner-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   .planner-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }

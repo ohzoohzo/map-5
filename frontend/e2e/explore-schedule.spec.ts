@@ -162,14 +162,20 @@ test('좁은 반응형 목록은 기존 카드 열 수와 지도를 유지한다
   expect(map!.width).toBeCloseTo(layout!.width, 0);
 });
 
-test('가장 넓은 화면에서는 목록을 두 열로, 지도를 420px로 표시한다', async ({ page }) => {
+test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목록을 5열 전체 폭으로 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await startTrip(page);
   const map = page.locator('.explore-map');
   await expect(map).toBeVisible();
-  expect((await map.boundingBox())!.width).toBe(420);
+  expect((await map.boundingBox())!.width).toBe(300);
+  const exploreGrid = page.locator('.explore-grid');
+  const list = page.locator('.explore-list');
+  const gridBounds = await exploreGrid.boundingBox();
+  const listBounds = await list.boundingBox();
+  expect(listBounds!.width).toBeCloseTo(gridBounds!.width, 0);
+  expect(listBounds!.y).toBeGreaterThan((await map.boundingBox())!.y);
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
-  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(5);
 });
 
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {

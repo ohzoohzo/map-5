@@ -52,8 +52,10 @@ const ExploreLayout = styled(PinDayPage)`
   .explore-grid > .explore-map { position: absolute; top: 0; right: 0; width: min(36%, 420px); }
 
   @media (min-width: 1280px) {
-    .explore-grid > .explore-map { width: 420px; }
-    .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .explore-grid { grid-template-columns: minmax(0, 1fr) 300px; column-gap: 24px; }
+    .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 1 / span 2; width: 300px; }
+    .explore-grid > .explore-list { grid-column: 1 / -1; grid-row: 3; width: 100%; margin-top: 24px; }
+    .explore-grid .place-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   }
 

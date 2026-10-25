@@ -171,22 +171,24 @@ test('중간 너비에서도 지도를 300px 높이로 표시한다', async ({ p
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
 });
 
-test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목록을 5열 전체 폭으로 표시한다', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await startTrip(page);
-  const map = page.locator('.explore-map');
-  await expect(map).toBeVisible();
-  expect((await map.boundingBox())!.width).toBe(300);
-  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
-  const exploreGrid = page.locator('.explore-grid');
-  const list = page.locator('.explore-list');
-  const gridBounds = await exploreGrid.boundingBox();
-  const listBounds = await list.boundingBox();
-  expect(listBounds!.width).toBeCloseTo(gridBounds!.width, 0);
-  expect(listBounds!.y).toBeGreaterThan((await map.boundingBox())!.y);
-  const placeGrid = page.getByTestId(IDS.PLACE_GRID);
-  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(5);
-});
+for (const width of [1280, 1440]) {
+  test(`가장 넓은 화면 ${width}px에서 지도 너비를 300px 유지하고 목록을 5열로 표시한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await startTrip(page);
+    const map = page.locator('.explore-map');
+    await expect(map).toBeVisible();
+    expect((await map.boundingBox())!.width).toBe(300);
+    expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
+    const exploreGrid = page.locator('.explore-grid');
+    const list = page.locator('.explore-list');
+    const gridBounds = await exploreGrid.boundingBox();
+    const listBounds = await list.boundingBox();
+    expect(listBounds!.width).toBeCloseTo(gridBounds!.width, 0);
+    expect(listBounds!.y).toBeGreaterThan((await map.boundingBox())!.y);
+    const placeGrid = page.getByTestId(IDS.PLACE_GRID);
+    await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(5);
+  });
+}
 
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {
   const busan = await startTrip(page);

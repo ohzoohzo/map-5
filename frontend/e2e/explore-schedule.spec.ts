@@ -151,21 +151,25 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
   expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
 });
 
-test('넓은 반응형 목록은 장소 카드를 두 열로 표시한다', async ({ page }) => {
+test('좁은 반응형 목록은 기존 카드 열 수와 지도를 유지한다', async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 });
   await startTrip(page);
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect(placeGrid).toBeVisible();
-  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
-  expect((await page.locator('.explore-map').boundingBox())!.width).toBe(420);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+  const map = await page.locator('.explore-map').boundingBox();
+  const layout = await page.locator('.explore-grid').boundingBox();
+  expect(map!.width).toBeCloseTo(layout!.width, 0);
 });
 
-test('넓은 화면에서는 지도를 우측의 좁은 영역에 제한한다', async ({ page }) => {
+test('가장 넓은 화면에서는 목록을 두 열로, 지도를 420px로 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await startTrip(page);
   const map = page.locator('.explore-map');
   await expect(map).toBeVisible();
-  expect((await map.boundingBox())!.width).toBeLessThanOrEqual(420);
+  expect((await map.boundingBox())!.width).toBe(420);
+  const placeGrid = page.getByTestId(IDS.PLACE_GRID);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
 });
 
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {

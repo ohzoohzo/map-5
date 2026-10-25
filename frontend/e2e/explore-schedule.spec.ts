@@ -148,14 +148,30 @@ test('모바일 어디 갈까?: 필터와 검색 아래 리스트는 왼쪽 한 
   expect(layout.filterOverflowX).not.toBe('auto');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
-  expect((await map.boundingBox())!.width).toBe(300);
-  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
+  const mapBounds = await map.boundingBox();
+  const listBounds = await page.locator('.explore-list').boundingBox();
+  expect(mapBounds!.width).toBeCloseTo(listBounds!.width, 0);
+  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(450);
   const controls = await Promise.all([searchField, searchButton, randomButton].map((locator) => locator.boundingBox()));
   const controlCenters = controls.map((box) => box!.y + box!.height / 2);
   expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThan(1);
   expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(1);
   expect(await placeGrid.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
+  expect(await placeGrid.evaluate((element) => element.clientHeight)).toBe(450);
   expect(await placeGrid.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await placeGrid.evaluate((element) => element.clientHeight));
+});
+
+test('가장 작은 화면은 리스트 절반과 지도 절반을 나란히 보여준다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startTrip(page);
+  const list = page.locator('.explore-list');
+  const map = page.locator('.explore-map');
+  const listBounds = await list.boundingBox();
+  const mapBounds = await map.boundingBox();
+  expect(mapBounds!.width).toBeCloseTo(listBounds!.width, 0);
+  expect(mapBounds!.x).toBeGreaterThan(listBounds!.x + listBounds!.width);
+  expect(await page.getByTestId(IDS.PLACE_GRID).evaluate((element) => element.clientHeight)).toBe(450);
+  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(450);
 });
 
 test('좁은 반응형에서도 목록 왼쪽·지도 오른쪽을 유지한다', async ({ page }) => {

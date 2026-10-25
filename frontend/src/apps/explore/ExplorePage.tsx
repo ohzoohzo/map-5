@@ -82,6 +82,13 @@ const ExploreLayout = styled(PinDayPage)`
     .explore-grid { grid-template-columns: minmax(0, 1fr) 300px; column-gap: 8px; }
     .explore-grid .place-grid { grid-template-columns: minmax(0, 1fr); }
   }
+
+  @media (max-width: 480px) {
+    .explore-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .explore-grid > .explore-map { width: 100%; min-width: 0; }
+    .explore-grid > .explore-map .map-frame { height: 450px; min-height: 450px; }
+    .explore-grid .place-grid { max-height: 450px; }
+  }
 `;
 
 // 시안: design/pinday-explore-v2.png

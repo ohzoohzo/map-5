@@ -35,7 +35,7 @@ function readPhotos(value: unknown, placeId: string): DocentPhotos {
 
 /** 도슨트와 장소 카드가 같은 장소 사진 요청·캐시를 공유한다. */
 export function usePlacePhotos(place: Place | null, enabled = true) {
-  return useQuery({
+  return useQuery<DocentPhotos>({
     queryKey: ['docent', 'photos', place?.id],
     enabled: enabled && place !== null,
     staleTime: Infinity,

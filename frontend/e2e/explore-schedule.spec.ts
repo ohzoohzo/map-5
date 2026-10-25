@@ -66,26 +66,32 @@ test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버�
   await expect(page).toHaveURL(/\/transport$/);
 });
 
-test('모바일 어디 갈까?: 흰색 필터 바로 아래에 350px 일반 지도를 두고 결과를 배치한다', async ({ page }) => {
+test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일반 지도와 결과를 배치한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startTrip(page);
 
   const filter = page.locator('.filter-row');
+  const tripBar = page.locator('.trip-bar-wrap');
+  const actions = page.locator('.explore-actions');
   const map = page.locator('.explore-map');
   const frame = map.locator('.map-frame');
   const list = page.locator('.result-line');
   const layout = await page.evaluate(() => {
     const filterElement = document.querySelector('.filter-row')!;
+    const actionsElement = document.querySelector('.explore-actions')!;
     const mapElement = document.querySelector('.explore-map')!;
     const listElement = document.querySelector('.result-line')!;
     return {
       filterTop: filterElement.getBoundingClientRect().top,
       filterBottom: filterElement.getBoundingClientRect().bottom,
+      actionsTop: actionsElement.getBoundingClientRect().top,
+      actionsBottom: actionsElement.getBoundingClientRect().bottom,
       mapTop: mapElement.getBoundingClientRect().top,
       mapBottom: mapElement.getBoundingClientRect().bottom,
       listTop: listElement.getBoundingClientRect().top,
       filterOverflowX: getComputedStyle(filterElement).overflowX,
       filterBackground: getComputedStyle(filterElement).backgroundColor,
+      tripBarBackground: getComputedStyle(document.querySelector('.trip-bar-wrap')!).backgroundColor,
       filterMarginBottom: getComputedStyle(filterElement).marginBottom,
       filterClientWidth: filterElement.clientWidth,
       filterScrollWidth: filterElement.scrollWidth,
@@ -93,12 +99,16 @@ test('모바일 어디 갈까?: 흰색 필터 바로 아래에 350px 일반 지�
   });
 
   await expect(filter).toBeVisible();
+  await expect(tripBar).toBeVisible();
+  await expect(actions).toBeVisible();
   await expect(map).toBeVisible();
   await expect(frame).toBeVisible();
   await expect(list).toBeVisible();
-  expect(layout.filterBottom).toBe(layout.mapTop);
+  expect(layout.filterBottom).toBeLessThanOrEqual(layout.actionsTop);
+  expect(layout.actionsBottom).toBeLessThan(layout.mapTop);
   expect(layout.mapBottom).toBeLessThan(layout.listTop);
   expect(layout.filterBackground).toBe('rgb(255, 255, 255)');
+  expect(layout.tripBarBackground).toBe('rgb(255, 255, 255)');
   expect(layout.filterMarginBottom).toBe('0px');
   expect(layout.filterScrollWidth).toBeLessThanOrEqual(layout.filterClientWidth);
   expect(layout.filterOverflowX).not.toBe('auto');

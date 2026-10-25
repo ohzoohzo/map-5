@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from '@emotion/styled';
-import { ImageOff, Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Place } from '../../api/client';
 import { color, radius } from '../design/tokens';
@@ -27,9 +27,13 @@ const Photo = styled.span`
   .photo-state svg { width: 24px; height: 24px; }
   &[data-variant='popup'] { border-radius: ${radius.sm}; }
   &[data-variant='popup'] .photo-frame { height: 150px; }
+  &[data-photo-missing='true'][data-variant='card'],
+  &[data-photo-missing='true'][data-variant='popup'] { display: none; }
   &[data-variant='thumbnail'] { grid-template-columns: 64px minmax(0, 1fr); gap: 0 10px; align-items: center; }
+  &[data-photo-missing='true'][data-variant='thumbnail'] { grid-template-columns: minmax(0, 1fr); }
   &[data-variant='thumbnail'] .photo-frame { height: 64px; border-radius: ${radius.sm}; }
   &[data-variant='thumbnail'] .photo-copy { min-width: 0; }
+  &[data-photo-missing='true'][data-variant='thumbnail'] .photo-copy { grid-column: 1; }
   &[data-variant='thumbnail'] .photo-state { gap: 3px; padding: 3px; font-size: 10px; }
   &[data-variant='thumbnail'] .photo-state svg { width: 20px; height: 20px; }
 `;
@@ -42,6 +46,10 @@ export default function PlacePhoto({ place, variant, className, children }: Plac
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
   const photos = usePlacePhotos(place, visiblePlaceId === place.id);
   const photo = photos.data?.photos[0];
+
+  useEffect(() => {
+    if (photos.isError && visiblePlaceId !== place.id) setVisiblePlaceId(place.id);
+  }, [photos.isError, place.id, visiblePlaceId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -60,18 +68,19 @@ export default function PlacePhoto({ place, variant, className, children }: Plac
 
   const broken = photo !== undefined && brokenUrl === photo.url;
   const unavailable = photos.isError || photos.isSuccess && !photo || broken;
-  const reason = t(broken ? 'photoBroken' : photos.isError ? 'photoError' : 'photoEmpty');
+  if (unavailable) {
+    return (
+      <Photo ref={element} data-variant={variant} data-photo-missing="true" className={className}>
+        {variant === 'thumbnail' && children && <span className="photo-copy">{children}</span>}
+      </Photo>
+    );
+  }
+
   return (
     <Photo ref={element} data-variant={variant} className={className}>
       <span className="photo-frame">
-        {photo && !broken ? (
-          <img src={photo.url} alt={t('photoLabel', { name: place.name })} title={photo.title} loading="lazy" decoding="async" onError={() => setBrokenUrl(photo.url)} />
-        ) : (
-          <span className="photo-state" title={unavailable ? reason : undefined} role={unavailable ? 'img' : 'status'} aria-label={unavailable ? t('photoUnavailableLabel', { name: place.name }) : undefined}>
-            {unavailable ? <ImageOff aria-hidden="true" /> : <ImageIcon aria-hidden="true" />}
-            <span>{t(unavailable ? 'photoUnavailable' : 'photoLoading')}</span>
-          </span>
-        )}
+        {photo ? <img src={photo.url} alt={t('photoLabel', { name: place.name })} title={photo.title} loading="lazy" decoding="async" onError={() => setBrokenUrl(photo.url)} />
+          : <span className="photo-state" role="status"><ImageIcon aria-hidden="true" /><span>{t('photoLoading')}</span></span>}
       </span>
       {variant === 'thumbnail' && children && <span className="photo-copy">{children}</span>}
     </Photo>

@@ -100,7 +100,8 @@ test('사진 API가 일시적으로 실패한 뒤 복구되면 SPA로 돌아왔�
 
   const card = placeCard(page, place);
   await card.scrollIntoViewIfNeeded();
-  await expect(card.getByRole('img', { name: `${place.name} 사진 없음`, exact: true })).toBeVisible();
+  await expect(card.locator('.place-visual')).toBeHidden();
+  await expect(card.locator('.photo-frame')).toHaveCount(0);
   expect(requests.get(place.id)).toBe(1);
   const documentStartedAt = await page.evaluate(() => performance.timeOrigin);
 
@@ -110,8 +111,8 @@ test('사진 API가 일시적으로 실패한 뒤 복구되면 SPA로 돌아왔�
   await page.locator('.main-nav a[href="/explore"]').click();
   await expect(page).toHaveURL('/explore');
 
+  await expect.poll(() => requests.get(place.id)).toBe(2);
   await expectPhoto(card, place);
-  expect(requests.get(place.id), '실패한 사진 요청은 화면으로 돌아오면 다시 시도한다').toBe(2);
   expect(await page.evaluate(() => performance.timeOrigin), '전체 새로고침 없이 사진을 복구한다').toBe(documentStartedAt);
 });
 
@@ -128,7 +129,8 @@ test('사진 없음·API 실패·깨진 이미지에서도 후보 저장과 일�
   for (const place of [empty!, unavailable!, broken!]) {
     const card = placeCard(page, place);
     await card.scrollIntoViewIfNeeded();
-    await expect(card.getByRole('img', { name: `${place.name} 사진 없음`, exact: true })).toBeVisible();
+    await expect(card.locator('.place-visual')).toBeHidden();
+    await expect(card.locator('.photo-frame')).toHaveCount(0);
     await expect(card.locator('img')).toHaveCount(0);
     await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
   }
@@ -144,7 +146,8 @@ test('사진 없음·API 실패·깨진 이미지에서도 후보 저장과 일�
   for (const place of [empty!, unavailable!, broken!]) {
     await page.getByTestId(IDS.ITINERARY_LIST).locator('.visit-name').filter({ hasText: place.name }).click();
     const popup = page.locator('.map-popup');
-    await expect(popup.getByRole('img', { name: `${place.name} 사진 없음`, exact: true })).toBeVisible();
+    await expect(popup.locator('[data-photo-missing="true"]')).toBeHidden();
+    await expect(popup.locator('.photo-frame')).toHaveCount(0);
     await expect(popup.locator('img')).toHaveCount(0);
   }
   await page.getByRole('button', { name: `${broken!.name} 순서 위로`, exact: true }).click();

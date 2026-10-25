@@ -28,20 +28,24 @@ const KINDS: Record<Kind, { icon: LucideIcon; keyword: string; category: SearchP
 const EMPTY: Place[] = [];
 
 const ExploreLayout = styled(PinDayPage)`
-  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: var(--semantic-background-neutral-secondary, #f7f7f8); }
+  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
+  .explore-grid .place-card { position: relative; }
+  .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
 
   .explore-grid > .filter-row { grid-column: 1; grid-row: 1; }
-  .explore-grid > .explore-list { grid-column: 1; grid-row: 2; }
-  .explore-grid > .explore-map { grid-column: 2; grid-row: 1 / span 2; }
+  .explore-grid > .explore-actions { grid-column: 1; grid-row: 2; }
+  .explore-grid > .explore-list { grid-column: 1; grid-row: 3; }
+  .explore-grid > .explore-map { grid-column: 2; grid-row: 1 / span 3; }
 
   @media (max-width: 1100px) {
     .explore-grid { display: flex; flex-direction: column; gap: 0; }
-    .filter-row { order: 0; background: ${color.surface}; margin-bottom: 0; overflow: visible; }
-    .explore-map { order: 1; position: static; width: 100%; }
+    .filter-row { order: 0; width: 100%; background: ${color.surface}; margin: 0; padding: 0; overflow: visible; }
+    .explore-actions { order: 1; width: 100%; margin-top: 12px; }
+    .explore-map { order: 2; position: static; width: 100%; margin-top: 12px; }
     .map-frame { height: 350px; min-height: 350px; }
     .map-legend { display: none; }
-    .explore-list { order: 2; margin-top: 12px; }
+    .explore-list { order: 3; margin-top: 12px; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }
   }
 
@@ -115,13 +119,6 @@ export default function ExplorePage() {
           <Typography as="h1" variant="title2" weight="bold">{t('exploreTitle')}</Typography>
           <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('exploreSubtitle')}</Typography>
         </div>
-        <div className="page-head-actions">
-          <form className="search-form" onSubmit={submitSearch} role="search">
-            <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
-            <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
-          </form>
-          <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
-        </div>
       </header>}
       <TripBar page="explore" showStepLabels />
       {regions.isPending ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
@@ -140,6 +137,13 @@ export default function ExplorePage() {
             <div className="district-chips" role="group" aria-label={t('districtLabel')}>
               {['', ...districts].map((name) => <button key={name || 'all'} type="button" aria-pressed={district === name} className={district === name ? 'chip active' : 'chip'} onClick={() => { setDistrict(name); setSelectedId(null); }}>{name || t('allDistricts', { place: short })}</button>)}
             </div>
+          </div>
+          <div className="page-head-actions explore-actions">
+            <form className="search-form" onSubmit={submitSearch} role="search">
+              <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
+              <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
+            </form>
+            <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
           </div>
           <div className="explore-map mobile-active">
             <KakaoMap jsKey={config.data?.js_key} configLoading={config.isLoading} pins={pins} selectedId={selectedId} onSelect={setSelectedId} fitKey={`${result.dataUpdatedAt}-${searchText}-${district}`} title={t('exploreMapTitle')}
@@ -207,7 +211,9 @@ function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: 
   return (
     <li id={`place-${place.id}`} className={`place-card kind-${kind}${selected ? ' selected' : ''}`}>
       <button type="button" className="place-card-main" onClick={onSelect} aria-label={t('showOnMap', { name: place.name })}>
-        <span className="place-visual"><PlacePhoto place={place} variant="card" /><span className="place-index">{index + 1}</span>{saved && <span className="saved-flag">{t('savedFlag')}</span>}</span>
+        <span className="place-visual"><PlacePhoto place={place} variant="card" /></span>
+        <span className="place-index">{index + 1}</span>
+        {saved && <span className="saved-flag">{t('savedFlag')}</span>}
         <span className="place-copy"><strong>{place.name}</strong><span>{[place.category || t(`kind_${kind}`), districtOf(place)].filter(Boolean).join(' · ')}</span></span>
       </button>
       <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>

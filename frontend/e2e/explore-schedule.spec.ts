@@ -25,6 +25,19 @@ test('어디 갈까?: 시·도와 동네로 실제 관광지를 좁히고 후보
   expect(local.total).toBeLessThan(busan.total);
   await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(local.total));
 
+  const filter = page.locator('.filter-row');
+  const actions = page.locator('.explore-actions');
+  await expect(filter).toHaveCSS('margin-bottom', '0px');
+  await expect(filter).toHaveCSS('padding-bottom', '16px');
+  for (const name of ['남구', '수영구', '영도구', '해운대구']) {
+    await page.getByRole('group', { name: '동네' }).getByRole('button', { name, exact: true }).click();
+    await expect(page.getByRole('group', { name: '동네' }).getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true');
+    const gap = await actions.evaluate((element) => element.getBoundingClientRect().top - document.querySelector('.filter-row')!.getBoundingClientRect().bottom);
+    expect(gap, `${name} 선택 후 LNB와 검색 사이에 과도한 공백이 생기지 않는다`).toBeLessThan(48);
+  }
+  await page.getByRole('group', { name: '동네' }).getByRole('button', { name: district, exact: true }).click();
+  await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(local.total));
+
   const [first, second] = local.places.length > 1 ? local.places : busan.places;
   await page.getByRole('button', { name: `${first!.name} 후보함에 저장`, exact: true }).click();
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');

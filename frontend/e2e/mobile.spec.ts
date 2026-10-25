@@ -1,6 +1,30 @@
 import { TRAVEL_TEST_IDS as IDS } from '../src/shared/testIds';
 import { expect, expectNames, noHorizontalOverflow, startTrip, test } from './support';
 
+test('모바일 GNB는 스크롤해도 최상단에 고정되고 PinDay 로고만 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const header = page.locator('.site-header');
+  const brand = page.locator('.site-header .brand');
+  await expect(header).toBeVisible();
+  await expect(brand.locator('.brand-mark')).toBeVisible();
+  await expect(brand.locator('> span')).toBeHidden();
+  await expect(page.locator('.site-header .header-note')).toBeHidden();
+
+  for (const [label, path] of [['여행 계획하기', '/explore'], ['이동 전 확인하기', '/before-travel'], ['AI 도슨트', '/docent']] as const) {
+    await page.locator('.site-header .main-nav').getByRole('link', { name: label }).click();
+    await expect(page).toHaveURL(path);
+    await expect(header).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect.poll(() => header.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
+  }
+
+  await page.locator('.site-header .main-nav').getByRole('link', { name: '홈' }).click();
+  await expect(page).toHaveURL('/');
+  await expect.poll(() => header.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
+});
+
 test('390px에서 지도를 먼저 표시하고 장소 카드와 일정 화면까지 가로 넘침이 없다', async ({ page }, testInfo) => {
   const busan = await startTrip(page);
   await noHorizontalOverflow(page);

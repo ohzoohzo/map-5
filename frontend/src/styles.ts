@@ -17,7 +17,7 @@ export const globalStyles = css`
 
 export const Shell = styled.div`
   /* 전역 Shell 은 머리글만 꾸민다. 모든 규칙을 .site-header 아래로 한정해 기능 화면 클래스와 겹치지 않게 한다 (#13). */
-  .site-header { height: 78px; border-bottom: 1px solid #e6edf4; background: #fff; }
+  .site-header { position: sticky; top: 0; z-index: 100; height: 78px; border-bottom: 1px solid #e6edf4; background: #fff; }
   .site-header .header-inner { max-width: 1600px; height: 100%; padding: 0 42px; margin: auto; display: flex; align-items: center; gap: 58px; }
   .site-header .brand { display: inline-flex; align-items: center; gap: 11px; color: #254e70; font-size: 23px; font-weight: 820; letter-spacing: -1.3px; }
   .site-header .brand-mark { display: block; height: 38px; width: 38px; object-fit: contain; flex-shrink: 0; } .site-header .brand-dot { color: #eb9767; }
@@ -29,6 +29,6 @@ export const Shell = styled.div`
   main { min-width: 0; }
   @media (max-width: 1250px) { .site-header .header-inner { padding: 0 26px; } }
   @media (max-width: 760px) {
-    .site-header { height: 66px; } .site-header .header-inner { padding: 0 20px; gap: 28px; } .site-header .brand { font-size: 21px; gap: 8px; } .site-header .brand-mark { width: 33px; height: 33px; } .site-header .main-nav { margin-left: auto; } .site-header .nav-item { font-size: 11px; gap: 5px; } .site-header .header-note { display: none; }
+    .site-header { height: 66px; } .site-header .header-inner { padding: 0 20px; gap: 28px; } .site-header .brand { font-size: 21px; gap: 8px; } .site-header .brand > span { display: none; } .site-header .brand-mark { width: 33px; height: 33px; } .site-header .main-nav { margin-left: auto; } .site-header .nav-item { font-size: 11px; gap: 5px; } .site-header .header-note { display: none; }
   }
 `;

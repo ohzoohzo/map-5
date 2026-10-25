@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import styled from '@emotion/styled';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { Button, Typography } from '@montage-ui/core';
 import { ArrowRight, Bus, CalendarDays, Car, ExternalLink, Footprints, MapPin, Route, TrainFront } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +15,11 @@ const foreground = (name: string) => `var(--semantic-foreground-${name})`;
 const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
-const brand = 'var(--semantic-foreground-brand-primary)';
+const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
+const dayColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length]!;
+const dayStyle = (index: number): CSSProperties & { '--day-color': string } => ({
+  '--day-color': dayColor(index),
+});
 
 const Page = styled.main`
   max-width: 1440px;
@@ -41,19 +45,28 @@ const Heading = styled.header`
 
 const DayTabs = styled.div`
   display: flex;
+  gap: 6px;
   width: fit-content;
   max-width: 100%;
   margin-bottom: 18px;
-  padding: 4px;
+  padding: 0;
   overflow-x: auto;
-  background: ${surface};
-  border: 1px solid ${line};
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 
   .day-button {
     flex: 0 0 auto;
     min-width: max-content;
+    border: 0;
+    background-color: color-mix(in srgb, var(--day-color) 10%, white);
+    color: var(--day-color);
     white-space: nowrap;
+  }
+
+  .day-button[aria-pressed='true'] {
+    background-color: var(--day-color);
+    color: white;
   }
 
   @media (max-width: 640px) {
@@ -62,6 +75,46 @@ const DayTabs = styled.div`
     .day-button {
       padding: 8px 12px;
     }
+  }
+`;
+
+const DayControls = styled.div`
+  .mode-button[aria-pressed='true'],
+  .route-option[aria-pressed='true'] {
+    border-color: var(--day-color);
+    color: white;
+    background-color: var(--day-color);
+  }
+
+  .directions-button {
+    color: white;
+    background-color: var(--day-color);
+    border-color: var(--day-color);
+  }
+
+  .directions-button:hover,
+  .mode-button[aria-pressed='true']:hover,
+  .route-option[aria-pressed='true']:hover {
+    filter: brightness(0.94);
+  }
+`;
+
+const FastestRouteNotice = styled.div`
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  color: ${foreground('neutral-primary')};
+  background: ${canvas};
+  border: 1px solid ${line};
+  border-radius: 8px;
+
+  p {
+    margin: 0;
+  }
+
+  .fastest-route-value {
+    color: var(--day-color);
   }
 `;
 
@@ -124,7 +177,7 @@ const PlaceRow = styled.div`
     flex: 0 0 32px;
     place-items: center;
     color: ${surface};
-    background: ${brand};
+    background: var(--day-color);
     border-radius: 999px;
     font-weight: 700;
   }
@@ -151,6 +204,12 @@ const SegmentRow = styled.div<{ selected: boolean }>`
 
   .segment-button svg {
     flex-shrink: 0;
+  }
+
+  .segment-button[aria-pressed='true'] {
+    border-color: var(--day-color);
+    color: var(--day-color);
+    background-color: color-mix(in srgb, var(--day-color) 10%, white);
   }
 
   .segment-label {
@@ -226,10 +285,10 @@ const ModeTabs = styled.div`
   display: flex;
   gap: 6px;
   margin: 16px 0 12px;
-  padding: 4px;
-  background: ${canvas};
-  border: 1px solid ${line};
-  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 
   .mode-button {
     flex: 1;
@@ -255,19 +314,19 @@ const Guidance = styled.section`
   .route-option > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .route-option-copy { display: grid; gap: 3px; }
   .route-metrics { display: flex; flex-wrap: wrap; gap: 6px 14px; }
-  .route-duration { color: ${brand}; }
+  .route-duration { color: var(--day-color); }
   .route-steps { display: grid; gap: 12px; margin: 0; padding-left: 20px; }
   .route-steps li { padding-left: 4px; min-width: 0; overflow-wrap: anywhere; }
   .step-mode { display: inline-flex; align-items: center; gap: 5px; color: ${foreground('neutral-secondary')}; }
   .step-instruction { display: block; margin: 4px 0; }
+  .route-details summary { width: fit-content; color: ${foreground('neutral-primary')}; cursor: pointer; }
+  .route-details .route-steps { margin-top: 12px; }
   .route-source { color: ${foreground('neutral-tertiary')}; }
 `;
 
 interface ScheduledPlace {
   place?: Place;
 }
-
-type TravelMode = 'transit' | 'car' | 'walk';
 
 function kakaoDirectionsUrl(departure: Place, arrival: Place, mode: TravelMode) {
   const from = `${encodeURIComponent(departure.name)},${departure.latitude},${departure.longitude}`;
@@ -282,6 +341,8 @@ function formatDistance(meters: number) {
 }
 
 const STEP_ICONS = { walk: Footprints, bus: Bus, subway: TrainFront, car: Car };
+const ROUTE_MODES = ['transit', 'car', 'walk'] as const;
+type TravelMode = typeof ROUTE_MODES[number];
 
 function formatDate(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
@@ -290,6 +351,10 @@ function formatDate(date: string) {
   if (!Number.isFinite(value.getTime())) return null;
   const weekday = new Intl.DateTimeFormat('ko-KR', { weekday: 'short' }).format(value);
   return `${month}.${day} (${weekday})`;
+}
+
+function formatRouteDistance(meters: number) {
+  return (meters / 1000).toFixed(1);
 }
 
 export default function TransportPage() {
@@ -305,6 +370,7 @@ export default function TransportPage() {
   const [selectedSegmentIndex, setSelectedSegmentIndex] = useState(0);
   const [travelMode, setTravelMode] = useState<TravelMode>('transit');
   const activeDayIndex = Math.min(selectedDayIndex, Math.max(0, days.length - 1));
+  const activeDayColor = dayColor(activeDayIndex);
   const selectedDay = days[activeDayIndex];
   const itinerary: ScheduledPlace[] = selectedDay?.items.map((item) => ({
     place: places[item.placeId],
@@ -321,25 +387,36 @@ export default function TransportPage() {
     end_latitude: arrival.latitude,
     end_longitude: arrival.longitude,
   } : null;
-  const routes = useQuery({
-    queryKey: ['transport', 'routes', routeParams],
-    enabled: routeParams !== null,
-    staleTime: 5 * 60_000,
-    retry: false,
-    queryFn: ({ signal }) => {
-      if (routeParams === null) throw new Error('Select an itinerary segment first');
-      return transportRoutes(routeParams, { signal });
-    },
+  const routeQueries = useQueries({
+    queries: ROUTE_MODES.map((mode) => {
+      const params = routeParams ? { ...routeParams, mode } : null;
+      return {
+        queryKey: ['transport', 'routes', params] as const,
+        enabled: params !== null,
+        staleTime: 5 * 60_000,
+        retry: false,
+        queryFn: ({ signal }) => {
+          if (params === null) throw new Error('Select an itinerary segment first');
+          return transportRoutes(params, { signal });
+        },
+      };
+    }),
   });
+  const routes = routeQueries[ROUTE_MODES.indexOf(travelMode)]!;
   const routeSelectionKey = JSON.stringify([selectedDay?.date, selectedSegmentIndex, travelMode, routeParams]);
   const [routeChoice, setRouteChoice] = useState<{ key: string; index: number } | null>(null);
   const alternatives = routes.isSuccess && routes.data.status === 'ok' ? routes.data.routes : [];
+  const fastestRoute = routeQueries.every((query) => query.isSuccess)
+    ? routeQueries.flatMap((query, index) => query.data.status === 'ok'
+      ? query.data.routes.map((route) => ({ mode: ROUTE_MODES[index]!, route }))
+      : []).sort((a, b) => a.route.duration_seconds - b.route.duration_seconds)[0]
+    : undefined;
   const requestedRouteIndex = routeChoice?.key === routeSelectionKey ? routeChoice.index : 0;
   const routeIndex = requestedRouteIndex >= 0 && requestedRouteIndex < alternatives.length ? requestedRouteIndex : 0;
   const activeRoute = alternatives[routeIndex];
 
   return (
-    <Page>
+    <Page style={dayStyle(activeDayIndex)}>
       <Heading>
         <Typography as="h1" variant="title2" weight="bold">{t('title')}</Typography>
         <Typography as="p" variant="body1" color="semantic.foreground.neutral.secondary">{t('subtitle')}</Typography>
@@ -354,8 +431,9 @@ export default function TransportPage() {
               className="day-button"
               size="medium"
               variant={index === activeDayIndex ? 'solid' : 'outlined'}
-              color={index === activeDayIndex ? 'primary' : 'assistive'}
+              color="assistive"
               aria-pressed={index === activeDayIndex}
+              style={dayStyle(index)}
               onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })}
               onClick={() => {
                 setSelectedDayIndex(index);
@@ -395,7 +473,7 @@ export default function TransportPage() {
                         fullWidth
                         size="small"
                         variant="outlined"
-                        color={index === selectedSegmentIndex ? 'primary' : 'assistive'}
+                        color="assistive"
                         aria-pressed={index === selectedSegmentIndex}
                         onClick={() => { setSelectedSegmentIndex(index); setRouteChoice(null); }}
                         trailingContent={<ArrowRight size={17} aria-hidden="true" />}
@@ -420,6 +498,7 @@ export default function TransportPage() {
         </Panel>
 
         <Panel aria-labelledby="segment-heading">
+          <DayControls>
           <PanelHeading>
             <Typography id="segment-heading" as="h2" variant="headline2" weight="bold">{t('selectedSegment')}</Typography>
             <Typography className="count" variant="caption1">
@@ -434,7 +513,7 @@ export default function TransportPage() {
                 <Typography className="endpoint-name" variant="body1" weight="bold">{departure?.name ?? t('unknownPlace')}</Typography>
                 {departure?.address && <span className="address">{departure.address}</span>}
               </div>
-              <ArrowRight color="var(--semantic-foreground-brand-primary)" aria-hidden="true" />
+              <ArrowRight color={activeDayColor} aria-hidden="true" />
               <div className="endpoint">
                 <span className="endpoint-label"><MapPin size={14} aria-hidden="true" />{t('arrival')}</span>
                 <Typography className="endpoint-name" variant="body1" weight="bold">{arrival?.name ?? t('unknownPlace')}</Typography>
@@ -454,6 +533,19 @@ export default function TransportPage() {
 
           {selectedSegment && departure && arrival && (
             <>
+              {fastestRoute && (
+                <FastestRouteNotice role="status">
+                  <Typography variant="body2" weight="bold">
+                    {t('fastestRoutePrefix')}
+                    <span className="fastest-route-value">{t('fastestRouteValue', {
+                      mode: t(`mode.${fastestRoute.mode}`),
+                      minutes: Math.ceil(fastestRoute.route.duration_seconds / 60),
+                      distance: formatRouteDistance(fastestRoute.route.distance_m),
+                    })}</span>
+                    {t('fastestRouteSuffix')}
+                  </Typography>
+                </FastestRouteNotice>
+              )}
               <ModeTabs role="group" aria-label={t('modeTabs')}>
                 {([
                   ['transit', Bus],
@@ -480,13 +572,13 @@ export default function TransportPage() {
                 {routes.isPending ? <MapNote role="status">{t('routesLoading')}</MapNote>
                   : routes.isError ? <div role="alert">
                     <Typography as="p" variant="body2">{t('routesError')}</Typography>
-                    <Button size="small" variant="outlined" color="primary" onClick={() => { void routes.refetch(); }}>{t('retryRoutes')}</Button>
+                    <Button size="small" variant="outlined" color="assistive" onClick={() => { void routes.refetch(); }}>{t('retryRoutes')}</Button>
                   </div>
                     : !activeRoute ? <MapNote role="status">{t('noRoutes')}</MapNote>
                       : <>
                         {alternatives.length > 1 && <div className="route-options" role="group" aria-label={t('routeOptions')}>
                           {alternatives.map((option, index) => <Button key={index} className="route-option" fullWidth size="small"
-                            variant={index === routeIndex ? 'solid' : 'outlined'} color={index === routeIndex ? 'primary' : 'assistive'}
+                            variant={index === routeIndex ? 'solid' : 'outlined'} color="assistive"
                             aria-pressed={index === routeIndex} onClick={() => setRouteChoice({ key: routeSelectionKey, index })}>
                             <span className="route-option-copy">
                               <span>{t('routeOption', { number: index + 1, minutes: Math.ceil(option.duration_seconds / 60), distance: formatDistance(option.distance_m) })}</span>
@@ -494,7 +586,7 @@ export default function TransportPage() {
                             </span>
                           </Button>)}
                         </div>}
-                        <RouteGuidance route={activeRoute} />
+                        <RouteGuidance key={`${routeSelectionKey}-${routeIndex}`} route={activeRoute} collapsible={travelMode !== 'transit'} />
                         <Typography as="p" variant="caption1" className="route-source">{t('routeSource', { source: routes.data?.source })}</Typography>
                         <Typography as="p" variant="caption1" color="semantic.foreground.neutral.secondary">{t('routeCaveat')}</Typography>
                       </>}
@@ -506,13 +598,14 @@ export default function TransportPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 variant="solid"
-                color="primary"
+                color="assistive"
                 trailingContent={<ExternalLink size={17} aria-hidden="true" />}
               >
                 {t('openDirections')}
               </Button>
             </>
           )}
+          </DayControls>
         </Panel>
 
         <Panel aria-labelledby="map-heading">
@@ -526,6 +619,9 @@ export default function TransportPage() {
                 apiKey={config.data?.js_key}
                 loadingKey={config.isLoading}
                 keyError={config.isError}
+                routeColor={activeDayColor}
+                departureOrder={selectedSegmentIndex + 1}
+                arrivalOrder={selectedSegmentIndex + 2}
                 departure={departure}
                 arrival={arrival}
                 route={activeRoute}
@@ -560,16 +656,9 @@ export default function TransportPage() {
   );
 }
 
-function RouteGuidance({ route }: { route: TransportRoute }) {
+function RouteGuidance({ route, collapsible = false }: { route: TransportRoute; collapsible?: boolean }) {
   const { t } = useTranslation('transport');
-  return <>
-    <div className="route-metrics">
-      <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
-      <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
-      {route.type !== 'car' && route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
-      {route.type !== 'car' && route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
-      {route.type === 'car' && typeof route.toll_won === 'number' && <Typography variant="body2">{t('toll', { won: new Intl.NumberFormat('ko-KR').format(route.toll_won) })}</Typography>}
-    </div>
+  const steps = (
     <ol className="route-steps" aria-label={t('stepsLabel')}>
       {route.steps.map((step, index) => {
         const Icon = STEP_ICONS[step.mode];
@@ -580,5 +669,17 @@ function RouteGuidance({ route }: { route: TransportRoute }) {
         </li>;
       })}
     </ol>
+  );
+  return <>
+    <div className="route-metrics">
+      <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
+      <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
+      {route.type !== 'car' && route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
+      {route.type !== 'car' && route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
+      {route.type === 'car' && typeof route.toll_won === 'number' && <Typography variant="body2">{t('toll', { won: new Intl.NumberFormat('ko-KR').format(route.toll_won) })}</Typography>}
+    </div>
+    {collapsible
+      ? <details className="route-details"><summary>{t('routeDetails')}</summary>{steps}</details>
+      : steps}
   </>;
 }

@@ -33,6 +33,9 @@ const ExploreLayout = styled(PinDayPage)`
   .photo-frame img { object-fit: cover; }
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
+  .explore-grid .place-card:has(.place-visual > [data-photo-missing='true']) .place-copy { padding-top: 48px; }
+  .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+  .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: auto; max-width: 100%; height: 72px; object-fit: contain; }
   .explore-actions { width: 100%; max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: 8px; }
   .explore-actions .search-form { width: 100%; min-width: 0; align-items: center; gap: 8px; }
   .explore-actions .search-form > :first-child { flex: 1 1 0; min-width: 0; }

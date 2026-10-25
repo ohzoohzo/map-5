@@ -69,7 +69,11 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   const candidate = page.getByTestId(IDS.CANDIDATE_TRAY).locator('.tray-item').filter({ hasText: place.name });
   await expectPhoto(candidate, place);
   await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
-  await expectPhoto(page.locator('.map-popup').filter({ hasText: place.name }), place);
+  const popup = page.locator('.map-popup').filter({ hasText: place.name });
+  const popupImage = await expectPhoto(popup, place);
+  expect(await popupImage.evaluate((image) => image.getBoundingClientRect().height)).toBe(72);
+  expect(await popupImage.evaluate((image) => image.getBoundingClientRect().width))
+    .toBeLessThan(await popup.locator('.photo-frame').evaluate((frame) => frame.getBoundingClientRect().width));
 
   await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
   const unscheduled = page.getByTestId(IDS.UNSCHEDULED_LIST).locator('li').filter({ hasText: place.name });
@@ -150,6 +154,11 @@ test('사진 없음·API 실패·깨진 이미지에서도 후보 저장과 일�
     await card.scrollIntoViewIfNeeded();
     await expect(card.locator('.place-visual')).toBeHidden();
     await expect(card.locator('.photo-frame')).toHaveCount(0);
+    const numberBounds = await card.locator('.place-index').boundingBox();
+    const textBounds = await card.locator('.place-copy strong').boundingBox();
+    expect(numberBounds).not.toBeNull();
+    expect(textBounds).not.toBeNull();
+    expect(textBounds!.y).toBeGreaterThanOrEqual(numberBounds!.y + numberBounds!.height);
     await expect(card.locator('img')).toHaveCount(0);
     await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
   }

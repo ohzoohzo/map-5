@@ -135,6 +135,10 @@ test('넓은 반응형 화면의 지도 팝업은 작은 사진으로 높이를 
   await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
   const popup = page.locator('.map-popup').filter({ hasText: place.name });
   const image = await expectPhoto(popup, place);
+  expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBeCloseTo(
+    await page.locator('.map-frame').evaluate((element) => element.clientWidth - 32),
+    0,
+  );
   expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(72);
   expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe('cover');
 });
@@ -148,6 +152,10 @@ test('가장 넓은 화면의 지도 팝업 사진 높이는 72px이다', async 
   await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
   const popup = page.locator('.map-popup').filter({ hasText: place.name });
   const image = await expectPhoto(popup, place);
+  expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBeCloseTo(
+    await page.locator('.map-frame').evaluate((element) => element.clientWidth - 32),
+    0,
+  );
   expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(72);
   expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe('cover');
 });

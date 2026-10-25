@@ -148,11 +148,14 @@ test('모바일 어디 갈까?: 필터와 검색 아래 리스트는 왼쪽 한 
   expect(layout.filterOverflowX).not.toBe('auto');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
+  expect((await map.boundingBox())!.width).toBe(300);
   expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const controls = await Promise.all([searchField, searchButton, randomButton].map((locator) => locator.boundingBox()));
   const controlCenters = controls.map((box) => box!.y + box!.height / 2);
   expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThan(1);
   expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(1);
+  expect(await placeGrid.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
+  expect(await placeGrid.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await placeGrid.evaluate((element) => element.clientHeight));
 });
 
 test('좁은 반응형에서도 목록 왼쪽·지도 오른쪽을 유지한다', async ({ page }) => {
@@ -161,6 +164,8 @@ test('좁은 반응형에서도 목록 왼쪽·지도 오른쪽을 유지한다'
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect(placeGrid).toBeVisible();
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
+  expect((await page.locator('.explore-map').boundingBox())!.width).toBe(300);
+  expect(await placeGrid.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
   expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const map = await page.locator('.explore-map').boundingBox();
   const list = await page.locator('.explore-list').boundingBox();
@@ -175,7 +180,7 @@ test('중간 너비에서도 장소 목록 왼쪽·지도 오른쪽을 유지한
   const mapBounds = await map.boundingBox();
   const listBounds = await list.boundingBox();
   expect(mapBounds!.width).toBe(300);
-  expect(mapBounds!.x).toBeGreaterThan(listBounds!.x);
+  expect(mapBounds!.x).toBeGreaterThan(listBounds!.x + listBounds!.width);
   expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);

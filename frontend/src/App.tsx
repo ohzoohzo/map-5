@@ -1,9 +1,10 @@
 import { Global } from '@emotion/react';
-import { MapPinned, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AppDefinition } from './shared/app';
 import { Link, usePathname } from './shared/router';
 import { globalStyles, Shell } from './styles';
+import SourceFooter from './apps/sources/SourceFooter';
 
 // 기능 등록은 apps/<기능>/app.config.tsx 로만 한다. 이 파일은 공통 영역(여원 리뷰).
 const modules = import.meta.glob<{ default: AppDefinition }>('./apps/*/app.config.tsx', { eager: true });
@@ -22,7 +23,7 @@ export default function App() {
       <header className="site-header">
         <div className="header-inner">
           <Link href="/" className="brand" aria-label={t('brand')}>
-            <span className="brand-mark"><MapPinned size={23} strokeWidth={1.8} /></span>
+            <img className="brand-mark" src="/brand/pinday-logo.png" alt="" width={38} height={38} />
             <span>{t('brand')}<span className="brand-dot">.</span></span>
           </Link>
           <nav className="main-nav" aria-label={t('appTitle')}>
@@ -36,6 +37,7 @@ export default function App() {
         </div>
       </header>
       <main id="main-content">{ActiveComponent && <ActiveComponent />}</main>
+      <SourceFooter />
     </Shell>
   );
 }

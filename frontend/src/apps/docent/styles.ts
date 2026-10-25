@@ -34,7 +34,30 @@ export const Picker = styled(Card)`
   .state { margin-top: 16px; font-size: 13px; color: ${color.textMuted}; }
 `;
 
+export const Slides = styled.div`
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  &:has(> .hero-text:only-child) { grid-template-columns: 1fr; }
+  .slide-box { min-width: 0; }
+  .slide-frame { position: relative; width: 100%; aspect-ratio: 3 / 2; border-radius: ${radius.md}; overflow: hidden; background: ${color.navy}; }
+  .slide-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.8s ease; }
+  .slide-frame img.active { opacity: 1; }
+  .slide-caption { position: absolute; left: 10px; right: 10px; bottom: 10px; margin: 0; padding: 6px 12px; border-radius: ${radius.pill}; background: ${color.navy}bf; color: ${color.surface}; font-size: 12px; text-align: center; }
+  .slide-meta { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; font-size: 11px; color: ${color.textMuted}; }
+  .hero-text { font-size: 17px; line-height: 1.7; font-weight: 600; letter-spacing: -0.4px; color: ${color.navy}; word-break: keep-all; }
+  .hero-text.muted, .hero-text .muted { font-size: 16px; font-weight: 500; color: ${color.textSub}; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  @container docent-panel (min-width: 680px) {
+    grid-template-columns: 420px minmax(0, 1fr);
+    .hero-text { font-size: 20px; }
+  }
+`;
+
 export const Panel = styled(Card)`
+  min-width: 0;
+  container: docent-panel / inline-size;
   .tabs { display: flex; gap: 24px; border-bottom: 1px solid ${color.border}; }
   .tabs button { display: flex; align-items: center; gap: 6px; padding: 10px 2px; font-weight: 600; color: ${color.textMuted}; border-bottom: 2px solid transparent; }
   .tabs button[aria-selected='true'] { color: ${color.primary}; border-bottom-color: ${color.primary}; }
@@ -50,6 +73,19 @@ export const Panel = styled(Card)`
   .section strong { display: flex; align-items: center; gap: 6px; font-size: 14px; }
   .section p { margin-top: 4px; font-size: 12px; color: ${color.textMuted}; }
   .pending { margin-top: 8px; font-size: 12px; color: ${color.teal}; }
+  .loading { margin-top: 18px; font-size: 14px; color: ${color.teal}; }
+  .error { margin-top: 18px; display: flex; align-items: center; gap: 12px; color: ${color.coral}; font-size: 14px; }
+  .summary { margin-top: 16px; font-size: 16px; line-height: 1.8; color: ${color.text}; }
+  .section-body { margin-top: 8px !important; font-size: 13px !important; line-height: 1.7; color: ${color.textSub} !important; }
+  .ref-chips { display: flex; gap: 4px; margin-top: 8px !important; }
+  .ref-chips span { padding: 1px 6px; border-radius: ${radius.sm}; background: ${color.primarySoft}; color: ${color.primary}; font-size: 11px; }
+  .news-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .news-list a { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 1px solid ${color.border}; border-radius: ${radius.md}; }
+  .news-list a:hover { border-color: ${color.borderStrong}; background: ${color.bg}; }
+  .news-list strong { display: flex; align-items: center; gap: 4px; font-size: 15px; color: ${color.navyDeep}; }
+  .news-meta { font-size: 12px; color: ${color.teal}; }
+  .news-summary { font-size: 13px; line-height: 1.7; color: ${color.textSub}; }
+  .ai-note { margin-top: 12px; font-size: 12px; color: ${color.textMuted}; }
   .refs { margin-top: 22px; }
   .refs p { margin-top: 4px; font-size: 12px; color: ${color.textMuted}; }
   .ref-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding: 12px 14px; border: 1px solid ${color.border}; border-radius: ${radius.md}; color: ${color.primary}; font-size: 14px; }
@@ -61,5 +97,5 @@ export const Panel = styled(Card)`
   .button:disabled { opacity: 0.6; }
   .news { margin-top: 20px; padding: 18px; border-radius: ${radius.md}; background: ${color.bg}; color: ${color.textSub}; font-size: 14px; line-height: 1.7; }
   .status { margin-top: 10px; font-size: 12px; color: ${color.textMuted}; }
-  .empty { padding: 40px 10px; text-align: center; color: ${color.textMuted}; }
+  .empty { display: grid; justify-items: center; gap: 12px; padding: 24px 10px; text-align: center; color: ${color.textMuted}; }
 `;

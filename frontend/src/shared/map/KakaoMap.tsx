@@ -7,7 +7,7 @@ import { TRAVEL_TEST_IDS } from '../testIds';
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
-interface KakaoMapInstance { setBounds(bounds: KakaoBounds, top?: number, right?: number, bottom?: number, left?: number): void; setCenter(point: KakaoLatLng): void; panTo(point: KakaoLatLng): void; setLevel(level: number): void; getLevel(): number; relayout(): void }
+interface KakaoMapInstance { setBounds(bounds: KakaoBounds, top?: number, right?: number, bottom?: number, left?: number): void; setCenter(point: KakaoLatLng): void; getCenter(): KakaoLatLng; panTo(point: KakaoLatLng): void; setLevel(level: number): void; getLevel(): number; relayout(): void }
 interface KakaoLayer { setMap(map: KakaoMapInstance | null): void }
 interface KakaoSdk {
   load(callback: () => void): void;
@@ -91,8 +91,13 @@ export default function KakaoMap({ jsKey, configLoading, pins, route = [], route
 
   function fit(points: Place[]) {
     const loaded = sdk.current;
-    if (!map.current || !loaded || points.length === 0) return;
-    if (points.length === 1) { map.current.setCenter(new loaded.LatLng(points[0]!.latitude, points[0]!.longitude)); map.current.setLevel(5); return; }
+    if (!map.current || !loaded || points.length === 0 || !container.current?.clientWidth || !container.current.clientHeight) return;
+    // Hidden mobile tabs have no usable pixel bounds. Recalculate only once visible,
+    // before placing a center or calculating the bounds for the current pins.
+    map.current.relayout();
+    // Centering at the old world zoom rounds coordinates to coarse pixels; zoom
+    // first so a single pin remains centered at the final map resolution.
+    if (points.length === 1) { map.current.setLevel(5); map.current.setCenter(new loaded.LatLng(points[0]!.latitude, points[0]!.longitude)); return; }
     const bounds = new loaded.LatLngBounds();
     points.forEach((place) => bounds.extend(new loaded.LatLng(place.latitude, place.longitude)));
     map.current.setBounds(bounds, 48, 48, 48, 48);
@@ -134,7 +139,20 @@ export default function KakaoMap({ jsKey, configLoading, pins, route = [], route
 
   useEffect(() => {
     if (!container.current || status !== 'ready') return;
-    const observer = new ResizeObserver(() => { map.current?.relayout(); });
+    let visible = false;
+    const observer = new ResizeObserver(() => {
+      const element = container.current;
+      const current = map.current;
+      if (!element || !current || !element.clientWidth || !element.clientHeight) { visible = false; return; }
+      if (!visible) fit(pinsRef.current.map((pin) => pin.place));
+      else {
+        // A normal resize must keep the user's manually chosen map center.
+        const center = current.getCenter();
+        current.relayout();
+        current.setCenter(center);
+      }
+      visible = true;
+    });
     observer.observe(container.current);
     return () => observer.disconnect();
   }, [status]);

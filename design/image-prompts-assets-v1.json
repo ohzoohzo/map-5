@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "created": "2026-10-23",
+  "tool": "built-in image_gen",
+  "purpose": "PinDay decorative illustrations; these are not photographs of real attractions.",
+  "session": "codex://threads/01a167e9-b7e8-73b0-a173-effd7b76f724",
+  "assets": [
+    {
+      "file": "frontend/public/images/pinday/taste-slow-alley.png",
+      "url": "/images/pinday/taste-slow-alley.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nSquare standalone transparent cutout illustration. A relaxed young adult traveler with a folded map strolling a charming colorful hillside alley, small cafe doorway and a potted plant suggested in a compact vignette. Slow walking and curiosity, calm and unhurried. Navy, pale aqua and warm coral accents. No solid background."
+    },
+    {
+      "file": "frontend/public/images/pinday/taste-sea-healing.png",
+      "url": "/images/pinday/taste-sea-healing.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nSquare standalone transparent cutout illustration. A relaxed traveler sitting on a beach deck with a sun hat, a tiny beach umbrella and calm turquoise waves forming a compact vignette. Restful seaside afternoon with soft sea breeze, no detailed skyline. Same navy outlines and travel editorial style. No solid background."
+    },
+    {
+      "file": "frontend/public/images/pinday/taste-culture.png",
+      "url": "/images/pinday/taste-culture.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nSquare standalone transparent cutout illustration. A curious adult traveler with notebook and small camera appreciating abstract framed art in a compact museum/gallery vignette. Include a simple elegant museum arch shape. Art is generic geometric shapes. Smart, curious, cultured travel mood. No solid background."
+    },
+    {
+      "file": "frontend/public/images/pinday/taste-active.png",
+      "url": "/images/pinday/taste-active.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nSquare standalone transparent cutout illustration. An energetic adult traveler wearing a small backpack, walking a gentle coastal hill trail with a tiny cable car gondola and a sun shape in a compact vignette. Joyful active exploration, not extreme sport. Same navy line style, aqua and coral accents. No solid background."
+    },
+    {
+      "file": "frontend/public/images/pinday/travel-random.png",
+      "url": "/images/pinday/travel-random.png",
+      "transparent_background": true,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nSquare standalone transparent cutout illustration. A folded pale aqua travel map, one large cobalt blue map pin and a white rounded dice with navy pips, a few tiny sparkling strokes. Compact playful random trip discovery concept; tasteful soft dimension, same editorial linework. No people and no words. No solid background."
+    },
+    {
+      "file": "frontend/public/images/pinday/busan-hero.png",
+      "url": "/images/pinday/busan-hero.png",
+      "transparent_background": false,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nWide panoramic 2.5:1 decorative illustrated coastal Busan moodscape for the homepage hero. Calm blue sea, elegant long bridge in the distance, a curving sandy bay, low green hills, a tasteful coastal city skyline clustered on the RIGHT HALF. Most detail and focal scenery on the right. LEFT HALF has very pale sky/water, low contrast and clear open negative space so navy heading text can sit above it in HTML. No text in image. Soft summer light, refined broad editorial color shapes. It must read as an illustration, not a claimed real-place photograph."
+    },
+    {
+      "file": "frontend/public/images/pinday/coastal-train.png",
+      "url": "/images/pinday/coastal-train.png",
+      "transparent_background": false,
+      "prompt": "Use case: illustration-story. Production raster asset for PinDay, a Korean Busan trip planner. Cohesive sophisticated travel editorial illustration: clean navy outlines, soft paper-like color blocks, subtle depth, airy composition, pale aqua, turquoise, cobalt blue and restrained warm coral. Friendly adult 20s–30s travel mood, polished app illustration rather than childish clipart. NO words, typography, UI, labels, logos, watermark or frame. Not a photograph or factual depiction of a specific attraction. One main focal group, generous breathing room, no cropped focal objects.\nPortrait 3:4 editorial travel illustration for a narrow homepage feature-card picture. A small blue-and-white coastal rail cabin on a curving track above turquoise sea, lush green coastal trees and a distant pale city silhouette. Camera diagonal from above, train centered in lower half, landscape fills vertical composition. Calm, inviting travel mood. Illustration, not a real-location photograph. No text."
+    }
+  ]
+}

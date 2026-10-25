@@ -38,3 +38,19 @@ class WeatherAlternatives(StrictModel):
     radius_km: float
     source: str
     source_url: str
+
+
+class WeatherPhoto(StrictModel):
+    url: str
+    title: str
+    photographer: str
+    # place = 그 장소 사진, related = 이름의 주요 단어(예: 해리단길) 사진, area = 구·군/시·도 지역 사진
+    match: Literal["place", "related", "area"]
+    label: str  # related/area 일 때 무엇의 사진인지 (예: '기장군')
+    source: str
+    source_url: str
+
+
+class WeatherPhotoResponse(StrictModel):
+    # None = 이 장소와 맞는 사진이 없음 (키 없음·실패 포함) → 화면은 아이콘으로 대신
+    photo: WeatherPhoto | None

@@ -28,7 +28,14 @@ python tools/dev.py               # 화면 http://localhost:8501 · API http://l
 1. **내 폴더만 고친다.** 화면·메뉴·문구·API 라우터는 폴더만 만들면 자동 등록된다.
 2. 공통 파일(`App.tsx`, `src/i18n.ts`, `src/styles.ts`, `src/shared/`, `backend/app/main.py·models.py·settings.py`, `.env.example`)은 따로 작은 PR → 여원 리뷰.
 3. 브랜치 `feat/<id>-<작업>` → PR → 리뷰 1명 → merge. main 직접 push 금지.
-4. 작업 전·PR 전에 `git pull origin main`.
+4. 작업 전·PR 전에 `git pull origin main`. pull 로 `frontend/package.json`·`bun.lock` 이 바뀌었으면 `cd frontend && bun install`, `backend/requirements*.txt` 가 바뀌었으면 pip 재설치 후 **개발 서버 재시작** (안 하면 `Outdated Optimize Dep`·`Invalid hook call`·타입 오류가 납니다).
 5. API 를 바꾸면 `python tools/gen_api.py` 실행 후 생성 파일도 커밋. 생성 파일 충돌 = 아무쪽이나 받고 다시 생성.
 
 자세한 에이전트용 규칙: [CLAUDE.md](CLAUDE.md)
+
+## 배포 (Vercel)
+Vercel 프로젝트 2개 (팀 `youn-yeo-wons-projects`): 백엔드 `pinday-api`(저장소 루트, FastAPI) · 프론트 `pinday-web`(`frontend/`, Vite).
+- **백엔드**: 저장소 루트에서 `vercel deploy --prod`. 루트 `index.py` 가 `backend.app.main:app` 을 노출하고, `data/clean.csv` 가 함께 올라간다. 루트 `requirements.txt` 는 `backend/requirements.txt` 중 서버 런타임에 필요한 부분집합이다(테스트가 어긋남을 확인).
+- **프론트**: `frontend/` 에서 `vercel deploy --prod`. `frontend/vercel.json` 이 `/api/*` 를 `https://pinday-api.vercel.app` 으로 넘기고 나머지 경로는 `index.html` 로 보낸다(SPA).
+- **키**: 백엔드 프로젝트에만 넣는다. `vercel env add KAKAO_REST_API_KEY production` (`.env` 는 올라가지 않는다). 새 기능 키(`DATA_GO_KR_SERVICE_KEY`, `OPENWEATHER_API_KEY`, `OPENAI_API_KEY`)도 같은 방식으로 추가한 뒤 다시 배포한다.
+- **카카오 콘솔**: JS 키의 Web 도메인에 `https://pinday-web.vercel.app` 을 등록해야 지도가 뜬다. REST 키에 허용 IP 제한이 있으면 Vercel 에서 장소 검색(맛집·카페·쇼핑)이 거부된다.

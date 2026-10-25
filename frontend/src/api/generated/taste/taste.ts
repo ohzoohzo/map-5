@@ -24,7 +24,10 @@ import type {
   FeatureStatus
 } from '../model';
 
+import { apiFetch } from '../../client.ts';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -54,23 +57,16 @@ export const getTasteStatusUrl = () => {
 /**
  * @summary Taste Status
  */
-export const tasteStatus = async ( options?: RequestInit): Promise<FeatureStatus> => {
+export const tasteStatus = async ( options?: Parameters<typeof apiFetch>[1]): Promise<FeatureStatus> => {
 
-  const res = await fetch(getTasteStatusUrl(),
+  return apiFetch<FeatureStatus>(getTasteStatusUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: FeatureStatus = body ? JSON.parse(body) : {}
-  return data
-}
+);}
 
 
 
@@ -83,16 +79,16 @@ export const getTasteStatusQueryKey = () => {
     }
 
 
-export const getTasteStatusQueryOptions = <TData = Awaited<ReturnType<typeof tasteStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, fetch?: RequestInit}
+export const getTasteStatusQueryOptions = <TData = Awaited<ReturnType<typeof tasteStatus>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getTasteStatusQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasteStatus>>> = ({ signal }) => tasteStatus({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tasteStatus>>> = ({ signal }) => tasteStatus({ signal, ...requestOptions });
 
 
 
@@ -112,7 +108,7 @@ export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, 
           TError,
           Awaited<ReturnType<typeof tasteStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, TError = ErrorResponse>(
@@ -122,11 +118,11 @@ export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, 
           TError,
           Awaited<ReturnType<typeof tasteStatus>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -134,7 +130,7 @@ export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, 
  */
 
 export function useTasteStatus<TData = Awaited<ReturnType<typeof tasteStatus>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tasteStatus>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

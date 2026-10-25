@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { request, type Place } from '../../api/client';
-import { getWeatherAlternativesUrl, getWeatherForecastUrl } from '../../api/generated/weather/weather';
-import type { WeatherAlternatives, WeatherForecast, WeatherSlot } from '../../api/generated/model';
+import type { Place } from '../../api/client';
+import { weatherAlternatives, weatherForecast } from '../../api/generated/weather/weather';
+import type { WeatherSlot } from '../../api/generated/model';
 
-// 생성된 fetch 함수는 4xx/5xx 도 성공으로 돌려주므로, URL 만 쓰고 요청은 공통 request() 로 보낸다 (실패 시 ApiError)
+// 생성 함수는 4xx/5xx 에서 ApiError 를 던진다 (#26). 장소가 정해지기 전엔 요청하지 않도록 enabled 로 막는다.
 export function useForecast(place: Place | undefined, date: string | undefined) {
   return useQuery({
     queryKey: ['weather', 'forecast', place?.latitude, place?.longitude, date],
-    queryFn: ({ signal }) => request<WeatherForecast>(getWeatherForecastUrl({ latitude: place!.latitude, longitude: place!.longitude, date: date! }), signal),
-    enabled: place !== undefined && date !== undefined,
+    queryFn: ({ signal }) => weatherForecast({ latitude: place!.latitude, longitude: place!.longitude, date: date! }, { signal }),
+    enabled: place !== undefined && Boolean(date),
     staleTime: 10 * 60_000,
   });
 }
@@ -16,7 +16,7 @@ export function useForecast(place: Place | undefined, date: string | undefined) 
 export function useAlternatives(place: Place | undefined) {
   return useQuery({
     queryKey: ['weather', 'alternatives', place?.id],
-    queryFn: ({ signal }) => request<WeatherAlternatives>(getWeatherAlternativesUrl({ latitude: place!.latitude, longitude: place!.longitude, name: place!.name }), signal),
+    queryFn: ({ signal }) => weatherAlternatives({ latitude: place!.latitude, longitude: place!.longitude, name: place!.name }, { signal }),
     enabled: place !== undefined,
     staleTime: Infinity,
   });
@@ -39,10 +39,27 @@ export function summarizeRain(slots: WeatherSlot[]): RainSummary {
   return { rainy: true, start: hourOf(rainy[0]!), end: Math.min(24, hourOf(rainy[rainy.length - 1]!) + 3), max };
 }
 
+/** 비 구간을 시안처럼 '오전/오후/저녁/종일'로 부른다. 애매하면 빈 문자열 */
+export function rainPeriod(start: number, end: number): string {
+  if (start <= 3 && end >= 21) return '종일';
+  if (start >= 18) return '저녁';
+  if (start >= 12) return '오후';
+  if (end <= 12) return '오전';
+  return '';
+}
+
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** '2026-10-25' → '10.25 (일)' */
+/** '2026-10-25' → '10.25 일요일' (예보 카드 머리글) */
+export function formatDayLong(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+  const day = new Date(`${date}T00:00:00`);
+  return `${day.getMonth() + 1}.${day.getDate()} ${WEEKDAYS[day.getDay()]}요일`;
+}
+
+/** '2026-10-25' → '10.25 (일)'. 날짜가 아직 없는 DAY(이전 일정에서 옮겨 온 경우)는 빈 문자열 */
 export function formatDay(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
   const day = new Date(`${date}T00:00:00`);
   return `${day.getMonth() + 1}.${day.getDate()} (${WEEKDAYS[day.getDay()]})`;
 }

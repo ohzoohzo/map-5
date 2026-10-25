@@ -1,17 +1,20 @@
 import { useState, type MouseEvent } from 'react';
 import styled from '@emotion/styled';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Backpack, CalendarDays, Check, ChevronDown, Dices, Map as MapIcon, MapPin, Plus, Search, Tag, Umbrella } from 'lucide-react';
+import { ArrowRight, Backpack, CalendarDays, Check, ChevronDown, Map as MapIcon, MapPin, Plus, Search, Tag, Umbrella } from 'lucide-react';
 import { navigate } from '../../shared/router';
+import RandomPick from './RandomPick';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import { color, font, layout, radius } from '../../shared/design/tokens';
 
 // 시안: design/pinday-home-v3.png
-// 사진이 생기면 아래 경로만 채우면 된다 (예: '/images/home-hero.jpg'). 비어 있으면 색 배경으로 자리만 잡는다.
-const HERO_IMAGE = '';
-const TRAIN_IMAGE = '';
+// 홈 장식용 생성 일러스트. 실제 관광지 사진과 구분한다.
+const HERO_IMAGE = '/images/pinday/busan-hero.png';
+const TRAIN_IMAGE = '/images/pinday/coastal-train.png';
 
-const DESTINATIONS = ['busan'] as const;
+// 화면에는 짧은 이름(i18n), 저장은 카탈로그 region 과 같은 시·도 전체 이름 (TripBar 와 같은 약속)
+const DESTINATIONS = [{ id: 'busan', value: '부산광역시' }] as const;
+type DestinationId = (typeof DESTINATIONS)[number]['id'];
 const TAGS = ['food', 'walk', 'exhibit'] as const;
 type TagId = (typeof TAGS)[number];
 
@@ -53,8 +56,9 @@ export default function HomePage() {
   const { t } = useTranslation('home');
   const savedStart = useTrip((trip) => trip.startDate);
   const savedEnd = useTrip((trip) => trip.endDate);
+  const savedDestination = useTrip((trip) => trip.destination);
 
-  const [destination, setDestination] = useState<string>(DESTINATIONS[0]);
+  const [destination, setDestination] = useState<DestinationId>(DESTINATIONS[0].id);
   // 저장된 여행이 있으면 그 날짜, 없으면 내일부터 2박 3일
   const [startDate, setStartDate] = useState(savedStart || addDays(1));
   const [endDate, setEndDate] = useState(savedEnd || addDays(3));
@@ -62,6 +66,8 @@ export default function HomePage() {
 
   const nights = nightsBetween(startDate, endDate);
   const canStart = nights >= 0;
+  const selectedDestination = DESTINATIONS.find((item) => item.id === destination)!.value;
+  const randomDestination = savedDestination || selectedDestination;
 
   function changeStart(value: string) {
     setStartDate(value);
@@ -74,8 +80,14 @@ export default function HomePage() {
 
   function startTrip() {
     if (!canStart) return;
-    tripActions.setTrip(t(`search.destinations.${destination}`), startDate, endDate);
+    tripActions.setTrip(selectedDestination, startDate, endDate);
     navigate('/explore');
+  }
+
+  // 랜덤 뽑기에서 "어디 갈까?에서 보기": 아직 여행 조건이 없으면 검색창의 목적지·날짜로 시작한다
+  function exploreFromRandom() {
+    if (!savedDestination && canStart) startTrip();
+    else navigate('/explore');
   }
 
   const steps = [
@@ -101,8 +113,8 @@ export default function HomePage() {
             <label className="field-body">
               <span className="field-label">{t('search.whereLabel')}</span>
               <span className="dest-select">
-                <select value={destination} onChange={(event) => setDestination(event.target.value)}>
-                  {DESTINATIONS.map((id) => <option key={id} value={id}>{t(`search.destinations.${id}`)}</option>)}
+                <select value={destination} onChange={(event) => setDestination(event.target.value as DestinationId)}>
+                  {DESTINATIONS.map(({ id }) => <option key={id} value={id}>{t(`search.destinations.${id}`)}</option>)}
                 </select>
                 <ChevronDown size={20} aria-hidden />
               </span>
@@ -190,21 +202,7 @@ export default function HomePage() {
             <div className="photo" aria-hidden style={{ background: photoBackground(TRAIN_IMAGE, `linear-gradient(160deg, ${color.primarySoft} 0%, ${color.borderStrong} 100%)`) }} />
           </section>
 
-          <section className="card random-card">
-            <div className="random-head">
-              <div>
-                <h2>{t('random.title')}</h2>
-                <p className="card-sub">{t('random.subtitle')}</p>
-              </div>
-              <span className="illust" aria-hidden>
-                <MapIcon size={64} strokeWidth={1.2} />
-                <MapPin className="pin" size={46} fill={color.primary} color={color.surface} strokeWidth={1.5} />
-                <Dices className="dice" size={38} strokeWidth={1.5} />
-              </span>
-            </div>
-            {/* 랜덤 뽑기 기능은 다음 작업에서 연결 (docs/team/woohyun.md) */}
-            <button type="button" className="outline">{t('random.cta')}</button>
-          </section>
+          <RandomPick key={randomDestination} destination={randomDestination} onExplore={exploreFromRandom} />
         </Cards>
 
         <Footer>

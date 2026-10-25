@@ -58,6 +58,11 @@ const ExploreLayout = styled(PinDayPage)`
     .explore-grid .place-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
+  @media (min-width: 721px) and (max-width: 874px) {
+    .trip-bar-wrap .trip-counts { width: 100%; margin-left: 0; }
+    .trip-bar-wrap .count-chip { flex: 1; justify-content: center; }
+  }
+
   @media (min-width: 1280px) {
     .explore-grid .place-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }

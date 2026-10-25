@@ -216,6 +216,22 @@ test('중간 너비에서도 장소 목록 왼쪽·지도 오른쪽을 유지한
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
 });
 
+test('여행 단계 버튼이 두 번째 줄이면 양옆을 채운다', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 });
+  await startTrip(page);
+  const tripBar = page.locator('.trip-bar');
+  const facts = tripBar.locator('.trip-fact');
+  const counts = tripBar.locator('.trip-counts');
+  const buttons = counts.locator('.count-chip');
+  const factBottom = await facts.last().evaluate((element) => element.getBoundingClientRect().bottom);
+  const countsBounds = await counts.boundingBox();
+  const barBounds = await tripBar.boundingBox();
+  expect(countsBounds!.y).toBeGreaterThan(factBottom);
+  expect(countsBounds!.width / barBounds!.width).toBeGreaterThan(0.9);
+  const buttonBounds = await Promise.all([buttons.nth(0).boundingBox(), buttons.nth(1).boundingBox()]);
+  expect(buttonBounds[0]!.width).toBeCloseTo(buttonBounds[1]!.width, 0);
+});
+
 for (const width of [1280, 1440]) {
   test(`${width}px 화면에서 목록은 왼쪽, 지도는 오른쪽에 두고 목록을 5열로 표시한다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

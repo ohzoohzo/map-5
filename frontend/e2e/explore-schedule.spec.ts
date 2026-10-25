@@ -167,6 +167,8 @@ test('중간 너비에서도 지도를 300px 높이로 표시한다', async ({ p
   await page.setViewportSize({ width: 1140, height: 900 });
   await startTrip(page);
   expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
+  const placeGrid = page.getByTestId(IDS.PLACE_GRID);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
 });
 
 test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목록을 5열 전체 폭으로 표시한다', async ({ page }) => {

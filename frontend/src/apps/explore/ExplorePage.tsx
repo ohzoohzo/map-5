@@ -88,6 +88,9 @@ const ExploreLayout = styled(PinDayPage)`
     .explore-grid > .explore-map { width: 100%; min-width: 0; }
     .explore-grid > .explore-map .map-frame { height: 450px; min-height: 450px; }
     .explore-grid .place-grid { max-height: 450px; }
+    .explore-list .result-label,
+    .explore-list .result-source,
+    .explore-map .map-popup { display: none; }
   }
 `;
 
@@ -210,8 +213,8 @@ export default function ExplorePage() {
           <section className="explore-list" aria-label={t('placeListLabel')}>
             <div className="list-body mobile-active">
               <div className="result-line">
-                <Typography variant="label1" color="semantic.foreground.neutral.secondary">{t('resultCount')} <strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</Typography>
-                <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
+                <Typography variant="label1" color="semantic.foreground.neutral.secondary"><span className="result-label">{t('resultCount')}</span><span className="result-total"><strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</span></Typography>
+                <Typography className="result-source" variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
               </div>
               {searchBlocked ? <Fallback title={t('searchDisabled')} description={t('searchDisabledDetail')} />
                 : loading ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>

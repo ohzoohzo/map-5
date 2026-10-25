@@ -174,6 +174,20 @@ test('가장 작은 화면은 리스트 절반과 지도 절반을 나란히 보
   expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(450);
 });
 
+test('가장 작은 화면은 결과를 숫자와 단위만 표시하고 지도 팝업을 숨긴다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const catalog = await startTrip(page);
+  const place = catalog.places[0]!;
+  const resultLine = page.locator('.result-line');
+  await expect(resultLine.getByTestId(IDS.RESULT_COUNT)).toBeVisible();
+  await expect(resultLine.locator('.result-label')).toBeHidden();
+  await expect(resultLine.locator('.result-source')).toBeHidden();
+  await expect(resultLine.locator('> :first-child')).toContainText(`${catalog.total}곳`);
+
+  await page.getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
+  await expect(page.locator('.map-popup')).toBeHidden();
+});
+
 test('좁은 반응형에서도 리스트와 지도를 좌우 반반으로 나눈다', async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 });
   await startTrip(page);

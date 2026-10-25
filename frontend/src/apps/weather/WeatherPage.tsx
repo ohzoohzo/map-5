@@ -62,7 +62,7 @@ export default function WeatherPage() {
 
   return (
     <WeatherPageLayout>
-      <TripBar page="schedule" />
+      <TripBar page="weather" navigationMode="beforeTravel" />
       <WeatherSection>
         {notice && (
           <div role="status">

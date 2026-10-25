@@ -33,7 +33,7 @@ const ExploreLayout = styled(PinDayPage)`
   @media (max-width: 1100px) {
     .explore-grid { display: flex; flex-direction: column; gap: 12px; }
     .explore-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
-    .map-frame { height: 100px; min-height: 100px; }
+    .map-frame { height: 250px; min-height: 250px; }
     .map-legend { display: none; }
     .filter-row { margin-bottom: 0; overflow: visible; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }

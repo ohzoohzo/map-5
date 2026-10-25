@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Option, SectionMessage, Select, TextButton, TextField, Typography } from '@montage-ui/core';
 import { IconBookmark, IconCalendar, IconLocation, IconPencil } from '@montage-ui/icon';
+import { CloudRain, Route } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getCatalog } from '../../api/client';
 import { TRAVEL_TEST_IDS } from '../testIds';
@@ -15,8 +16,12 @@ const MAX_TRIP_DAYS = 7;
 // 데이터에 '강원도'와 '강원특별자치도'처럼 짧은 이름이 같은 시·도가 함께 있으면 전체 이름으로 구분한다.
 const optionLabel = (province: string, all: string[]) => all.filter((other) => shortProvince(other) === shortProvince(province)).length > 1 ? province : shortProvince(province);
 
-/** 어디 갈까?·언제 갈까? 위의 여행 조건 바: 목적지·날짜·후보 수·일정 수와 조건 수정 */
-export default function TripBar({ page, showStepLabels = false }: { page: 'explore' | 'schedule'; showStepLabels?: boolean }) {
+/** 여행 계획과 이동 전 확인 화면의 목적지·날짜·단계 탐색 바 */
+export default function TripBar({ page, showStepLabels = false, navigationMode = 'steps' }: {
+  page: 'explore' | 'schedule' | 'transport' | 'weather';
+  showStepLabels?: boolean;
+  navigationMode?: 'steps' | 'beforeTravel';
+}) {
   const { t } = useTranslation('trip');
   const trip = useTrip((current) => current);
   const storageIssue = useTripStorageIssue();
@@ -34,16 +39,25 @@ export default function TripBar({ page, showStepLabels = false }: { page: 'explo
         <span className="trip-fact"><IconCalendar />{dates}</span>
         {trip.destination !== '' && <TextButton size="small" color="assistive" leadingContent={<IconPencil />} onClick={() => setEditing(!editing)} aria-expanded={open}>{t('editConditions')}</TextButton>}
         <span className="trip-counts">
-          <button type="button" className={page === 'explore' ? 'count-chip active' : 'count-chip'} aria-label={showStepLabels ? t('candidateStep') : undefined} onClick={() => navigate('/explore')}>
-            <IconBookmark />
-            {showStepLabels ? t('candidateStep') : <>{t('candidateCount')} <strong data-testid={TRAVEL_TEST_IDS.CANDIDATE_COUNT}>{trip.candidateIds.length}</strong>{t('placeUnit')}</>}
-            {showStepLabels && <span className="sr-only" aria-hidden="true" data-testid={TRAVEL_TEST_IDS.CANDIDATE_COUNT}>{trip.candidateIds.length}</span>}
-          </button>
-          <button type="button" className={page === 'schedule' ? 'count-chip active' : 'count-chip'} aria-label={showStepLabels ? t('scheduleStep') : undefined} onClick={() => navigate('/schedule')}>
-            <IconCalendar />
-            {showStepLabels ? t('scheduleStep') : <>{t('scheduledCount')} <strong data-testid={TRAVEL_TEST_IDS.SCHEDULED_COUNT}>{scheduledCount(trip)}</strong>{t('placeUnit')}</>}
-            {showStepLabels && <span className="sr-only" aria-hidden="true" data-testid={TRAVEL_TEST_IDS.SCHEDULED_COUNT}>{scheduledCount(trip)}</span>}
-          </button>
+          {navigationMode === 'beforeTravel' ? <>
+            <button type="button" className={page === 'transport' ? 'count-chip active' : 'count-chip'} onClick={() => navigate('/transport')} aria-current={page === 'transport' ? 'page' : undefined}>
+              <Route />{t('transportPage')}
+            </button>
+            <button type="button" className={page === 'weather' ? 'count-chip active' : 'count-chip'} onClick={() => navigate('/weather')} aria-current={page === 'weather' ? 'page' : undefined}>
+              <CloudRain />{t('weatherPage')}
+            </button>
+          </> : <>
+            <button type="button" className={page === 'explore' ? 'count-chip active' : 'count-chip'} aria-label={showStepLabels ? t('candidateStep') : undefined} onClick={() => navigate('/explore')}>
+              <IconBookmark />
+              {showStepLabels ? t('candidateStep') : <>{t('candidateCount')} <strong data-testid={TRAVEL_TEST_IDS.CANDIDATE_COUNT}>{trip.candidateIds.length}</strong>{t('placeUnit')}</>}
+              {showStepLabels && <span className="sr-only" aria-hidden="true" data-testid={TRAVEL_TEST_IDS.CANDIDATE_COUNT}>{trip.candidateIds.length}</span>}
+            </button>
+            <button type="button" className={page === 'schedule' ? 'count-chip active' : 'count-chip'} aria-label={showStepLabels ? t('scheduleStep') : undefined} onClick={() => navigate('/schedule')}>
+              <IconCalendar />
+              {showStepLabels ? t('scheduleStep') : <>{t('scheduledCount')} <strong data-testid={TRAVEL_TEST_IDS.SCHEDULED_COUNT}>{scheduledCount(trip)}</strong>{t('placeUnit')}</>}
+              {showStepLabels && <span className="sr-only" aria-hidden="true" data-testid={TRAVEL_TEST_IDS.SCHEDULED_COUNT}>{scheduledCount(trip)}</span>}
+            </button>
+          </>}
         </span>
       </div>
       {open && <ConditionsForm key={`${trip.destination}-${trip.startDate}-${trip.endDate}`} onDone={() => setEditing(false)} />}

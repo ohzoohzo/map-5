@@ -250,7 +250,9 @@ test.describe('터치로 확인하는 사진 출처', () => {
     await expect(page.locator(`a[href="${photoUrl(place.id)}"]`)).toBeVisible();
     await noHorizontalOverflow(page);
     await page.screenshot({ path: testInfo.outputPath('photo-sources-mobile.png') });
-    await page.locator('.main-nav a[href="/schedule"]').tap();
+    await page.locator('.main-nav a[href="/explore"]').tap();
+    await expect(page).toHaveURL(/\/explore$/);
+    await page.getByRole('button', { name: '2. 언제 갈까?', exact: true }).tap();
     await expect(page).toHaveURL(/\/schedule$/);
     await expectNames(page, IDS.ITINERARY_LIST, [place.name]);
     expect(await page.evaluate(() => localStorage.getItem('pinday.trip.v1'))).toBe(before);

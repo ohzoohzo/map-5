@@ -28,7 +28,7 @@ const ScheduleLayout = styled(PinDayPage)`
   @media (max-width: 1100px) {
     .planner-grid { display: flex; flex-direction: column; gap: 16px; }
     .planner-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
-    .map-frame { height: 100px; min-height: 100px; }
+    .map-frame { height: 250px; min-height: 250px; }
     .map-legend { display: none; }
     .schedule-panel, .docent-side { width: 100%; }
   }

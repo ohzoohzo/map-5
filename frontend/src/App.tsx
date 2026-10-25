@@ -15,6 +15,12 @@ export default function App() {
   const pathname = usePathname();
   const activeApp = apps.find((app) => app.path === pathname) ?? apps.find((app) => app.path === '/');
   const ActiveComponent = activeApp?.component;
+  const navGroups = [
+    { app: apps.find((app) => app.id === 'home'), titleKey: 'navHome', activePaths: ['/'] },
+    { app: apps.find((app) => app.id === 'explore'), titleKey: 'navPlanning', activePaths: ['/explore', '/schedule'] },
+    { app: apps.find((app) => app.id === 'before-travel'), titleKey: 'navBeforeTravel', activePaths: ['/before-travel', '/transport', '/weather'] },
+    { app: apps.find((app) => app.id === 'docent'), titleKey: 'navDocent', activePaths: ['/docent'] },
+  ].filter((item): item is { app: AppDefinition; titleKey: string; activePaths: string[] } => item.app !== undefined);
 
   return (
     <Shell>
@@ -27,11 +33,14 @@ export default function App() {
             <span>{t('brand')}<span className="brand-dot">.</span></span>
           </Link>
           <nav className="main-nav" aria-label={t('appTitle')}>
-            {apps.filter((app) => app.nav !== false).map((app) => (
-              <Link key={app.id} href={app.path} className={app === activeApp ? 'nav-item active' : 'nav-item'} aria-current={app === activeApp ? 'page' : undefined}>
-                <app.icon size={16} />{t(app.titleKey)}
-              </Link>
-            ))}
+            {navGroups.map(({ app, titleKey, activePaths }) => {
+              const active = activePaths.includes(pathname);
+              return (
+                <Link key={app.id} href={app.path} className={active ? 'nav-item active' : 'nav-item'} aria-current={active ? 'page' : undefined}>
+                  <app.icon size={16} />{t(titleKey)}
+                </Link>
+              );
+            })}
           </nav>
           <span className="header-note">{t('headerNote')}<ArrowUpRight size={15} /></span>
         </div>

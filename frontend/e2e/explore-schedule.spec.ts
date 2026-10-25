@@ -6,8 +6,8 @@ test('어디 갈까?: 시·도와 동네로 실제 관광지를 좁히고 후보
   expect(busan.places.every((place) => place.address.startsWith('부산'))).toBe(true);
   await expect(page.getByRole('heading', { name: '가고 싶은 곳을, 나의 하루에' })).toBeVisible();
   await expect(page.getByText('여행 장소를 담고, 일정과 동선을 계획해요.')).toBeVisible();
-  await expect(page.getByRole('button', { name: '1. 장소 선택', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '2. 일정 선택', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '1. 어디 갈까?', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '2. 언제 갈까?', exact: true })).toBeVisible();
   const desktopPositions = await page.evaluate(() => ({
     listLeft: document.querySelector('.explore-list').getBoundingClientRect().left,
     mapLeft: document.querySelector('.explore-map').getBoundingClientRect().left,
@@ -40,7 +40,33 @@ test('어디 갈까?: 시·도와 동네로 실제 관광지를 좁히고 후보
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText(second ? '2' : '1');
 });
 
-test('모바일 어디 갈까?: 필터 다음에 100px sticky 지도를 두고 장소 카드를 아래로 배치한다', async ({ page }) => {
+test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버튼을 연결한다', async ({ page }) => {
+  await startTrip(page);
+  const navigation = page.getByRole('navigation', { name: '여행 설계' });
+  await expect(navigation.getByRole('link')).toHaveCount(4);
+  await expect(navigation.getByRole('link', { name: '홈' })).toHaveAttribute('href', '/');
+  await expect(navigation.getByRole('link', { name: '여행 계획하기' })).toHaveAttribute('href', '/explore');
+  await expect(navigation.getByRole('link', { name: 'AI 도슨트' })).toHaveAttribute('href', '/docent');
+
+  await navigation.getByRole('link', { name: '이동 전 확인하기' }).click();
+  await expect(page).toHaveURL(/\/before-travel$/);
+  await expect(page.getByRole('heading', { name: '이동 전 확인하기' })).toBeVisible();
+  await page.getByRole('button', { name: '이동 경로 확인' }).click();
+  await expect(page).toHaveURL(/\/transport$/);
+
+  await navigation.getByRole('link', { name: '이동 전 확인하기' }).click();
+  await page.getByRole('button', { name: '날씨 대안 확인' }).click();
+  await expect(page).toHaveURL(/\/weather$/);
+  const weatherNavigation = page.locator('.trip-counts');
+  await expect(weatherNavigation.getByRole('button', { name: '어떻게 갈까?', exact: true })).toBeVisible();
+  await expect(weatherNavigation.getByRole('button', { name: '날씨 대안', exact: true })).toBeVisible();
+  await expect(weatherNavigation.getByTestId(IDS.CANDIDATE_COUNT)).toHaveCount(0);
+  await expect(weatherNavigation.getByTestId(IDS.SCHEDULED_COUNT)).toHaveCount(0);
+  await weatherNavigation.getByRole('button', { name: '어떻게 갈까?', exact: true }).click();
+  await expect(page).toHaveURL(/\/transport$/);
+});
+
+test('모바일 어디 갈까?: 필터 다음에 250px sticky 지도를 두고 장소 카드를 아래로 배치한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startTrip(page);
 
@@ -72,7 +98,7 @@ test('모바일 어디 갈까?: 필터 다음에 100px sticky 지도를 두고 �
   expect(layout.filterOverflowX).not.toBe('auto');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
-  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(100);
+  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
   await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => page.locator('.trip-bar-wrap').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);
   await expect.poll(() => map.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(148);
@@ -86,8 +112,8 @@ test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이
   await expect(page).toHaveURL(/\/schedule$/);
   await expect(page.getByRole('heading', { name: '가고 싶은 곳을, 나의 하루에' })).toBeVisible();
   await expect(page.getByText('여행 장소를 담고, 일정과 동선을 계획해요.')).toBeVisible();
-  await expect(page.getByRole('button', { name: '1. 장소 선택', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '2. 일정 선택', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '1. 어디 갈까?', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '2. 언제 갈까?', exact: true })).toBeVisible();
   await expectNames(page, IDS.UNSCHEDULED_LIST, [a!.name, b!.name, c!.name]);
 
   await page.getByRole('button', { name: `${a!.name} DAY 1에 추가` }).click();
@@ -121,7 +147,7 @@ test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('3');
 });
 
-test('모바일 언제 갈까?: 일정 정보보다 먼저 100px sticky 지도를 표시한다', async ({ page }) => {
+test('모바일 언제 갈까?: 일정 정보보다 먼저 250px sticky 지도를 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const busan = await startTrip(page);
   const place = busan.places[0]!;
@@ -133,7 +159,7 @@ test('모바일 언제 갈까?: 일정 정보보다 먼저 100px sticky 지도�
   await expect(map).toBeVisible();
   await expect(panel).toBeVisible();
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('sticky');
-  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(100);
+  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(250);
   expect((await map.boundingBox())!.y).toBeLessThan((await panel.boundingBox())!.y);
   await page.evaluate(() => window.scrollTo(0, 700));
   await expect.poll(() => page.locator('.trip-bar-wrap').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(0);

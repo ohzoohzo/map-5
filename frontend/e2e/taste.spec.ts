@@ -30,7 +30,7 @@ test('취향 결과를 저장해 다시 보고, 후보를 토글해도 기존 �
   await expect(page.getByRole('button', { name: '결과 카드 공유', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: `${gamcheon.name} 후보함에 저장`, exact: true }).click();
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
-  await page.getByRole('link', { name: '언제 갈까?', exact: true }).click();
+  await page.locator('.trip-counts').getByRole('button').filter({ hasText: '일정' }).click();
   await page.getByRole('button', { name: `${gamcheon.name} DAY 1에 추가` }).click();
   await expectNames(page, IDS.ITINERARY_LIST, [gamcheon.name]);
   const scheduled = await readTrip(page);

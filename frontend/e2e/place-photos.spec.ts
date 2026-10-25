@@ -116,6 +116,25 @@ test('사진 API가 일시적으로 실패한 뒤 복구되면 SPA로 돌아왔�
   expect(await page.evaluate(() => performance.timeOrigin), '전체 새로고침 없이 사진을 복구한다').toBe(documentStartedAt);
 });
 
+test('사진 정보가 확인된 장소를 사진 없는 장소보다 목록 앞에 둔다', async ({ page }) => {
+  const response = await page.request.get('/api/travel/catalog', { params: { region: '부산광역시', query: '' } });
+  expect(response.ok()).toBe(true);
+  const initial = await response.json() as CatalogResponse;
+  const [withoutPhoto, withPhoto] = initial.places;
+  expect(initial.places.length).toBeGreaterThanOrEqual(2);
+  const states = new Map<string, PhotoState>([[withoutPhoto!.id, 'empty'], [withPhoto!.id, 'ready']]);
+  const requests = await installPhotos(page, states);
+  await startTrip(page);
+
+  for (const place of [withoutPhoto!, withPhoto!]) {
+    await placeCard(page, place).scrollIntoViewIfNeeded();
+    await expect.poll(() => requests.get(place.id)).toBe(1);
+  }
+
+  const indexOf = (place: Place) => placeCard(page, place).evaluate((element) => Array.from(element.parentElement!.children).indexOf(element));
+  await expect.poll(async () => (await indexOf(withPhoto!)) < (await indexOf(withoutPhoto!))).toBe(true);
+});
+
 test('사진 없음·API 실패·깨진 이미지에서도 후보 저장과 일정 편집이 동작하고 다른 장소 사진이 섞이지 않는다', async ({ page }) => {
   const response = await page.request.get('/api/travel/catalog', { params: { region: '부산광역시', query: '' } });
   expect(response.ok()).toBe(true);

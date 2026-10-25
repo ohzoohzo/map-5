@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, FallbackView, FallbackViewText, Loading, TextField, Typography } from '@montage-ui/core';
 import { IconArrowRight, IconBookmark, IconBookmarkFill, IconClose, IconExternalLink, IconSearch } from '@montage-ui/icon';
 import { Coffee, Dices, Landmark, ShoppingBag, UtensilsCrossed, type LucideIcon } from 'lucide-react';
@@ -16,6 +16,7 @@ import PlacePhoto from '../../shared/media/PlacePhoto';
 import { TRAVEL_TEST_IDS } from '../../shared/testIds';
 import TripBar, { regionsQuery } from '../../shared/trip/TripBar';
 import { tripActions, unscheduledIds, useTrip } from '../../shared/trip/tripStore';
+import type { DocentPhotos } from '../../api/generated/model';
 
 type Kind = 'attraction' | 'food' | 'cafe' | 'shopping';
 // 관광지 comes from the public catalog; the rest from Kakao Local, narrowed by group code where one exists.
@@ -32,6 +33,11 @@ const ExploreLayout = styled(PinDayPage)`
   .photo-frame img { object-fit: cover; }
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
+  .explore-actions { width: 100%; max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: 8px; }
+  .explore-actions .search-form { width: 100%; min-width: 0; align-items: center; gap: 8px; }
+  .explore-actions .search-form > :first-child { flex: 1 1 0; min-width: 0; }
+  .explore-actions .search-form > :last-child,
+  .explore-actions > button { flex-shrink: 0; white-space: nowrap; }
 
   .explore-grid > .filter-row { grid-column: 1; grid-row: 1; }
   .explore-grid > .explore-actions { grid-column: 1; grid-row: 2; }
@@ -52,7 +58,7 @@ const ExploreLayout = styled(PinDayPage)`
   @media (max-width: 720px) {
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
-    .place-grid { grid-template-columns: 1fr; }
+    .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 `;
 
@@ -60,6 +66,8 @@ const ExploreLayout = styled(PinDayPage)`
 export default function ExplorePage() {
   const { t } = useTranslation('explore');
   const trip = useTrip((current) => current);
+  const queryClient = useQueryClient();
+  const photoFetchCount = useIsFetching({ queryKey: ['docent', 'photos'] });
   const candidates = useMemo(() => trip.candidateIds.map((id) => trip.places[id]!), [trip.candidateIds, trip.places]);
   const [kind, setKind] = useState<Kind>('attraction');
   const [district, setDistrict] = useState('');
@@ -88,9 +96,18 @@ export default function ExplorePage() {
   });
   const result = usesKakao ? search : catalog;
   const places = result.data?.places ?? EMPTY;
+  const prioritizedPlaces = useMemo(() => [...places].sort((first, second) => {
+    const rank = (place: Place) => {
+      const state = queryClient.getQueryState<DocentPhotos>(['docent', 'photos', place.id]);
+      if (state?.status === 'success') return state.data?.photos.length ? 0 : 2;
+      if (state?.status === 'error') return 2;
+      return 1;
+    };
+    return rank(first) - rank(second);
+  }), [places, photoFetchCount, queryClient]);
   const savedIds = useMemo(() => new Set(trip.candidateIds), [trip.candidateIds]);
   const selected = places.find((place) => place.id === selectedId) ?? (selectedId ? trip.places[selectedId] ?? null : null);
-  const pins = useMemo<MapPin[]>(() => places.map((place, index) => ({ place, label: String(index + 1), tone: savedIds.has(place.id) ? 'saved' : 'idle' })), [places, savedIds]);
+  const pins = useMemo<MapPin[]>(() => prioritizedPlaces.map((place, index) => ({ place, label: String(index + 1), tone: savedIds.has(place.id) ? 'saved' : 'idle' })), [prioritizedPlaces, savedIds]);
   const unscheduled = unscheduledIds(trip).length;
   const searchBlocked = usesKakao && config.data?.place_search_enabled === false;
   const loading = !searchBlocked && result.isLoading && result.fetchStatus !== 'idle';
@@ -172,7 +189,7 @@ export default function ExplorePage() {
                 : result.isError ? <Fallback title={t('loadError')} description={errorMessage} action={<Button size="small" variant="outlined" onClick={() => { void result.refetch(); }}>{t('retry')}</Button>} />
                 : !places.length ? <Fallback title={t('emptyResults')} description={t('emptyResultsDetail')} action={district || query ? <Button size="small" variant="outlined" onClick={() => { setDistrict(''); clearSearch(); }}>{t('resetFilters')}</Button> : undefined} />
                 : <ul className="place-grid" data-testid={TRAVEL_TEST_IDS.PLACE_GRID}>
-                  {places.map((place, index) => <PlaceCard key={place.id} place={place} index={index} saved={savedIds.has(place.id)} selected={place.id === selectedId} kind={usesKakao ? kindOf(place, kind, query) : 'attraction'} onSelect={() => setSelectedId(place.id)} onToggle={() => toggleSave(place)} />)}
+                  {prioritizedPlaces.map((place, index) => <PlaceCard key={place.id} place={place} index={index} saved={savedIds.has(place.id)} selected={place.id === selectedId} kind={usesKakao ? kindOf(place, kind, query) : 'attraction'} onSelect={() => setSelectedId(place.id)} onToggle={() => toggleSave(place)} />)}
                 </ul>}
             </div>
           </section>

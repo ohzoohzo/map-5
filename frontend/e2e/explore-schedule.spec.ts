@@ -73,9 +73,13 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일�
   const filter = page.locator('.filter-row');
   const tripBar = page.locator('.trip-bar-wrap');
   const actions = page.locator('.explore-actions');
+  const searchField = actions.locator('input[type="search"]');
+  const searchButton = actions.locator('form button[type="submit"]');
+  const randomButton = actions.locator(':scope > button');
   const map = page.locator('.explore-map');
   const frame = map.locator('.map-frame');
   const list = page.locator('.result-line');
+  const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   const layout = await page.evaluate(() => {
     const filterElement = document.querySelector('.filter-row')!;
     const actionsElement = document.querySelector('.explore-actions')!;
@@ -101,6 +105,9 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일�
   await expect(filter).toBeVisible();
   await expect(tripBar).toBeVisible();
   await expect(actions).toBeVisible();
+  await expect(searchField).toBeVisible();
+  await expect(searchButton).toBeVisible();
+  await expect(randomButton).toBeVisible();
   await expect(map).toBeVisible();
   await expect(frame).toBeVisible();
   await expect(list).toBeVisible();
@@ -115,6 +122,10 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 350px 일�
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect((await frame.boundingBox())!.width).toBeGreaterThan(0);
   expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(350);
+  const controls = await Promise.all([searchField, searchButton, randomButton].map((locator) => locator.boundingBox()));
+  const controlCenters = controls.map((box) => box!.y + box!.height / 2);
+  expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThan(1);
+  expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
 });
 
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {

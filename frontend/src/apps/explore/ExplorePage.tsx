@@ -29,7 +29,11 @@ const KINDS: Record<Kind, { icon: LucideIcon; keyword: string; category: SearchP
 const EMPTY: Place[] = [];
 
 const ExploreLayout = styled(PinDayPage)`
-  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
+  .trip-bar-wrap { position: sticky; top: 78px; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
+  .trip-bar-wrap .count-chip { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; font-weight: 700; }
+  .trip-bar-wrap .count-chip:hover,
+  .trip-bar-wrap .count-chip.active { background: ${color.primary}; border-color: ${color.primary}; color: ${color.surface}; }
+  .trip-bar-wrap .count-chip strong { color: ${color.surface}; }
   .photo-frame img { object-fit: cover; }
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
@@ -59,6 +63,7 @@ const ExploreLayout = styled(PinDayPage)`
   }
 
   @media (max-width: 720px) {
+    .trip-bar-wrap { top: 66px; }
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
     .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

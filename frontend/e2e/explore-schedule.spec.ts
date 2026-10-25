@@ -157,9 +157,16 @@ test('좁은 반응형 목록은 기존 카드 열 수와 지도를 유지한다
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect(placeGrid).toBeVisible();
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+  expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const map = await page.locator('.explore-map').boundingBox();
   const layout = await page.locator('.explore-grid').boundingBox();
   expect(map!.width).toBeCloseTo(layout!.width, 0);
+});
+
+test('중간 너비에서도 지도를 300px 높이로 표시한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1140, height: 900 });
+  await startTrip(page);
+  expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
 });
 
 test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목록을 5열 전체 폭으로 표시한다', async ({ page }) => {
@@ -168,7 +175,7 @@ test('가장 넓은 화면에서는 300px 지도를 컨트롤 옆에 두고 목�
   const map = page.locator('.explore-map');
   await expect(map).toBeVisible();
   expect((await map.boundingBox())!.width).toBe(300);
-  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(220);
+  expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const exploreGrid = page.locator('.explore-grid');
   const list = page.locator('.explore-list');
   const gridBounds = await exploreGrid.boundingBox();

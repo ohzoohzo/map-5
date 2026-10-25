@@ -33,6 +33,7 @@ const ExploreLayout = styled(PinDayPage)`
   .trip-bar-wrap .count-chip.active { background: #0066ff; border-color: #0066ff; color: ${color.surface}; font-weight: 700; }
   .trip-bar-wrap .count-chip.active strong { color: ${color.surface}; }
   .explore-grid { align-content: start; }
+  .explore-grid > .explore-map .map-frame { height: 300px; min-height: 300px; }
   .photo-frame img { object-fit: cover; }
   .explore-grid .place-card { position: relative; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
@@ -54,7 +55,6 @@ const ExploreLayout = styled(PinDayPage)`
   @media (min-width: 1280px) {
     .explore-grid { grid-template-columns: minmax(0, 1fr) 300px; column-gap: 24px; }
     .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 1 / span 2; width: 300px; }
-    .explore-grid > .explore-map .map-frame { height: 220px; min-height: 220px; }
     .explore-grid > .explore-list { grid-column: 1 / -1; grid-row: 3; width: 100%; margin-top: 24px; }
     .explore-grid .place-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }

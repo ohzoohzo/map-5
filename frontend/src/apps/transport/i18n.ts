@@ -38,6 +38,7 @@ export default {
     transfers: '환승 {{count}}회',
     fare: '{{won}}원',
     toll: '통행료 {{won}}원',
+    routeDetails: '경로 상세보기',
     stepsLabel: '구간별 이동 안내',
     stepMode: { walk: '도보', bus: '버스', subway: '지하철', car: '자동차' },
     stepMetrics: '약 {{minutes}}분 · {{distance}}',

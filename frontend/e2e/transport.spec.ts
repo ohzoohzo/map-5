@@ -246,6 +246,33 @@ test('changing the day resets the segment to the first consecutive pair', async 
     );
 });
 
+test('day tabs use the schedule palette and both control groups have spacing without a capsule', async ({ page }) => {
+  await seedTrip(page);
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+
+  const dayTabs = page.getByRole('group', { name: '여행 날짜' });
+  const days = dayTabs.getByRole('button');
+  const palette = ['rgb(0, 152, 178)', 'rgb(243, 122, 31)', 'rgb(141, 76, 237)'];
+  for (let index = 0; index < palette.length; index += 1) {
+    const day = days.nth(index);
+    await day.click();
+    await expect(day).toHaveAttribute('aria-pressed', 'true');
+    await expect(day).toHaveCSS('background-color', palette[index]!);
+    await expect(day).toHaveCSS('color', 'rgb(255, 255, 255)');
+    const inactiveDay = days.nth((index + 1) % palette.length);
+    await expect(inactiveDay).toHaveCSS('color', palette[(index + 1) % palette.length]!);
+  }
+  await expect(dayTabs).toHaveCSS('gap', '6px');
+  await expect(dayTabs).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(dayTabs).toHaveCSS('border-top-width', '0px');
+
+  await days.first().click();
+  const modeTabs = page.getByRole('group', { name: '교통수단' });
+  await expect(modeTabs).toHaveCSS('gap', '6px');
+  await expect(modeTabs).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(modeTabs).toHaveCSS('border-top-width', '0px');
+});
+
 test('long segment names stay selectable without horizontal overflow on mobile', async ({ page }) => {
   const departureName = '국립부산과학관 어린이과학관';
   const arrivalName = '국립일제강제동원역사관';
@@ -375,6 +402,8 @@ test('driving, walking and transit use their own geometry, costs and sources whe
   await expect(guidance.getByText('통행료 0원', { exact: true })).toBeVisible();
   await expect(guidance.getByText('출처: 카카오모빌리티', { exact: true })).toBeVisible();
   await expect(page.getByText('자동차 경로와 도로별 이동 안내를 확인해요.', { exact: true })).toBeVisible();
+  await expect(guidance.getByRole('list', { name: '구간별 이동 안내' })).toHaveCount(0);
+  await guidance.getByText('경로 상세보기', { exact: true }).click();
   await expect(page.getByRole('list', { name: '구간별 이동 안내' })).toContainText('부산항로를 따라 국제시장까지 이동해요.');
   const drivingRequest = requests.find((url) => url.searchParams.get('mode') === 'car');
   expect(drivingRequest, '자동차 선택은 자동차 경로 API를 요청해야 한다').toBeDefined();
@@ -404,6 +433,8 @@ test('driving, walking and transit use their own geometry, costs and sources whe
   await expect(guidance.getByText('1.7 km', { exact: true })).toBeVisible();
   await expect(guidance.getByText('출처: 카카오맵', { exact: true })).toBeVisible();
   await expect(guidance.getByText('통행료', { exact: false })).toHaveCount(0);
+  await expect(guidance.getByRole('list', { name: '구간별 이동 안내' })).toHaveCount(0);
+  await guidance.getByText('경로 상세보기', { exact: true }).click();
   await expect(page.getByRole('list', { name: '구간별 이동 안내' })).toContainText('해안 산책로를 따라 목적지까지 걸어요.');
   await expect(page.getByText('유료도로를 거쳐 목적지로 이동해요.', { exact: true })).toHaveCount(0);
   const walkingRequest = requests.find((url) => url.searchParams.get('mode') === 'walk');
@@ -422,6 +453,8 @@ test('driving, walking and transit use their own geometry, costs and sources whe
   await expect(guidance.getByText('1,550원', { exact: true })).toBeVisible();
   await expect(guidance.getByText('통행료', { exact: false })).toHaveCount(0);
   await expect(guidance.getByText('출처: 카카오맵', { exact: true })).toBeVisible();
+  await expect(guidance.getByRole('list', { name: '구간별 이동 안내' })).toBeVisible();
+  await expect(guidance.getByText('경로 상세보기', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('group', { name: '경로 선택', exact: true }).getByRole('button', { name: /경로 1/ }))
     .toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => activeMapPoints(page))

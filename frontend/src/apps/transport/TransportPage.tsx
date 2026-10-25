@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import styled from '@emotion/styled';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Typography } from '@montage-ui/core';
@@ -16,6 +16,10 @@ const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
 const brand = 'var(--semantic-foreground-brand-primary)';
+const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
+const dayStyle = (index: number): CSSProperties & { '--day-color': string } => ({
+  '--day-color': DAY_COLORS[index % DAY_COLORS.length]!,
+});
 
 const Page = styled.main`
   max-width: 1440px;
@@ -41,19 +45,28 @@ const Heading = styled.header`
 
 const DayTabs = styled.div`
   display: flex;
+  gap: 6px;
   width: fit-content;
   max-width: 100%;
   margin-bottom: 18px;
-  padding: 4px;
+  padding: 0;
   overflow-x: auto;
-  background: ${surface};
-  border: 1px solid ${line};
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 
   .day-button {
     flex: 0 0 auto;
     min-width: max-content;
+    border: 0;
+    background-color: color-mix(in srgb, var(--day-color) 10%, white);
+    color: var(--day-color);
     white-space: nowrap;
+  }
+
+  .day-button[aria-pressed='true'] {
+    background-color: var(--day-color);
+    color: white;
   }
 
   @media (max-width: 640px) {
@@ -226,10 +239,10 @@ const ModeTabs = styled.div`
   display: flex;
   gap: 6px;
   margin: 16px 0 12px;
-  padding: 4px;
-  background: ${canvas};
-  border: 1px solid ${line};
-  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 
   .mode-button {
     flex: 1;
@@ -260,6 +273,8 @@ const Guidance = styled.section`
   .route-steps li { padding-left: 4px; min-width: 0; overflow-wrap: anywhere; }
   .step-mode { display: inline-flex; align-items: center; gap: 5px; color: ${foreground('neutral-secondary')}; }
   .step-instruction { display: block; margin: 4px 0; }
+  .route-details summary { width: fit-content; color: ${brand}; cursor: pointer; }
+  .route-details .route-steps { margin-top: 12px; }
   .route-source { color: ${foreground('neutral-tertiary')}; }
 `;
 
@@ -356,6 +371,7 @@ export default function TransportPage() {
               variant={index === activeDayIndex ? 'solid' : 'outlined'}
               color={index === activeDayIndex ? 'primary' : 'assistive'}
               aria-pressed={index === activeDayIndex}
+              style={dayStyle(index)}
               onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })}
               onClick={() => {
                 setSelectedDayIndex(index);
@@ -494,7 +510,7 @@ export default function TransportPage() {
                             </span>
                           </Button>)}
                         </div>}
-                        <RouteGuidance route={activeRoute} />
+                        <RouteGuidance key={`${routeSelectionKey}-${routeIndex}`} route={activeRoute} collapsible={travelMode !== 'transit'} />
                         <Typography as="p" variant="caption1" className="route-source">{t('routeSource', { source: routes.data?.source })}</Typography>
                         <Typography as="p" variant="caption1" color="semantic.foreground.neutral.secondary">{t('routeCaveat')}</Typography>
                       </>}
@@ -560,16 +576,9 @@ export default function TransportPage() {
   );
 }
 
-function RouteGuidance({ route }: { route: TransportRoute }) {
+function RouteGuidance({ route, collapsible = false }: { route: TransportRoute; collapsible?: boolean }) {
   const { t } = useTranslation('transport');
-  return <>
-    <div className="route-metrics">
-      <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
-      <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
-      {route.type !== 'car' && route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
-      {route.type !== 'car' && route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
-      {route.type === 'car' && typeof route.toll_won === 'number' && <Typography variant="body2">{t('toll', { won: new Intl.NumberFormat('ko-KR').format(route.toll_won) })}</Typography>}
-    </div>
+  const steps = (
     <ol className="route-steps" aria-label={t('stepsLabel')}>
       {route.steps.map((step, index) => {
         const Icon = STEP_ICONS[step.mode];
@@ -580,5 +589,17 @@ function RouteGuidance({ route }: { route: TransportRoute }) {
         </li>;
       })}
     </ol>
+  );
+  return <>
+    <div className="route-metrics">
+      <Typography className="route-duration" variant="headline2" weight="bold">{t('duration', { minutes: Math.ceil(route.duration_seconds / 60) })}</Typography>
+      <Typography variant="body2">{formatDistance(route.distance_m)}</Typography>
+      {route.type !== 'car' && route.transfers !== null && <Typography variant="body2">{t('transfers', { count: route.transfers })}</Typography>}
+      {route.type !== 'car' && route.fare_won !== null && <Typography variant="body2">{t('fare', { won: new Intl.NumberFormat('ko-KR').format(route.fare_won) })}</Typography>}
+      {route.type === 'car' && typeof route.toll_won === 'number' && <Typography variant="body2">{t('toll', { won: new Intl.NumberFormat('ko-KR').format(route.toll_won) })}</Typography>}
+    </div>
+    {collapsible
+      ? <details className="route-details"><summary>{t('routeDetails')}</summary>{steps}</details>
+      : steps}
   </>;
 }

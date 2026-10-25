@@ -23,7 +23,7 @@ test(`홈 랜덤 뽑기는 기존 서울 여행(${destination})의 지역과 날
   await card(page).getByRole('button', { name: '후보함에 담기', exact: true }).click();
   await card(page).getByRole('button', { name: '어디 갈까?에서 보기', exact: true }).click();
   await expect(page).toHaveURL(/\/explore$/);
-  await expect(page.getByRole('heading', { name: '서울의 어디를 담아볼까요?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '가고 싶은 곳을, 나의 하루에' })).toBeVisible();
   const after = await storedTrip(page);
   expect(after.destination).toBe(before.destination);
   expect(after.startDate).toBe(before.startDate);
@@ -54,7 +54,7 @@ test('새 여행은 부산에서 세 번 뽑고 연속 중복 없이 홈에서 �
   await expect(card(page).getByRole('button', { name: '다시 뽑기', exact: true })).toBeDisabled();
   await card(page).getByRole('button', { name: '후보함에 담기', exact: true }).click();
   await card(page).getByRole('button', { name: '어디 갈까?에서 보기', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '부산의 어디를 담아볼까요?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '가고 싶은 곳을, 나의 하루에' })).toBeVisible();
   const trip = await storedTrip(page);
   expect(trip.destination).toBe('부산광역시');
   expect(trip.startDate).toBe('2026-11-10');

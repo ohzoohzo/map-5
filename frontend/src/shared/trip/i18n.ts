@@ -7,6 +7,8 @@ export default {
     editConditions: '여행 조건 수정',
     candidateCount: '후보',
     scheduledCount: '일정',
+    candidateStep: '1. 장소 선택',
+    scheduleStep: '2. 일정 선택',
     placeUnit: '곳',
     loading: '불러오는 중',
     conditionsStartTitle: '어디로, 언제 떠나세요?',

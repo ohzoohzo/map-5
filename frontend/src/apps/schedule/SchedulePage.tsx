@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, FallbackView, FallbackViewText, IconButton, SegmentedControl, SegmentedControlItem, Typography } from '@montage-ui/core';
@@ -19,6 +20,23 @@ import DocentPanel from '../docent/DocentPanel';
 const DAY_COLORS = ['#0098b2', '#f37a1f', '#8d4ced', '#e2468b', '#2f9e4f', '#3f6ce0', '#b8860b'];
 const dayColor = (index: number) => DAY_COLORS[index % DAY_COLORS.length]!;
 const number = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 });
+
+const ScheduleLayout = styled(PinDayPage)`
+  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: var(--semantic-background-neutral-secondary, #f7f7f8); }
+  .photo-frame img { object-fit: cover; }
+
+  @media (max-width: 1100px) {
+    .planner-grid { display: flex; flex-direction: column; gap: 16px; }
+    .planner-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
+    .map-frame { height: 100px; min-height: 100px; }
+    .map-legend { display: none; }
+    .schedule-panel, .docent-side { width: 100%; }
+  }
+
+  @media (max-width: 720px) {
+    .planner-map { top: 148px; }
+  }
+`;
 
 /** 장소를 순서대로 이은 직선거리(km). 실제 이동 거리가 아니다. */
 export function straightLineDistance(places: Place[]): number {
@@ -78,16 +96,15 @@ export default function SchedulePage() {
   }
 
   return (
-    <PinDayPage>
-      <TripBar page="schedule" />
+    <ScheduleLayout>
+      {trip.destination !== '' && <header className="page-head">
+        <div>
+          <Typography as="h1" variant="title2" weight="bold">{t('plannerTitle')}</Typography>
+          <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('plannerSubtitle')}</Typography>
+        </div>
+      </header>}
+      <TripBar page="schedule" showStepLabels />
       {trip.destination !== '' && <>
-        <header className="page-head">
-          <div>
-            <Typography as="h1" variant="title2" weight="bold">{t('plannerTitle')}</Typography>
-            <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('plannerSubtitle')}</Typography>
-          </div>
-        </header>
-
         <div className="planner-grid">
           <section className="schedule-panel" aria-labelledby="schedule-title">
             <Typography id="schedule-title" as="h2" variant="headline1" weight="bold">{t('mySchedule')}</Typography>
@@ -166,6 +183,6 @@ export default function SchedulePage() {
           <aside className="docent-side"><DocentPanel place={selected} /></aside>
         </div>
       </>}
-    </PinDayPage>
+    </ScheduleLayout>
   );
 }

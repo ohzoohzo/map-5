@@ -1,6 +1,7 @@
+import styled from '@emotion/styled';
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, FallbackView, FallbackViewText, Loading, SegmentedControl, SegmentedControlItem, TextField, Typography } from '@montage-ui/core';
+import { Button, FallbackView, FallbackViewText, Loading, TextField, Typography } from '@montage-ui/core';
 import { IconArrowRight, IconBookmark, IconBookmarkFill, IconClose, IconExternalLink, IconSearch } from '@montage-ui/icon';
 import { Coffee, Dices, Landmark, ShoppingBag, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,27 @@ const KINDS: Record<Kind, { icon: LucideIcon; keyword: string; category: SearchP
 };
 const EMPTY: Place[] = [];
 
+const ExploreLayout = styled(PinDayPage)`
+  .trip-bar-wrap { position: sticky; top: 0; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: var(--semantic-background-neutral-secondary, #f7f7f8); }
+  .photo-frame img { object-fit: cover; }
+
+  @media (max-width: 1100px) {
+    .explore-grid { display: flex; flex-direction: column; gap: 12px; }
+    .explore-map { order: -1; position: sticky; top: 112px; z-index: 20; width: 100%; }
+    .map-frame { height: 100px; min-height: 100px; }
+    .map-legend { display: none; }
+    .filter-row { margin-bottom: 0; overflow: visible; }
+    .place-grid { max-height: none; min-height: 0; overflow: visible; }
+  }
+
+  @media (max-width: 720px) {
+    .explore-map { top: 148px; }
+    .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
+    .kind-tab { flex-shrink: 1; padding: 0 8px; }
+    .place-grid { grid-template-columns: 1fr; }
+  }
+`;
+
 // 시안: design/pinday-explore-v2.png
 export default function ExplorePage() {
   const { t } = useTranslation('explore');
@@ -35,7 +57,6 @@ export default function ExplorePage() {
   const [queryInput, setQueryInput] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState('list');
   const config = useQuery({ queryKey: ['config'], queryFn: ({ signal }) => getConfig(signal), staleTime: Infinity });
   const regions = useQuery(regionsQuery);
   const province = resolveProvince(trip.destination, provincesOf(regions.data?.regions ?? []));
@@ -83,26 +104,25 @@ export default function ExplorePage() {
   const regionErrorMessage = regions.error instanceof ApiError ? regions.error.message : t('networkError');
 
   return (
-    <PinDayPage>
-      <TripBar page="explore" />
+    <ExploreLayout>
+      {province !== '' && <header className="page-head">
+        <div>
+          <Typography as="h1" variant="title2" weight="bold">{t('exploreTitle')}</Typography>
+          <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('exploreSubtitle')}</Typography>
+        </div>
+        <div className="page-head-actions">
+          <form className="search-form" onSubmit={submitSearch} role="search">
+            <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
+            <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
+          </form>
+          <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
+        </div>
+      </header>}
+      <TripBar page="explore" showStepLabels />
       {regions.isPending ? <div className="loading-box" role="status"><Loading /><span className="sr-only">{t('loading')}</span></div>
         : regions.isError ? <Fallback title={t('regionsLoadError')} description={regionErrorMessage} action={<Button size="small" variant="outlined" onClick={() => { void regions.refetch(); }}>{t('retry')}</Button>} />
         : null}
       {province !== '' && <>
-        <header className="page-head">
-          <div>
-            <Typography as="h1" variant="title2" weight="bold">{t('exploreTitle', { place: short })}</Typography>
-            <Typography variant="body1" color="semantic.foreground.neutral.secondary">{t('exploreSubtitle')}</Typography>
-          </div>
-          <div className="page-head-actions">
-            <form className="search-form" onSubmit={submitSearch} role="search">
-              <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
-              <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
-            </form>
-            <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
-          </div>
-        </header>
-
         <div className="explore-grid">
           <section className="explore-list" aria-label={t('placeListLabel')}>
             <div className="filter-row">
@@ -117,13 +137,7 @@ export default function ExplorePage() {
                 {['', ...districts].map((name) => <button key={name || 'all'} type="button" aria-pressed={district === name} className={district === name ? 'chip active' : 'chip'} onClick={() => { setDistrict(name); setSelectedId(null); }}>{name || t('allDistricts', { place: short })}</button>)}
               </div>
             </div>
-            <div className="mobile-view-toggle">
-              <SegmentedControl value={mobileView} onValueChange={setMobileView} size="small" name="explore-view">
-                <SegmentedControlItem value="list">{t('viewList')}</SegmentedControlItem>
-                <SegmentedControlItem value="map">{t('viewMap')}</SegmentedControlItem>
-              </SegmentedControl>
-            </div>
-            <div className={`list-body ${mobileView === 'list' ? 'mobile-active' : ''}`}>
+            <div className="list-body mobile-active">
               <div className="result-line">
                 <Typography variant="label1" color="semantic.foreground.neutral.secondary">{t('resultCount')} <strong data-testid={TRAVEL_TEST_IDS.RESULT_COUNT}>{loading ? '—' : places.length}</strong>{t('placeUnit')}</Typography>
                 <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{t(usesKakao ? 'sourceKakao' : 'sourceCatalog')}</Typography>
@@ -137,7 +151,7 @@ export default function ExplorePage() {
                 </ul>}
             </div>
           </section>
-          <div className={`explore-map ${mobileView === 'map' ? 'mobile-active' : ''}`}>
+          <div className="explore-map mobile-active">
             <KakaoMap jsKey={config.data?.js_key} configLoading={config.isLoading} pins={pins} selectedId={selectedId} onSelect={setSelectedId} fitKey={`${result.dataUpdatedAt}-${searchText}-${district}`} title={t('exploreMapTitle')}
               legend={<><span className="legend-dot saved" />{t('legendSaved')}<span className="legend-dot idle" />{t('legendIdle')}</>}>
               {selected && <article className="map-popup" aria-label={selected.name}>
@@ -172,7 +186,7 @@ export default function ExplorePage() {
         </ul>
         <Button className="tray-cta" variant="solid" color="primary" size="large" trailingContent={<IconArrowRight />} disabled={!candidates.length} onClick={() => navigate('/schedule')}>{t('goPlanner')}</Button>
       </aside>
-    </PinDayPage>
+    </ExploreLayout>
   );
 }
 
@@ -199,4 +213,3 @@ function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: 
 function Fallback({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
   return <FallbackView padding="compact"><FallbackViewText title={title} description={description} />{action}</FallbackView>;
 }
-

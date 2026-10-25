@@ -178,7 +178,7 @@ test('중간 너비에서도 장소 목록 왼쪽·지도 오른쪽을 유지한
 });
 
 for (const width of [1280, 1440]) {
-  test(`${width}px 화면에서 목록은 왼쪽, 지도는 오른쪽에 두고 목록을 3열로 표시한다`, async ({ page }) => {
+  test(`${width}px 화면에서 목록은 왼쪽, 지도는 오른쪽에 두고 목록을 5열로 표시한다`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await startTrip(page);
     const map = page.locator('.explore-map');
@@ -191,7 +191,7 @@ for (const width of [1280, 1440]) {
     expect(mapBounds!.x).toBeGreaterThan(listBounds!.x + listBounds!.width);
     expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
     const placeGrid = page.getByTestId(IDS.PLACE_GRID);
-    await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+    await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(5);
   });
 }
 

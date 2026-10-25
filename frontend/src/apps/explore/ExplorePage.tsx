@@ -57,6 +57,7 @@ const ExploreLayout = styled(PinDayPage)`
   }
 
   @media (min-width: 1280px) {
+    .explore-grid .place-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   }
 

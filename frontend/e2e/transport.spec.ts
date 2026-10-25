@@ -80,7 +80,11 @@ async function seedTrip(page: Page, savedTrip = trip) {
 
 type RouteMode = 'transit' | 'walk' | 'car';
 type Coordinate = { latitude: number; longitude: number };
-type MapRuntime = { __transportLines: { active: boolean; path: Coordinate[] }[]; __transportBounds: Coordinate[][] };
+type MapRuntime = {
+  __transportLines: { active: boolean; path: Coordinate[]; strokeColor: string; strokeStyle: string }[];
+  __transportPins: { active: boolean; label: string; className: string; ariaLabel: string | null }[];
+  __transportBounds: Coordinate[][];
+};
 
 function directionsUrl(mode: 'traffic' | 'walk' | 'car', departure = places.harbor, arrival = places.market) {
   const endpoint = (place: typeof places.harbor) => `${encodeURIComponent(place.name)},${place.latitude},${place.longitude}`;
@@ -145,11 +149,13 @@ async function useMapSpy(page: Page, bootstrapOnly = false, highMapLayer = false
     contentType: 'application/javascript',
     body: `(() => {
       window.__transportLines = [];
+      window.__transportPins = [];
       window.__transportBounds = [];
       class LatLng { constructor(latitude, longitude) { this.latitude = latitude; this.longitude = longitude; } }
       class LatLngBounds { constructor() { this.points = []; } extend(point) { this.points.push(point); } }
       class Map {
         constructor(element, options) {
+          this.element = element;
           this.center = options.center; this.level = options.level;
           if (${highMapLayer}) {
             element.style.position = 'relative';
@@ -165,12 +171,23 @@ async function useMapSpy(page: Page, bootstrapOnly = false, highMapLayer = false
         setLevel(level) { this.level = level; } getLevel() { return this.level; }
         relayout() {} panTo(point) { this.center = point; }
       }
-      class Marker { constructor(options) { this.map = options.map; } setMap(map) { this.map = map; } }
+      class CustomOverlay {
+        constructor(options) {
+          this.element = options.content;
+          options.map.element.appendChild(options.content);
+          this.record = { active: Boolean(options.map), label: options.content.textContent, className: options.content.className, ariaLabel: options.content.getAttribute('aria-label') };
+          window.__transportPins.push(this.record);
+        }
+        setMap(map) {
+          this.record.active = Boolean(map);
+          if (!map) this.element.remove();
+        }
+      }
       class Polyline {
-        constructor(options) { this.record = { active: Boolean(options.map), path: options.path }; window.__transportLines.push(this.record); }
+        constructor(options) { this.record = { active: Boolean(options.map), path: options.path, strokeColor: options.strokeColor, strokeStyle: options.strokeStyle }; window.__transportLines.push(this.record); }
         setMap(map) { this.record.active = Boolean(map); }
       }
-      const constructors = { LatLng, LatLngBounds, Map, Marker, Polyline };
+      const constructors = { LatLng, LatLngBounds, Map, CustomOverlay, Polyline };
       window.__transportSdkLoadCalls = 0;
       const maps = {
         load(callback) {
@@ -190,6 +207,16 @@ async function useMapSpy(page: Page, bootstrapOnly = false, highMapLayer = false
 const activeMapPoints = (page: Page) => page.evaluate(() => {
   const lines = (window as unknown as Partial<MapRuntime>).__transportLines;
   return lines === undefined ? null : lines.filter((line) => line.active).flatMap((line) => line.path);
+});
+
+const activeMapStyles = (page: Page) => page.evaluate(() => {
+  const lines = (window as unknown as Partial<MapRuntime>).__transportLines;
+  return lines === undefined ? null : lines.filter((line) => line.active).map(({ strokeColor, strokeStyle }) => ({ strokeColor, strokeStyle }));
+});
+
+const activeMapPins = (page: Page) => page.evaluate(() => {
+  const pins = (window as unknown as Partial<MapRuntime>).__transportPins;
+  return pins === undefined ? null : pins.filter((pin) => pin.active);
 });
 
 function defaultRequest(mode: RouteMode = 'transit') {
@@ -271,6 +298,76 @@ test('day tabs use the schedule palette and both control groups have spacing wit
   await expect(modeTabs).toHaveCSS('gap', '6px');
   await expect(modeTabs).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(modeTabs).toHaveCSS('border-top-width', '0px');
+});
+
+test('day colors are shared by itinerary numbers, controls, map pins and dotted map routes', async ({ page }) => {
+  await useMapSpy(page);
+  const lighthouse = { ...places.harbor, id: 'lighthouse', name: '등대', latitude: 35.12, longitude: 129.04 };
+  await seedTrip(page, {
+    ...trip,
+    places: { ...places, lighthouse },
+    days: trip.days.map((day, index) => index === 2
+      ? { ...day, items: [{ placeId: lighthouse.id, memo: '', visited: false }, { placeId: places.market.id, memo: '', visited: false }] }
+      : day),
+  });
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+
+  const tabs = page.getByRole('group', { name: '여행 날짜' }).getByRole('button');
+  const number = page.locator('.number').first();
+  const segment = page.locator('.segment-button[aria-pressed="true"]');
+  const palette = [
+    { css: 'rgb(0, 152, 178)', hex: '#0098b2' },
+    { css: 'rgb(243, 122, 31)', hex: '#f37a1f' },
+    { css: 'rgb(141, 76, 237)', hex: '#8d4ced' },
+  ];
+  const pinLabels = [
+    ['출발: 부산항', '도착: 국제시장'],
+    ['출발: 감천문화마을', '도착: 부산항'],
+    ['출발: 등대', '도착: 국제시장'],
+  ];
+
+  for (let index = 0; index < palette.length; index += 1) {
+    await tabs.nth(index).click();
+    await expect(number).toHaveCSS('background-color', palette[index]!.css);
+    await expect(segment).toHaveCSS('border-top-color', palette[index]!.css);
+    await expect(page.getByRole('button', { name: '대중교통', exact: true })).toHaveCSS('background-color', palette[index]!.css);
+    await expect(page.getByRole('button', { name: /경로 1/ })).toHaveCSS('background-color', palette[index]!.css);
+    await expect(page.getByRole('link', { name: '카카오맵에서 이 구간 길찾기' })).toHaveCSS('background-color', palette[index]!.css);
+    await expect.poll(() => activeMapStyles(page)).toEqual([
+      { strokeColor: palette[index]!.hex, strokeStyle: 'shortdash' },
+      { strokeColor: palette[index]!.hex, strokeStyle: 'shortdash' },
+    ]);
+    await expect.poll(() => activeMapPins(page)).toEqual([
+      { active: true, label: '1', className: 'route-pin', ariaLabel: pinLabels[index]![0] },
+      { active: true, label: '2', className: 'route-pin', ariaLabel: pinLabels[index]![1] },
+    ]);
+    await expect(page.locator('.route-pin').first()).toHaveCSS('background-color', palette[index]!.css);
+    await expect(page.locator('.route-pin').first()).toHaveCSS('border-radius', '15px 15px 15px 2px');
+  }
+});
+
+test('shows the fastest route card with spacing and uses standard text color for route details', async ({ page }) => {
+  await seedTrip(page);
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+
+  const notice = page.getByRole('status').filter({ hasText: '가장 빠른 루트는' });
+  await expect(notice).toContainText("가장 빠른 루트는 '자동차' - 11분 4.8km 걸려요.");
+  await expect(notice).toHaveCSS('background-color', 'rgb(247, 247, 248)');
+  await expect(notice).toHaveCSS('border-top-left-radius', '8px');
+  await expect(notice.locator('.fastest-route-value')).toHaveCSS('color', 'rgb(0, 152, 178)');
+  await expect(notice).toHaveCSS('margin-top', '12px');
+  const standardTextColor = await page.locator('.endpoint-name').first().evaluate((element) => getComputedStyle(element).color);
+  await expect.poll(() => notice.locator('.fastest-route-value').evaluate((element) => getComputedStyle(element.parentElement!).color))
+    .toBe(standardTextColor);
+  await expect(page.getByText(/대중교통은 실시간 정보에 따라 달라질 수 있으니 카카오맵에서 다시 확인해보세요/))
+    .toHaveCount(0);
+  await expect(page.getByRole('group', { name: '교통수단' })).toBeVisible();
+  await expect(notice).toHaveCount(1);
+
+  await page.getByRole('button', { name: '자동차', exact: true }).click();
+  const routeDetails = page.getByText('경로 상세보기', { exact: true });
+  await expect(routeDetails).toBeVisible();
+  await expect(routeDetails).toHaveCSS('color', standardTextColor);
 });
 
 test('long segment names stay selectable without horizontal overflow on mobile', async ({ page }) => {
@@ -365,7 +462,7 @@ test('route legend stays painted above the SDK map layers on desktop and mobile'
     await page.setViewportSize({ width, height: width === 390 ? 844 : 1080 });
     await legend.scrollIntoViewIfNeeded();
     await expect(legend).toContainText('도보 · 점선');
-    await expect(legend).toContainText('버스 · 실선');
+    await expect(legend).toContainText('버스 · 점선');
     await expect(map.locator('[data-transport-sdk-pane]')).toHaveCount(1);
     // pointer-events:none lets map interaction pass through the legend. Briefly
     // include it in hit testing to inspect paint order, then restore the style.

@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 import { Button, Typography } from '@montage-ui/core';
 import { MapPin, RefreshCw } from 'lucide-react';
 import type { Place } from '../../api/client';
-import type { TransportRoute, TransportStep } from '../../api/generated/model';
-import { color } from '../../shared/design/tokens';
+import type { TransportRoute } from '../../api/generated/model';
 
 const foreground = (name: string) => `var(--semantic-foreground-${name})`;
 const surface = 'var(--semantic-background-neutral-primary)';
 const canvas = 'var(--semantic-background-neutral-secondary)';
 const line = 'var(--semantic-line-neutral-primary)';
-const brand = 'var(--semantic-foreground-brand-primary)';
-const STEP_COLORS: Record<TransportStep['mode'], string> = { walk: color.textMuted, bus: color.primary, subway: color.teal, car: color.navyDeep };
 
 interface KakaoLatLng {}
 interface KakaoBounds { extend(point: KakaoLatLng): void }
@@ -21,7 +18,7 @@ interface KakaoMapInstance {
   setLevel(level: number): void;
   relayout(): void;
 }
-interface KakaoMarker { setMap(map: KakaoMapInstance | null): void }
+interface KakaoOverlay { setMap(map: KakaoMapInstance | null): void }
 interface KakaoPolyline { setMap(map: KakaoMapInstance | null): void }
 interface KakaoLoader {
   load(callback: () => void): void;
@@ -30,7 +27,14 @@ interface KakaoSdk extends KakaoLoader {
   LatLng: new (latitude: number, longitude: number) => KakaoLatLng;
   LatLngBounds: new () => KakaoBounds;
   Map: new (container: HTMLElement, options: { center: KakaoLatLng; level: number }) => KakaoMapInstance;
-  Marker: new (options: { position: KakaoLatLng; map: KakaoMapInstance; title: string }) => KakaoMarker;
+  CustomOverlay: new (options: {
+    position: KakaoLatLng;
+    content: HTMLElement;
+    map: KakaoMapInstance;
+    yAnchor: number;
+    zIndex: number;
+    clickable: boolean;
+  }) => KakaoOverlay;
   Polyline: new (options: {
     map: KakaoMapInstance;
     path: KakaoLatLng[];
@@ -53,6 +57,23 @@ const MapFrame = styled.div`
     width: 100%;
     height: 100%;
     isolation: isolate;
+  }
+
+  .map-canvas .route-pin {
+    display: grid;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    place-items: center;
+    border: 2px solid #fff;
+    border-radius: 15px 15px 15px 2px;
+    color: #fff;
+    background: var(--day-color);
+    box-shadow: 0 2px 6px #00000040;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
   }
 
   .map-status {
@@ -107,7 +128,7 @@ const MapFrame = styled.div`
   .map-legend .line {
     width: 24px;
     flex: 0 0 24px;
-    border-top: 3px dashed ${brand};
+    border-top: 3px solid;
   }
 `;
 
@@ -126,8 +147,8 @@ function isKakaoSdk(value: unknown): value is KakaoSdk {
     && typeof value.LatLngBounds === 'function'
     && 'Map' in value
     && typeof value.Map === 'function'
-    && 'Marker' in value
-    && typeof value.Marker === 'function'
+    && 'CustomOverlay' in value
+    && typeof value.CustomOverlay === 'function'
     && 'Polyline' in value
     && typeof value.Polyline === 'function';
 }
@@ -201,6 +222,9 @@ interface Props {
   keyError: boolean;
   departure: Place;
   arrival: Place;
+  departureOrder: number;
+  arrivalOrder: number;
+  routeColor: string;
   route?: TransportRoute;
   labels: {
     mapLabel: string;
@@ -229,6 +253,9 @@ export default function RouteMap({
   keyError,
   departure,
   arrival,
+  departureOrder,
+  arrivalOrder,
+  routeColor,
   route,
   labels,
   onRetryKey,
@@ -288,23 +315,37 @@ export default function RouteMap({
     map.current.setBounds(bounds, 64, 48, 128, 48);
 
     const markers = [
-      new loadedSdk.Marker({ position: origin, map: map.current, title: departure.name }),
-      new loadedSdk.Marker({ position: destination, map: map.current, title: arrival.name }),
-    ];
+      { position: origin, order: departureOrder, title: `${labels.departure}: ${departure.name}` },
+      { position: destination, order: arrivalOrder, title: `${labels.arrival}: ${arrival.name}` },
+    ].map(({ position, order, title }) => {
+      const pin = document.createElement('div');
+      pin.className = 'route-pin';
+      pin.textContent = String(order);
+      pin.setAttribute('role', 'img');
+      pin.setAttribute('aria-label', title);
+      return new loadedSdk.CustomOverlay({
+        position,
+        content: pin,
+        map: map.current!,
+        yAnchor: 1,
+        zIndex: 2,
+        clickable: false,
+      });
+    });
     const lines = paths.filter((path) => path.points.length >= 2).map((path) => new loadedSdk.Polyline({
       map: map.current!,
       path: path.points,
-      strokeWeight: 4,
-      strokeColor: STEP_COLORS[path.mode],
+      strokeWeight: 3,
+      strokeColor: routeColor,
       strokeOpacity: 0.9,
-      strokeStyle: path.mode === 'walk' ? 'shortdash' : 'solid',
+      strokeStyle: 'shortdash',
     }));
 
     return () => {
       markers.forEach((marker) => marker.setMap(null));
       lines.forEach((line) => line.setMap(null));
     };
-  }, [arrival.latitude, arrival.longitude, arrival.name, departure.latitude, departure.longitude, departure.name, route, status]);
+  }, [arrival.latitude, arrival.longitude, arrival.name, arrivalOrder, departure.latitude, departure.longitude, departure.name, departureOrder, labels.arrival, labels.departure, route, routeColor, status]);
 
   useEffect(() => {
     if (!container.current || status !== 'ready') return;
@@ -363,7 +404,7 @@ export default function RouteMap({
           </Typography>
           {route ? (['walk', 'bus', 'subway', 'car'] as const).filter((mode) => route.steps.some((step) => step.mode === mode && step.path.length >= 2)).map((mode) => (
             <Typography key={mode} className="map-legend-item" variant="caption1">
-              <i className="line" style={{ borderTopColor: STEP_COLORS[mode], borderTopStyle: mode === 'walk' ? 'dashed' : 'solid' }} />
+              <i className="line" style={{ borderTopColor: routeColor, borderTopStyle: 'dashed' }} />
               {labels[`${mode}Line`]}
             </Typography>
           )) : <Typography variant="caption1">{labels.markersOnly}</Typography>}

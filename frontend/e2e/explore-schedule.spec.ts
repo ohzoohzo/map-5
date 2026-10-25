@@ -159,6 +159,14 @@ test('넓은 목록 영역은 장소 카드를 세 열로 표시한다', async (
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
 });
 
+test('넓은 화면에서는 지도를 우측의 좁은 영역에 제한한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await startTrip(page);
+  const map = page.locator('.explore-map');
+  await expect(map).toBeVisible();
+  expect((await map.boundingBox())!.width).toBeLessThanOrEqual(420);
+});
+
 test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이면 뒤쪽 일정은 후보함으로 돌아간다', async ({ page }) => {
   const busan = await startTrip(page);
   const [a, b, c] = busan.places;

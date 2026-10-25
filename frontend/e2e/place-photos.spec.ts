@@ -126,6 +126,19 @@ test('사진 API가 일시적으로 실패한 뒤 복구되면 SPA로 돌아왔�
   expect(await page.evaluate(() => performance.timeOrigin), '전체 새로고침 없이 사진을 복구한다').toBe(documentStartedAt);
 });
 
+test('넓은 반응형 화면의 지도 팝업은 작은 사진으로 높이를 줄인다', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await installPhotos(page);
+  const catalog = await startTrip(page);
+  const place = catalog.places[0]!;
+
+  await placeCard(page, place).getByRole('button', { name: `${place.name} 지도에서 보기`, exact: true }).click();
+  const popup = page.locator('.map-popup').filter({ hasText: place.name });
+  const image = await expectPhoto(popup, place);
+  expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(72);
+  expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe('cover');
+});
+
 test('사진 정보가 확인된 장소를 사진 없는 장소보다 목록 앞에 둔다', async ({ page }) => {
   const response = await page.request.get('/api/travel/catalog', { params: { region: '부산광역시', query: '' } });
   expect(response.ok()).toBe(true);

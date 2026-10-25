@@ -45,15 +45,17 @@ const ExploreLayout = styled(PinDayPage)`
   .explore-actions .search-form > :last-child,
   .explore-actions > button { flex-shrink: 0; white-space: nowrap; }
 
-  .explore-grid { position: relative; }
+  .explore-grid { position: relative; grid-template-columns: minmax(0, 1fr) minmax(300px, min(36%, 420px)); }
   .explore-grid > .filter-row { grid-column: 1; grid-row: 1; margin-bottom: 0; padding-bottom: 16px; }
   .explore-grid > .explore-actions { grid-column: 1; grid-row: 2; }
   .explore-grid > .explore-list { grid-column: 1; grid-row: 3; }
-  .explore-grid > .explore-map { position: absolute; top: 0; right: 0; width: calc((100% - 24px) / 2); }
+  .explore-grid > .explore-map { position: absolute; top: 0; right: 0; width: min(36%, 420px); }
 
   @media (max-width: 1100px) {
     .explore-grid { display: flex; flex-direction: column; gap: 0; }
     .explore-grid > .explore-map { position: static; top: auto; right: auto; width: 100%; }
+    .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
+    .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
     .filter-row { order: 0; width: 100%; background: ${color.surface}; margin: 0; padding: 0 0 12px; overflow: visible; }
     .explore-actions { order: 1; width: 100%; margin-top: 0; }
     .explore-map { order: 2; position: static; width: 100%; margin-top: 12px; }

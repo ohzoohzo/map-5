@@ -79,7 +79,7 @@ test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버�
   await expect(page).toHaveURL(/\/transport$/);
 });
 
-test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일반 지도와 결과를 배치한다', async ({ page }) => {
+test('모바일 어디 갈까?: 필터와 검색 아래 리스트는 왼쪽 한 열, 지도는 오른쪽에 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startTrip(page);
 
@@ -106,6 +106,8 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
       mapTop: mapElement.getBoundingClientRect().top,
       mapBottom: mapElement.getBoundingClientRect().bottom,
       listTop: listElement.getBoundingClientRect().top,
+      listLeft: document.querySelector('.explore-list')!.getBoundingClientRect().left,
+      mapLeft: mapElement.getBoundingClientRect().left,
       filterOverflowX: getComputedStyle(filterElement).overflowX,
       filterBackground: getComputedStyle(filterElement).backgroundColor,
       tripBarBackground: getComputedStyle(document.querySelector('.trip-bar-wrap')!).backgroundColor,
@@ -126,7 +128,9 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
   await expect(list).toBeVisible();
   expect(layout.filterBottom).toBeLessThanOrEqual(layout.actionsTop);
   expect(layout.actionsBottom).toBeLessThan(layout.mapTop);
-  expect(layout.mapBottom).toBeLessThan(layout.listTop);
+  expect(layout.actionsBottom).toBeLessThan(layout.listTop);
+  expect(layout.listLeft).toBeLessThan(layout.mapLeft);
+  expect(Math.abs(layout.listTop - layout.mapTop)).toBeLessThan(1);
   expect(layout.filterBackground).toBe('rgb(255, 255, 255)');
   expect(layout.tripBarBackground).toBe('rgb(255, 255, 255)');
   const steps = page.locator('.trip-bar-wrap .count-chip');
@@ -148,19 +152,19 @@ test('모바일 어디 갈까?: 흰색 필터 아래 검색을 두고 300px 일�
   const controls = await Promise.all([searchField, searchButton, randomButton].map((locator) => locator.boundingBox()));
   const controlCenters = controls.map((box) => box!.y + box!.height / 2);
   expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThan(1);
-  expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
+  expect(await placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(1);
 });
 
-test('좁은 반응형 목록은 기존 카드 열 수와 지도를 유지한다', async ({ page }) => {
+test('좁은 반응형에서도 목록 왼쪽·지도 오른쪽을 유지한다', async ({ page }) => {
   await page.setViewportSize({ width: 960, height: 900 });
   await startTrip(page);
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect(placeGrid).toBeVisible();
-  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+  await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(2);
   expect(await page.locator('.explore-map .map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
   const map = await page.locator('.explore-map').boundingBox();
-  const layout = await page.locator('.explore-grid').boundingBox();
-  expect(map!.width).toBeCloseTo(layout!.width, 0);
+  const list = await page.locator('.explore-list').boundingBox();
+  expect(map!.x).toBeGreaterThan(list!.x + list!.width);
 });
 
 test('중간 너비에서도 장소 목록 왼쪽·지도 오른쪽을 유지한다', async ({ page }) => {

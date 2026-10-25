@@ -62,16 +62,17 @@ const ExploreLayout = styled(PinDayPage)`
   }
 
   @media (max-width: 1100px) {
-    .explore-grid { display: flex; flex-direction: column; gap: 0; }
-    .explore-grid > .explore-map { position: static; top: auto; right: auto; width: 100%; }
+    .explore-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 32%); column-gap: 16px; row-gap: 0; }
+    .explore-grid > .filter-row { grid-column: 1 / -1; grid-row: 1; }
+    .explore-grid > .explore-actions { grid-column: 1 / -1; grid-row: 2; }
+    .explore-grid > .explore-list { grid-column: 1; grid-row: 3; width: 100%; margin-top: 12px; }
+    .explore-grid > .explore-map { position: static; grid-column: 2; grid-row: 3; width: 100%; min-width: 0; margin-top: 12px; }
     .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
     .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-    .filter-row { order: 0; width: 100%; background: ${color.surface}; margin: 0; padding: 0 0 12px; overflow: visible; }
-    .explore-actions { order: 1; width: 100%; margin-top: 0; }
-    .explore-map { order: 2; position: static; width: 100%; margin-top: 12px; }
     .map-frame { height: 300px; min-height: 300px; }
     .map-legend { display: none; }
-    .explore-list { order: 3; width: 100%; margin-top: 12px; }
+    .filter-row { width: 100%; background: ${color.surface}; margin: 0; padding: 0 0 12px; overflow: visible; }
+    .explore-actions { width: 100%; margin-top: 0; }
     .place-grid { max-height: none; min-height: 0; overflow: visible; }
   }
 
@@ -81,7 +82,8 @@ const ExploreLayout = styled(PinDayPage)`
     .explore-map .map-popup [data-variant='popup'] .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
     .kind-tabs { width: auto; flex-wrap: wrap; overflow: visible; }
     .kind-tab { flex-shrink: 1; padding: 0 8px; }
-    .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .explore-grid { grid-template-columns: minmax(0, 1fr) minmax(120px, 39%); column-gap: 8px; }
+    .explore-grid .place-grid { grid-template-columns: minmax(0, 1fr); }
   }
 `;
 

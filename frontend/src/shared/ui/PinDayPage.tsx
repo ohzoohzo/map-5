@@ -16,7 +16,7 @@ const PinDayPage = styled.div`
   .trip-counts { margin-left: auto; display: flex; gap: 8px; }
   .count-chip { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; color: ${fg('neutral-secondary')}; border: 1px solid ${line}; transition: background .15s; }
   .count-chip svg { width: 18px; height: 18px; } .count-chip strong { color: ${fg('neutral-strong')}; font-size: 15px; }
-  .count-chip:hover { background: ${canvas}; } .count-chip.active { background: #eaf2fe; border-color: transparent; color: ${brand}; } .count-chip.active strong { color: ${brand}; }
+  .count-chip:hover { background: ${canvas}; } .count-chip.active { background: #eaf2fe; border-color: #b3d1fd; color: ${brand}; font-weight: 700; } .count-chip.active strong { color: ${brand}; }
   .conditions-form { background: ${surface}; border: 1px solid ${line}; border-radius: 16px; padding: 20px 24px; display: grid; gap: 16px; }
   .conditions-form h2 { margin: 0; }
   .conditions-fields { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(160px, 1fr) minmax(140px, .8fr) auto; gap: 12px; align-items: end; }

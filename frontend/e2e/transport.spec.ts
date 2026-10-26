@@ -328,7 +328,8 @@ test('day colors are shared by itinerary numbers, controls, map pins and dotted 
 
   for (let index = 0; index < palette.length; index += 1) {
     await tabs.nth(index).click();
-    await expect(number).toHaveCSS('background-color', palette[index]!.css);
+    // 일정 확인의 방문 번호는 날짜 색을 쓰지 않는 회색이다.
+    await expect(number).not.toHaveCSS('background-color', palette[index]!.css);
     await expect(segment).toHaveCSS('border-top-color', palette[index]!.css);
     await expect(page.getByRole('button', { name: '대중교통', exact: true })).toHaveCSS('background-color', palette[index]!.css);
     await expect(page.getByRole('button', { name: /경로 1/ })).toHaveCSS('background-color', palette[index]!.css);
@@ -708,7 +709,7 @@ test('a failed driving request can retry without restoring an obsolete transit r
 test.describe('mobile date navigation', () => {
   test.use({ hasTouch: true });
 
-  test('mobile dates keep their icons and labels inside each button and all days stay reachable', async ({ page }, testInfo) => {
+  test('mobile dates split DAY and date onto two lines inside each button and all days stay reachable', async ({ page }, testInfo) => {
     await seedTrip(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/transport', { waitUntil: 'domcontentloaded' });
@@ -717,18 +718,14 @@ test.describe('mobile date navigation', () => {
     await expect(days).toHaveCount(7);
     await page.evaluate(() => document.fonts.ready);
 
-    // 문서 전체 폭만 확인하면 버튼 안에서 날짜가 이웃 아이콘과 겹치는 문제를 놓친다.
-    const contentsFit = await days.evaluateAll((buttons) => buttons.every((button) => {
+    // 좁은 일정 확인 패널에서는 'DAY n' 아래 줄에 날짜를 두고, 두 줄 모두 자기 버튼 안에 있어야 한다.
+    const twoLines = await days.evaluateAll((buttons) => buttons.every((button) => {
       const bounds = button.getBoundingClientRect();
-      const icon = button.querySelector('svg')!.getBoundingClientRect();
-      const label = document.getElementById(button.getAttribute('aria-labelledby')!)!;
-      const range = document.createRange();
-      range.selectNodeContents(label);
-      const text = range.getBoundingClientRect();
-      return icon.left >= bounds.left && icon.right <= text.left
-        && text.right <= bounds.right && text.top >= bounds.top && text.bottom <= bounds.bottom;
+      const [name, date] = [button.querySelector('span:first-of-type')!, button.querySelector('.day-date')!].map((node) => node.getBoundingClientRect());
+      const inside = (box: DOMRect) => box.left >= bounds.left && box.right <= bounds.right && box.top >= bounds.top && box.bottom <= bounds.bottom;
+      return inside(name!) && inside(date!) && date!.top >= name!.bottom - 1;
     }));
-    expect(contentsFit, '각 날짜의 아이콘과 글자는 자기 버튼 안에 서로 겹치지 않고 표시돼야 한다').toBe(true);
+    expect(twoLines, '각 날짜는 DAY 줄과 날짜 줄로 나뉘어 자기 버튼 안에 표시돼야 한다').toBe(true);
     expect(await strip.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 
@@ -749,4 +746,92 @@ test.describe('mobile date navigation', () => {
     await expect(days.first()).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: testInfo.outputPath('transport-mobile-dates.png') });
   });
+});
+
+test('단계 바는 고정되고 계획 단계로 돌아가며, 구간을 고르면 선택한 구간으로 이동한다', async ({ page }, testInfo) => {
+  await seedTrip(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+  const bar = page.locator('.trip-bar-wrap');
+  await expect(bar.getByRole('button', { name: '여행 조건 수정' })).toHaveCount(0);
+
+  const segments = page.locator('.segment-button');
+  await segments.last().scrollIntoViewIfNeeded();
+  await segments.last().click();
+  const heading = page.getByRole('heading', { name: '선택한 구간' });
+  await expect.poll(async () => {
+    const [headingBox, barBox] = [await heading.boundingBox(), await bar.boundingBox()];
+    return headingBox!.y >= barBox!.y + barBox!.height && headingBox!.y < 844 / 2;
+  }).toBe(true);
+  await expect.poll(() => bar.evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBeLessThan(120);
+  await page.screenshot({ path: testInfo.outputPath('transport-segment-reveal.png') });
+
+  await bar.getByRole('button', { name: '계획 단계로 돌아가기' }).click();
+  await expect(page).toHaveURL(/\/explore$/);
+});
+
+for (const width of [390, 1440]) {
+  test(`${width}px 플로팅 바의 날씨 확인하기(이전)·AI 도슨트 확인하기(다음, 강조) 버튼은 한 줄에 있고 각 페이지로 이동한다`, async ({ page }, testInfo) => {
+    await seedTrip(page);
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+    const tray = page.locator('.candidate-tray');
+    await expect(tray.getByRole('heading', { name: '총 이동 구간 3개' })).toBeVisible();
+    await expect(tray).toContainText('DAY 1 (2개) · DAY 2 (1개) · DAY 3 (0개)');
+    await expect(tray.getByRole('button', { name: '계획으로 돌아가기', exact: true })).toHaveCount(0);
+    const weather = tray.getByRole('button', { name: '날씨 확인하기', exact: true });
+    const docent = tray.getByRole('button', { name: 'AI 도슨트 확인하기', exact: true });
+    await expect(weather).toBeInViewport();
+    await expect(docent).toBeInViewport();
+    const [weatherBox, docentBox] = [await weather.boundingBox(), await docent.boundingBox()];
+    expect(weatherBox!.y).toBe(docentBox!.y);
+    expect(weatherBox!.height).toBe(docentBox!.height);
+    expect(weatherBox!.x, '이전 단계가 왼쪽').toBeLessThan(docentBox!.x);
+    // AI 도슨트 확인하기만 파란 강조(solid primary) 버튼
+    const [weatherBg, docentBg] = await Promise.all([weather, docent].map((button) => button.evaluate((node) => getComputedStyle(node).backgroundColor)));
+    expect(docentBg).toMatch(/^rgb\(0, \d+, 2\d\d\)$/);
+    expect(weatherBg).not.toMatch(/^rgb\(0, \d+, 2\d\d\)$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.locator('.candidate-tray').screenshot({ path: testInfo.outputPath(`transport-floating-${width}.png`) });
+
+    await weather.click();
+    await expect(page).toHaveURL(/\/weather$/);
+    await page.goBack();
+    await page.locator('.candidate-tray').getByRole('button', { name: 'AI 도슨트 확인하기', exact: true }).click();
+    await expect(page).toHaveURL(/\/docent$/);
+  });
+}
+
+test('대중교통 경로는 4개가 오면 2개만 보이고 나머지는 스크롤로 볼 수 있으며, 구간 화살표는 검정이다', async ({ page }) => {
+  await seedTrip(page);
+  await page.route('**/api/transport/routes?*', (route) => {
+    const body = routeResponse(new URL(route.request().url()));
+    // 대중교통 응답을 4개로 늘린다
+    return route.fulfill({ json: body.mode === 'transit' ? { ...body, routes: [...body.routes, ...body.routes] } : body });
+  });
+  await page.goto('/transport', { waitUntil: 'domcontentloaded' });
+  const list = page.getByRole('group', { name: '경로 선택', exact: true });
+  const options = list.getByRole('button');
+  await expect(options).toHaveCount(4);
+  const visible = () => list.evaluate((node) => {
+    const box = node.getBoundingClientRect();
+    return [...node.children].filter((child) => { const r = child.getBoundingClientRect(); return r.top >= box.top - 1 && r.bottom <= box.bottom + 1; }).length;
+  });
+  await expect.poll(visible, '처음에는 2개만 보인다').toBe(2);
+  await expect(page.getByText('스크롤하면 경로 2개를 더 볼 수 있어요.')).toBeVisible();
+  await options.nth(3).scrollIntoViewIfNeeded();
+  await expect(options.nth(3)).toContainText('경로 4');
+  await options.nth(3).click();
+  await expect(options.nth(3)).toHaveAttribute('aria-pressed', 'true');
+  expect(await visible(), '스크롤해도 2개 높이를 유지한다').toBe(2);
+
+  // 경로 선택은 안내 아래, 카카오맵 길 찾기 버튼 바로 위에 있다
+  const directions = page.getByRole('link', { name: /카카오맵에서 이 구간 길찾기/ });
+  const [listBox, linkBox, sourceBox] = await Promise.all([list.boundingBox(), directions.boundingBox(), page.locator('.route-source').boundingBox()]);
+  expect(listBox!.y).toBeGreaterThan(sourceBox!.y);
+  expect(linkBox!.y).toBeGreaterThan(listBox!.y + listBox!.height);
+
+  const arrow = page.locator('.endpoint-arrow');
+  const strong = await page.evaluate(() => { const probe = document.createElement('span'); probe.style.color = 'var(--semantic-foreground-neutral-strong)'; document.body.append(probe); const value = getComputedStyle(probe).color; probe.remove(); return value; });
+  await expect(arrow, '구간 화살표는 DAY 색이 아닌 검정').toHaveCSS('color', strong);
 });

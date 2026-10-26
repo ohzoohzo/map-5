@@ -53,7 +53,7 @@ test('어디 갈까?: 시·도와 동네로 실제 관광지를 좁히고 후보
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText(second ? '2' : '1');
 });
 
-test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버튼을 연결한다', async ({ page }) => {
+test('GNB를 네 메뉴로 묶고 이동 전 확인하기는 3. 날씨 체크로, 단계 바는 4. 어떻게 갈까?와 연결한다', async ({ page }) => {
   await startTrip(page);
   const navigation = page.getByRole('navigation', { name: '여행 설계' });
   await expect(navigation.getByRole('link')).toHaveCount(4);
@@ -62,21 +62,33 @@ test('GNB를 네 메뉴로 묶고 이동 전 확인하기와 날씨 이동 버�
   await expect(navigation.getByRole('link', { name: 'AI 도슨트' })).toHaveAttribute('href', '/docent');
 
   await navigation.getByRole('link', { name: '이동 전 확인하기' }).click();
-  await expect(page).toHaveURL(/\/before-travel$/);
-  await expect(page.getByRole('heading', { name: '이동 전 확인하기' })).toBeVisible();
-  await page.getByRole('button', { name: '이동 경로 확인' }).click();
-  await expect(page).toHaveURL(/\/transport$/);
-
-  await navigation.getByRole('link', { name: '이동 전 확인하기' }).click();
-  await page.getByRole('button', { name: '날씨 대안 확인' }).click();
   await expect(page).toHaveURL(/\/weather$/);
-  const weatherNavigation = page.locator('.trip-counts');
-  await expect(weatherNavigation.getByRole('button', { name: '어떻게 갈까?', exact: true })).toBeVisible();
-  await expect(weatherNavigation.getByRole('button', { name: '날씨 대안', exact: true })).toBeVisible();
-  await expect(weatherNavigation.getByTestId(IDS.CANDIDATE_COUNT)).toHaveCount(0);
-  await expect(weatherNavigation.getByTestId(IDS.SCHEDULED_COUNT)).toHaveCount(0);
-  await weatherNavigation.getByRole('button', { name: '어떻게 갈까?', exact: true }).click();
+  await expect(navigation.getByRole('link', { name: '이동 전 확인하기' })).toHaveAttribute('aria-current', 'page');
+  // 선택한 메뉴는 강조 파랑, 나머지는 회색
+  await expect(navigation.getByRole('link', { name: '이동 전 확인하기' })).toHaveCSS('color', 'rgb(0, 102, 255)');
+  await expect(navigation.getByRole('link', { name: '홈' })).not.toHaveCSS('color', 'rgb(0, 102, 255)');
+  await expect(page.locator('.site-header .brand > span'), '로고 글씨는 진한 네이비 한 색').toHaveCSS('color', 'rgb(0, 41, 102)');
+  await expect(page.locator('.site-header .brand-dot')).toHaveCSS('color', 'rgb(0, 41, 102)');
+  await expect(page.getByRole('link', { name: 'PinDay', exact: true })).toBeVisible();
+  const steps = page.locator('.trip-counts');
+  await expect(steps.getByRole('button')).toHaveText(['3. 날씨 체크', '4. 어떻게 갈까?']);
+  const weatherStep = steps.getByRole('button', { name: '3. 날씨 체크', exact: true });
+  const transportStep = steps.getByRole('button', { name: '4. 어떻게 갈까?', exact: true });
+  await expect(weatherStep).toHaveClass(/active/);
+  await expect(weatherStep).toHaveCSS('background-color', 'rgb(234, 242, 254)');
+  await expect(transportStep).not.toHaveClass(/active/);
+  await expect(steps.getByTestId(IDS.CANDIDATE_COUNT)).toHaveCount(0);
+  await expect(steps.getByTestId(IDS.SCHEDULED_COUNT)).toHaveCount(0);
+
+  await transportStep.click();
   await expect(page).toHaveURL(/\/transport$/);
+  await expect(navigation.getByRole('link', { name: '이동 전 확인하기' })).toHaveAttribute('aria-current', 'page');
+  await expect(steps.getByRole('button', { name: '4. 어떻게 갈까?', exact: true })).toHaveClass(/active/);
+  await steps.getByRole('button', { name: '3. 날씨 체크', exact: true }).click();
+  await expect(page).toHaveURL(/\/weather$/);
+
+  await page.goto('/before-travel');
+  await expect(page.getByRole('heading', { name: '이동 전 확인하기' })).toHaveCount(0);
 });
 
 test('모바일 어디 갈까?: 필터와 검색 아래 리스트는 왼쪽 한 열, 지도는 오른쪽에 표시한다', async ({ page }) => {
@@ -136,12 +148,12 @@ test('모바일 어디 갈까?: 필터와 검색 아래 리스트는 왼쪽 한 
   const steps = page.locator('.trip-bar-wrap .count-chip');
   await expect(steps).toHaveCount(2);
   await expect(steps.nth(0)).toHaveClass(/active/);
-  await expect(steps.nth(0)).toHaveCSS('background-color', 'rgb(0, 102, 255)');
-  await expect(steps.nth(0)).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(0)).toHaveCSS('background-color', 'rgb(234, 242, 254)');
+  await expect(steps.nth(0)).toHaveCSS('color', 'rgb(0, 102, 255)');
   await expect(steps.nth(0)).toHaveCSS('font-weight', '700');
   await expect(steps.nth(1)).not.toHaveClass(/active/);
-  await expect(steps.nth(1)).not.toHaveCSS('background-color', 'rgb(0, 102, 255)');
-  await expect(steps.nth(1)).not.toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(1)).not.toHaveCSS('background-color', 'rgb(234, 242, 254)');
+  await expect(steps.nth(1)).not.toHaveCSS('color', 'rgb(0, 102, 255)');
   await expect(steps.nth(1)).not.toHaveCSS('font-weight', '700');
   expect(layout.filterMarginBottom).toBe('0px');
   expect(layout.filterScrollWidth).toBeLessThanOrEqual(layout.filterClientWidth);
@@ -215,6 +227,25 @@ test('중간 너비에서도 장소 목록 왼쪽·지도 오른쪽을 유지한
   const placeGrid = page.getByTestId(IDS.PLACE_GRID);
   await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
 });
+
+for (const { width, columns, chipRows } of [
+  { width: 800, columns: 1, chipRows: 2 },
+  { width: 892, columns: 1, chipRows: 2 },
+  { width: 893, columns: 2, chipRows: 1 },
+  { width: 894, columns: 2, chipRows: 1 },
+  { width: 900, columns: 2, chipRows: 1 },
+  { width: 901, columns: 2, chipRows: 1 },
+  { width: 1100, columns: 2, chipRows: 1 },
+]) {
+  test(`${width}px에서 동네 필터가 ${chipRows}줄일 때 장소 목록을 ${columns}열로 표시한다`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await startTrip(page);
+    const placeGrid = page.getByTestId(IDS.PLACE_GRID);
+    const districtChips = page.locator('.district-chips');
+    await expect.poll(() => placeGrid.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(columns);
+    expect(await districtChips.evaluate((element) => new Set([...element.querySelectorAll('button')].map((button) => Math.round(button.getBoundingClientRect().top))).size)).toBe(chipRows);
+  });
+}
 
 test('여행 단계 버튼이 두 번째 줄이면 양옆을 채운다', async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 900 });
@@ -293,6 +324,63 @@ test('언제 갈까?: 후보를 날짜에 배치·정렬하고, 기간을 줄이
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('3');
 });
 
+test('언제 갈까?: 지도·일정·지역 이야기를 순서대로 배치하고 팝업에서 날짜별 색상으로 추가한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const busan = await startTrip(page);
+  const place = busan.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+
+  const map = page.locator('.planner-map');
+  const schedulePanel = page.locator('.schedule-panel');
+  const regionStory = page.locator('.docent-side');
+  await expect(page.locator('.planner-map')).toHaveCount(1);
+  await expect(map.locator('.map-toolbar')).toContainText('지도별 확인');
+  await expect(map.locator('.map-toolbar')).toContainText('날짜별 확인');
+  const left = await map.boundingBox();
+  const center = await schedulePanel.boundingBox();
+  const right = await regionStory.boundingBox();
+  expect(left!.x).toBeLessThan(center!.x);
+  expect(center!.x).toBeLessThan(right!.x);
+
+  await page.locator('.unscheduled-list .visit-name').click();
+  const popup = map.locator('.map-popup');
+  const dayActions = popup.locator('.popup-day-action');
+  await expect(dayActions).toHaveCount(3);
+  await expect(dayActions.nth(0)).toHaveText('DAY 1 추가');
+  await expect(dayActions.nth(1)).toHaveText('DAY 2 추가');
+  await expect(dayActions.nth(2)).toHaveText('DAY 3 추가');
+  expect(await popup.locator('.popup-day-actions').evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(3);
+  for (let index = 0; index < 3; index += 1) {
+    const actionColor = await dayActions.nth(index).evaluate((element) => getComputedStyle(element).getPropertyValue('--day-color'));
+    const tabColor = await page.getByRole('tab', { name: new RegExp(`DAY ${index + 1}`) })
+      .evaluate((element) => getComputedStyle(element).getPropertyValue('--day-color'));
+    expect(actionColor).toBe(tabColor);
+  }
+
+  await page.getByRole('button', { name: 'DAY 2 추가' }).click();
+  await expect(page.getByRole('button', { name: 'DAY 2 추가' })).toBeDisabled();
+  await page.getByRole('button', { name: 'DAY 1 추가' }).click();
+  await page.getByRole('tab', { name: /^DAY 1/ }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [place.name]);
+});
+
+test('노트북 높이에서도 언제 갈까 지도 전체가 화면 안에 표시된다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 768 });
+  const busan = await startTrip(page);
+  const place = busan.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+
+  const mapCard = page.locator('.planner-map .map-card');
+  const mapFrame = mapCard.locator('.map-frame');
+  const bounds = await mapFrame.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.height).toBeLessThan(460);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(768);
+  expect((await mapCard.boundingBox())!.y + (await mapCard.boundingBox())!.height).toBeLessThanOrEqual(768);
+});
+
 test('모바일 언제 갈까?: 일정 정보보다 먼저 300px 일반 지도를 표시한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const busan = await startTrip(page);
@@ -308,12 +396,12 @@ test('모바일 언제 갈까?: 일정 정보보다 먼저 300px 일반 지도�
   const steps = tripBar.locator('.count-chip');
   await expect(steps).toHaveCount(2);
   await expect(steps.nth(0)).not.toHaveClass(/active/);
-  await expect(steps.nth(0)).not.toHaveCSS('background-color', 'rgb(0, 102, 255)');
-  await expect(steps.nth(0)).not.toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(0)).not.toHaveCSS('background-color', 'rgb(234, 242, 254)');
+  await expect(steps.nth(0)).not.toHaveCSS('color', 'rgb(0, 102, 255)');
   await expect(steps.nth(0)).not.toHaveCSS('font-weight', '700');
   await expect(steps.nth(1)).toHaveClass(/active/);
-  await expect(steps.nth(1)).toHaveCSS('background-color', 'rgb(0, 102, 255)');
-  await expect(steps.nth(1)).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(steps.nth(1)).toHaveCSS('background-color', 'rgb(234, 242, 254)');
+  await expect(steps.nth(1)).toHaveCSS('color', 'rgb(0, 102, 255)');
   await expect(steps.nth(1)).toHaveCSS('font-weight', '700');
   expect(await map.evaluate((element) => getComputedStyle(element).position)).toBe('static');
   expect(await map.locator('.map-frame').evaluate((element) => element.getBoundingClientRect().height)).toBe(300);
@@ -402,4 +490,108 @@ test('어디 갈까?: 지역 카탈로그 실패를 보여주고 재시도로 �
   await expect(page.getByTestId(IDS.RESULT_COUNT)).toHaveText(String(catalog.total));
   await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
   await expect(page.getByText('여행 지역을 불러오지 못했어요')).toHaveCount(0);
+});
+
+test('언제 갈까?: 후보함 추가 버튼은 검정이고, 플로팅 바에서 이전·다음 단계로 이동한다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  const place = busan.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+
+  const add = page.getByRole('button', { name: `${place.name} DAY 1에 추가` });
+  const back = page.getByRole('button', { name: '갈 곳 다시 확인' });
+  const next = page.getByRole('button', { name: '이동 전 확인' });
+  await expect(add).not.toHaveCSS('color', 'rgb(0, 102, 255)');
+  await expect(back).toBeVisible();
+  await expect(next).toBeDisabled();
+  await add.click();
+  await expect(next).toBeEnabled();
+  await page.screenshot({ path: testInfo.outputPath('schedule-tray.png') });
+
+  await back.click();
+  await expect(page).toHaveURL(/\/explore$/);
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  await page.getByRole('button', { name: '이동 전 확인' }).click();
+  await expect(page).toHaveURL(/\/weather$/);
+});
+
+test('언제 갈까?: 날짜마다 일정을 역순으로 바꾸거나 제거한다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  const [a, b, c] = busan.places;
+  for (const place of [a!, b!, c!]) await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  const reverse = page.getByRole('button', { name: '역순으로 변경하기' });
+  const clear = page.getByRole('button', { name: '일정 제거하기' });
+  await expect(reverse).toBeDisabled();
+  await expect(clear).toBeDisabled();
+
+  await page.getByRole('button', { name: `${a!.name} DAY 1에 추가` }).click();
+  await page.getByRole('button', { name: `${b!.name} DAY 1에 추가` }).click();
+  await page.getByRole('tab', { name: /^DAY 2/ }).click();
+  await page.getByRole('button', { name: `${c!.name} DAY 2에 추가` }).click();
+  await page.getByRole('tab', { name: /^DAY 1/ }).click();
+  await reverse.click();
+  await expectNames(page, IDS.ITINERARY_LIST, [b!.name, a!.name]);
+  await page.screenshot({ path: testInfo.outputPath('schedule-day-tools.png') });
+
+  await clear.click();
+  await expect(page.getByTestId(IDS.ITINERARY_LIST).locator('li')).toHaveCount(0);
+  await expect(page.getByTestId(IDS.SCHEDULED_COUNT)).toHaveText('1');
+  await page.getByRole('tab', { name: /^DAY 2/ }).click();
+  await expectNames(page, IDS.ITINERARY_LIST, [c!.name]);
+});
+
+test('언제 갈까?: 지도별 확인에서는 DAY 탭을 회색으로 두고, 날짜를 고르면 강조한다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  const place = busan.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  await page.getByRole('button', { name: `${place.name} DAY 1에 추가` }).click();
+  const tabs = page.locator('.day-tab');
+  await expect(tabs.nth(0)).not.toHaveClass(/active/);
+  await expect(page.locator('.visit-number').first()).not.toHaveCSS('background-color', 'rgb(0, 152, 178)');
+  await page.screenshot({ path: testInfo.outputPath('schedule-district.png') });
+
+  await page.getByRole('radio', { name: '날짜별 확인' }).click();
+  await expect(tabs.nth(0)).toHaveClass(/active/);
+  await expect(page.locator('.visit-number').first()).toHaveCSS('background-color', 'rgb(0, 152, 178)');
+  await page.getByRole('radio', { name: '지도별 확인' }).click();
+  await expect(tabs.nth(0)).not.toHaveClass(/active/);
+  await tabs.nth(1).click();
+  await expect(tabs.nth(1)).toHaveClass(/active/);
+});
+
+test('언제 갈까?: 여행 단계 버튼이 두 번째 줄이면 양옆을 채운다', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 900 });
+  const busan = await startTrip(page);
+  await page.getByRole('button', { name: `${busan.places[0]!.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  const bar = await page.locator('.trip-bar').boundingBox();
+  const counts = await page.locator('.trip-counts').boundingBox();
+  expect(counts!.width).toBeGreaterThan(bar!.width - 80);
+});
+
+test('언제 갈까?: 후보함에서 바로 빼고, 지역 이야기는 검정 탭과 AI 도슨트와 같은 회색 태그를 쓴다', async ({ page }, testInfo) => {
+  const busan = await startTrip(page);
+  const [a, b] = busan.places;
+  for (const place of [a!, b!]) await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+
+  await page.getByRole('button', { name: `${b!.name} 후보함에서 빼기` }).click();
+  await expectNames(page, IDS.UNSCHEDULED_LIST, [a!.name]);
+  await expect(page.getByTestId(IDS.CANDIDATE_COUNT)).toHaveText('1');
+
+  const docent = page.locator('.docent-side');
+  await page.getByTestId(IDS.UNSCHEDULED_LIST).locator('.visit-name').click();
+  await expect(docent.getByRole('tab', { name: '지역 이야기' })).not.toHaveCSS('color', 'rgb(21, 87, 167)');
+  const tag = docent.getByText('지금 보고 있는 곳');
+  const gray = await page.evaluate(() => { const probe = document.createElement('span'); probe.style.color = 'var(--semantic-foreground-neutral-secondary)'; probe.style.background = 'var(--semantic-background-neutral-secondary)'; document.body.append(probe); const style = getComputedStyle(probe); const value = { color: style.color, background: style.backgroundColor }; probe.remove(); return value; });
+  await expect(tag).toHaveCSS('color', gray.color);
+  await expect(tag).toHaveCSS('background-color', gray.background);
+
+  await page.getByRole('tab', { name: /^DAY 2/ }).click();
+  await page.getByRole('button', { name: `${a!.name} DAY 2에 추가` }).click();
+  await page.getByTestId(IDS.ITINERARY_LIST).locator('.visit-name').click();
+  await expect(tag, '일정에 넣어도 DAY 색이 아닌 회색 태그').toHaveCSS('color', gray.color);
+  await page.screenshot({ path: testInfo.outputPath('schedule-docent-tag.png') });
 });

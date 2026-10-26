@@ -30,13 +30,13 @@ const EMPTY: Place[] = [];
 
 const ExploreLayout = styled(PinDayPage)`
   .trip-bar-wrap { position: sticky; top: 78px; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${color.surface}; }
-  .trip-bar-wrap .count-chip.active { background: #0066ff; border-color: #0066ff; color: ${color.surface}; font-weight: 700; }
-  .trip-bar-wrap .count-chip.active strong { color: ${color.surface}; }
   .explore-grid { align-content: start; }
   .explore-grid > .explore-map .map-frame { height: 300px; min-height: 300px; }
   .explore-map .map-popup [data-variant='popup'] .photo-frame { height: 72px; }
   .photo-frame img { object-fit: cover; }
+  .place-visual .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
   .explore-grid .place-card { position: relative; }
+  .explore-grid .saved-flag { border: 1px solid var(--semantic-line-neutral-primary, #e1e2e4); color: var(--semantic-foreground-neutral-strong); font-weight: 500; }
   .explore-grid .place-visual:has(> [data-photo-missing='true']) { display: none; }
   .explore-grid .place-card:has(.place-visual > [data-photo-missing='true']) .place-copy { padding-top: 48px; }
   .explore-grid .place-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
@@ -56,6 +56,14 @@ const ExploreLayout = styled(PinDayPage)`
 
   @media (min-width: 1101px) {
     .explore-grid .place-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (min-width: 893px) and (max-width: 1100px) {
+    .explore-grid .place-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 892px) {
+    .explore-grid .place-grid { grid-template-columns: minmax(0, 1fr); }
   }
 
   @media (min-width: 721px) and (max-width: 874px) {
@@ -197,7 +205,7 @@ export default function ExplorePage() {
               <TextField type="search" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} placeholder={t('searchPlaceholder', { place: short })} aria-label={t('searchLabel')} leadingContent={<IconSearch />} width="100%" />
               <Button type="submit" variant="solid" color="primary" disabled={!queryInput.trim()}>{t('searchButton')}</Button>
             </form>
-            <Button variant="outlined" color="primary" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
+            <Button variant="outlined" color="assistive" leadingContent={<Dices size={18} />} onClick={pickRandom} disabled={!places.length}>{t('randomPick')}</Button>
           </div>
           <div className="explore-map mobile-active">
             <KakaoMap jsKey={config.data?.js_key} configLoading={config.isLoading} pins={pins} selectedId={selectedId} onSelect={setSelectedId} fitKey={`${result.dataUpdatedAt}-${searchText}-${district}`} title={t('exploreMapTitle')}
@@ -209,7 +217,7 @@ export default function ExplorePage() {
                 <Typography variant="caption1" color="semantic.foreground.neutral.tertiary">{[selected.category, districtOf(selected)].filter(Boolean).join(' · ')}</Typography>
                 <Typography variant="label2" color="semantic.foreground.neutral.secondary" className="popup-text">{selected.description || selected.address || t('noAddress')}</Typography>
                 <div className="popup-actions">
-                  <Button size="small" variant={savedIds.has(selected.id) ? 'outlined' : 'solid'} color="primary" leadingContent={savedIds.has(selected.id) ? <IconBookmarkFill /> : <IconBookmark />} onClick={() => toggleSave(selected)} aria-pressed={savedIds.has(selected.id)}>{t(savedIds.has(selected.id) ? 'saved' : 'save')}</Button>
+                  <Button size="small" variant="outlined" color="assistive" leadingContent={savedIds.has(selected.id) ? <IconBookmarkFill /> : <IconBookmark />} onClick={() => toggleSave(selected)} aria-pressed={savedIds.has(selected.id)}>{t(savedIds.has(selected.id) ? 'saved' : 'save')}</Button>
                   {/^https?:\/\//.test(selected.url) && <a className="popup-link" href={selected.url} target="_blank" rel="noopener noreferrer">{t(selected.id.startsWith('kakao:') ? 'openKakao' : 'openSource')}<IconExternalLink /></a>}
                 </div>
               </article>}
@@ -270,7 +278,7 @@ function PlaceCard({ place, index, saved, selected, kind, onSelect, onToggle }: 
         {saved && <span className="saved-flag">{t('savedFlag')}</span>}
         <span className="place-copy"><strong>{place.name}</strong><span>{[place.category || t(`kind_${kind}`), districtOf(place)].filter(Boolean).join(' · ')}</span></span>
       </button>
-      <Button size="small" variant={saved ? 'outlined' : 'solid'} color="primary" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>
+      <Button size="small" variant="outlined" color="assistive" leadingContent={saved ? <IconBookmarkFill /> : <IconBookmark />} onClick={onToggle} aria-pressed={saved}>{/* Montage Button 은 aria-labelledby 로 자기 글자를 이름으로 쓴다: 장소 이름은 숨김 글자로 넣는다 */}<span className="sr-only">{place.name} </span>{t(saved ? 'saved' : 'save')}</Button>
     </li>
   );
 }

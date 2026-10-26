@@ -12,7 +12,7 @@ test('모바일 GNB는 스크롤해도 최상단에 고정되고 PinDay 로고�
   await expect(brand.locator('> span')).toBeHidden();
   await expect(page.locator('.site-header .header-note')).toBeHidden();
 
-  for (const [label, path] of [['여행 계획하기', '/explore'], ['이동 전 확인하기', '/before-travel'], ['AI 도슨트', '/docent']] as const) {
+  for (const [label, path] of [['여행 계획하기', '/explore'], ['이동 전 확인하기', '/weather'], ['AI 도슨트', '/docent']] as const) {
     await page.locator('.site-header .main-nav').getByRole('link', { name: label }).click();
     await expect(page).toHaveURL(path);
     await expect(header).toBeVisible();

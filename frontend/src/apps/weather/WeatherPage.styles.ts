@@ -8,23 +8,24 @@ const brand = 'var(--semantic-foreground-brand-primary, #0066ff)';
 const surface = 'var(--semantic-background-neutral-primary, #fff)';
 const canvas = 'var(--semantic-background-neutral-secondary, #f7f7f8)';
 const teal = color.teal;
-const tealSoft = `color-mix(in srgb, ${teal} 6%, white)`;
 const columns = 'minmax(0, 1fr) 56px minmax(0, 1.1fr)';
 
 export const WeatherPageLayout = styled(PinDayPage)`
-  & { max-width: 1520px; }
-  position: relative;
-  isolation: isolate;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 50%;
-    width: 100vw;
-    transform: translateX(-50%);
-    z-index: -1;
-    pointer-events: none;
-    background: linear-gradient(135deg, color-mix(in srgb, ${color.primarySoft} 48%, white), ${surface} 62%, color-mix(in srgb, ${color.primarySoft} 35%, white));
+  /* 가로 폭은 PinDayPage 기본값(1440px)으로 1·2·4단계 화면과 맞춘다 */
+  /* 여행 계획하기와 같은 단계 바 아래 간격 */
+  /* 여행 계획하기·어떻게 갈까?처럼 단계 바를 머리글 아래에 고정 */
+  .trip-bar-wrap { position: sticky; top: 78px; z-index: 30; padding: 8px 0; margin-bottom: 12px; background: ${surface}; }
+  @media (max-width: 720px) {
+    .trip-bar-wrap { top: 66px; }
+  }
+  /* 어디 갈까?·언제 갈까?·어떻게 갈까?와 같은 하단 플로팅 바 (.candidate-tray 는 PinDayPage 공통 모양) */
+  .weather-tray .tray-summary { max-width: none; }
+  .weather-tray-actions { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+  .weather-tray-actions button { white-space: nowrap; }
+  .weather-tray .tray-day { white-space: nowrap; }
+  @media (max-width: 720px) {
+    .weather-tray-actions { width: 100%; }
+    .weather-tray-actions button { flex: 1; min-width: 0; }
   }
 `;
 
@@ -38,19 +39,64 @@ export const WeatherSection = styled.div`
   .w-meta { font-size: 13px; line-height: 1.45; color: ${fg('neutral-tertiary')}; }
   .w-state { min-height: 160px; display: grid; place-items: center; text-align: center; }
 
-  .w-hero { display: grid; grid-template-columns: ${columns}; gap: 12px 16px; align-items: center; }
-  .w-hero-copy { grid-column: 1 / 3; display: grid; gap: 8px; min-width: 0; }
-  .w-hero-copy h1 { margin: 0; font-size: clamp(34px, 3.4vw, 54px); font-weight: 800; line-height: 1.2; letter-spacing: -1.5px; word-break: keep-all; color: ${color.navy}; }
-  .w-hero-copy .w-subtitle { margin: 0; font-size: clamp(18px, 1.8vw, 26px); line-height: 1.45; letter-spacing: -0.4px; word-break: keep-all; color: ${color.textSub}; }
-  .w-pickers { grid-column: 1 / 3; grid-row: 2; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: 16px; max-width: 670px; min-width: 0; }
-  .w-pickers .field { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .w-pickers .field > span { flex-shrink: 0; font-size: 13px; color: ${color.textSub}; }
-  .w-pickers .field > div { min-width: 0; }
-  .w-forecast { grid-column: 3; grid-row: 1 / 3; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 8px 20px; min-height: 128px; }
+  /* 어떻게 갈까?와 같은 3단 패널: 변경 추천 일정 / 변경할 장소 / 변경할 장소 지도 */
+  .w-planner { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(300px, .95fr) minmax(340px, 1.2fr); gap: 16px; align-items: start; }
+  .w-panel { min-width: 0; padding: 20px; background: ${surface}; border: 1px solid ${line}; border-radius: 12px; }
+  .w-panel.plan { container: weather-plan / inline-size; }
+  .w-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .w-panel-head h2 { margin: 0; }
+  .w-panel-count { color: ${fg('neutral-tertiary')}; font-size: 12px; }
+  .w-day-tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; }
+  .w-day-tab { display: inline-flex; flex: 1 0 auto; align-items: center; justify-content: center; gap: 4px; min-height: 40px; padding: 8px 12px; border-radius: 10px;
+    background: color-mix(in srgb, var(--day-color) 10%, white); color: var(--day-color); font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .w-day-tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .w-day-tab .w-day-date { font-weight: 500; }
+  .w-day-tab[aria-pressed='true'] { background: var(--day-color); color: #fff; }
+  @container weather-plan (max-width: 460px) {
+    .w-day-tab { flex-direction: column; gap: 2px; padding: 8px; }
+    .w-day-tab svg, .w-day-tab .w-day-separator { display: none; }
+    .w-day-tab .w-day-date { font-size: 12px; }
+  }
+  .w-plan-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .w-plan-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 62px; padding: 10px 12px; border: 1px solid ${line}; border-radius: 8px; background: ${surface}; text-align: left; }
+  .w-plan-row:hover { background: ${canvas}; }
+  .w-plan-row[aria-pressed='true'] { border-color: ${fg('neutral-strong')}; box-shadow: inset 0 0 0 1px ${fg('neutral-strong')}; }
+  .w-plan-number { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 999px; background: ${canvas}; color: ${fg('neutral-tertiary')}; font-size: 14px; font-weight: 600; }
+  .w-plan-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 700; color: ${fg('neutral-strong')}; }
+  .w-plan-row .w-badge { flex-shrink: 0; align-self: center; }
+  /* 고정 머리글(78px)과 단계 바 아래에 패널 머리가 오도록 */
+  #weather-swap-panel { scroll-margin-top: 176px; }
+  .w-change-log { width: calc(100% - 16px); font-family: inherit; text-align: left; display: flex; align-items: center; gap: 8px; min-height: 34px; margin: 8px 0 0 16px; padding: 6px 12px; border: 1px solid var(--day-color); border-radius: 8px;
+    background: color-mix(in srgb, var(--day-color) 10%, white); color: var(--day-color); font-size: 13px; font-weight: 700; }
+  .w-change-log svg { width: 16px; height: 16px; flex-shrink: 0; }
+  button.w-change-log { cursor: pointer; transition: background .15s; }
+  button.w-change-log:hover { background: color-mix(in srgb, var(--day-color) 18%, white); }
+  .w-change-log .w-undo { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; font-size: 12px; overflow: visible; }
+  .w-change-log .w-undo svg { width: 14px; height: 14px; }
+  .w-change-log > span:not(.w-undo) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .w-plan-row .w-badge.recommend { background: ${color.primarySoft}; color: ${color.primary}; }
+  .w-advice-note { margin: 0; padding: 10px 12px; border-radius: 8px; background: ${canvas}; color: ${fg('neutral-secondary')}; font-size: 13px; line-height: 1.55; word-break: keep-all; }
+  .w-advice-note.recommend { background: ${color.primarySoft}; color: ${color.primary}; font-weight: 600; }
+  /* 두 장소 위치만 보면 되므로 지도는 작게, 핀에는 번호 대신 장소 이름 */
+  .w-panel.map .map-frame { height: 220px; min-height: 0; }
+  .w-panel.map .map-pin { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+  .w-panel.map .legend-dot { margin-left: 0; margin-right: 4px; vertical-align: -1px; }
+  .w-panel.map .legend-dot.alternative { background: var(--day-color); }
+  @media (max-width: 1080px) {
+    .w-planner { grid-template-columns: minmax(260px, .85fr) minmax(300px, 1.15fr); }
+    .w-panel.map { grid-column: 1 / -1; }
+  }
+  @media (max-width: 760px) {
+    .w-planner { grid-template-columns: minmax(0, 1fr); }
+    .w-panel { padding: 16px; }
+  }
+
+  .w-hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 16px; align-items: center; }
+  .w-forecast { grid-column: 1 / -1; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 8px 20px; min-height: 128px; }
   .w-forecast.has-advice { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
   .w-forecast.rainy { background: color-mix(in srgb, ${color.primarySoft} 50%, white); border-color: ${color.borderStrong}; }
   .w-forecast-left { display: grid; gap: 8px; min-width: 0; }
-  .w-forecast-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; font-weight: 600; color: ${color.navy}; }
+  .w-forecast-head { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; font-weight: 600; color: ${color.navy}; }
   .w-source-badge { padding: 2px 8px; border-radius: 999px; background: ${surface}; color: ${brand}; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .w-forecast-main { display: flex; align-items: center; gap: 14px; min-width: 0; }
   .w-forecast-main > div { min-width: 0; }
@@ -64,16 +110,17 @@ export const WeatherSection = styled.div`
   .w-compare { display: grid; grid-template-columns: ${columns}; gap: 16px; align-items: stretch; }
   .w-place { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; padding: 14px 14px 14px 20px; }
   .w-place.original { min-height: 420px; }
-  .w-place.chosen { background: ${tealSoft}; border-color: color-mix(in srgb, ${teal} 35%, white); }
+  /* 바꿔볼 장소는 배경 없이 DAY 색 테두리로만 구분한다 */
+  .w-place.chosen { background: ${surface}; border-color: var(--day-color, ${teal}); }
   .w-place-copy { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 2px 0; }
   .w-place.chosen .w-place-copy { gap: 8px; }
   .w-place-copy h2 { margin: 2px 0 0; font-size: 27px; font-weight: 800; line-height: 1.25; letter-spacing: -.7px; word-break: keep-all; overflow-wrap: anywhere; color: ${color.navy}; }
   .w-card-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .w-tag { padding: 6px 12px; border-radius: 8px; font-size: 15px; font-weight: 700; line-height: 1.4; color: ${surface}; background: ${color.textMuted}; }
-  .w-tag.accent { background: ${teal}; }
+  .w-tag.accent { background: var(--day-color, ${teal}); }
   .w-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: ${canvas}; color: ${color.textSub}; font-size: 13px; line-height: 1.4; font-weight: 600; }
   .w-badge svg { width: 16px; height: 16px; }
-  .w-badge.indoor { background: ${color.primarySoft}; color: ${color.primary}; }
+  .w-badge.indoor { background: ${canvas}; color: ${fg('neutral-secondary')}; }
   .w-badge.small { padding: 2px 8px; font-size: 11px; }
   .w-badge.small svg { width: 12px; height: 12px; }
   .w-description { margin: 2px 0 0; font-size: 15px; line-height: 1.65; color: ${color.textSub}; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
@@ -93,7 +140,7 @@ export const WeatherSection = styled.div`
   .w-visual svg { width: 56px; height: 56px; }
   .w-visual.small svg { width: 26px; height: 26px; }
   .w-visual.outdoor { background: linear-gradient(160deg, ${color.primarySoft}, ${color.primary}); }
-  .w-visual.indoor { background: linear-gradient(150deg, ${color.primarySoft}, ${teal}); }
+  .w-visual.indoor { background: linear-gradient(150deg, color-mix(in srgb, var(--day-color, ${teal}) 15%, white), var(--day-color, ${teal})); }
   .w-visual.neutral { background: linear-gradient(150deg, ${color.borderStrong}, ${color.textMuted}); }
   .w-photo-state { display: grid; justify-items: center; gap: 8px; padding: 8px; font-size: 12px; line-height: 1.4; text-align: center; }
   .w-visual.small .w-photo-state { width: 100%; min-width: 0; gap: 4px; padding: 4px; font-size: 10px; }
@@ -101,15 +148,14 @@ export const WeatherSection = styled.div`
   .w-visual.small .w-photo-state svg { width: 20px; height: 20px; }
   .w-visual.photo { margin: 0; overflow: hidden; background: ${canvas}; grid-template-rows: minmax(0, 1fr); justify-items: stretch; }
   .w-photo-frame { position: relative; align-self: stretch; min-height: 160px; width: 100%; }
-  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-  .w-visual.photo[data-photo-fit='cover'] img { object-fit: cover; }
+  .w-visual.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .w-visual.photo.small { height: auto; }
   .w-visual.photo.small .w-photo-frame { min-height: 64px; }
 
   .w-swap { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0; border-radius: 16px; text-align: center; word-break: keep-all; font-size: 13px; line-height: 1.4; font-weight: 700; color: ${color.navy}; transition: background .15s; }
-  .w-swap svg { width: 52px; height: 52px; padding: 14px; border-radius: 50%; background: ${color.primarySoft}; color: ${brand}; transition: background .15s, color .15s; }
+  .w-swap svg { width: 52px; height: 52px; padding: 14px; border-radius: 50%; background: color-mix(in srgb, var(--day-color, ${teal}) 12%, white); color: var(--day-color, ${teal}); transition: background .15s, color .15s; }
   .w-swap:not(:disabled):hover { background: ${canvas}; }
-  .w-swap:not(:disabled):hover svg { background: ${brand}; color: ${surface}; }
+  .w-swap:not(:disabled):hover svg { background: var(--day-color, ${teal}); color: ${surface}; }
   .w-swap:disabled { opacity: .4; }
 
   .w-alt-column { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
@@ -117,11 +163,11 @@ export const WeatherSection = styled.div`
   .w-more-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; }
   .w-more-head > button { flex-shrink: 0; }
   .w-more h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; line-height: 1.5; color: ${color.navy}; }
-  .w-dot { width: 10px; height: 10px; border-radius: 50%; background: ${brand}; box-shadow: 0 0 0 3px ${color.primarySoft}; }
+  .w-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--day-color, ${brand}); box-shadow: 0 0 0 3px color-mix(in srgb, var(--day-color, ${brand}) 15%, white); }
   .w-more-list { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .w-more-list > li { min-width: 0; }
   .w-more-item { width: 100%; height: 100%; display: grid; grid-template-columns: minmax(80px, .8fr) minmax(0, 1.2fr) 16px; align-items: stretch; gap: 10px; padding: 8px; text-align: left; background: ${surface}; border: 1px solid ${line}; border-radius: 12px; transition: border-color .15s; }
-  .w-more-item:hover { border-color: ${teal}; }
+  .w-more-item:hover { border-color: var(--day-color, ${teal}); }
   .w-more-item .w-visual { min-height: 104px; }
   .w-more-copy { display: grid; align-content: center; gap: 4px; min-width: 0; }
   .w-more-copy strong { font-size: 14px; line-height: 1.4; font-weight: 700; color: ${color.navy}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -135,41 +181,10 @@ export const WeatherSection = styled.div`
   .w-docent-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px 0; }
   .w-docent-head h2 { margin: 0; }
 
-  .w-preview { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 14px 20px; align-items: center; }
-  .w-preview-label { display: flex; gap: 12px; align-items: flex-start; padding-right: 20px; border-right: 1px solid ${line}; }
-  .w-preview-label h2 { margin: 0 0 4px; font-size: 20px; line-height: 1.4; font-weight: 800; color: ${color.navy}; }
-  .w-preview-label p, .w-preview-label span { line-height: 1.55; }
-  .w-preview-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: ${color.primarySoft}; color: ${color.navy}; flex-shrink: 0; }
-  .w-preview-icon svg { width: 25px; height: 25px; }
-  .w-timeline { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 32px; }
-  .w-stop { position: relative; display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px; border-radius: 12px; background: ${canvas}; min-height: 80px; min-width: 0; }
-  .w-stop .w-visual { height: 64px; }
-  .w-stop .w-visual.photo { height: auto; }
-  .w-stop + .w-stop::before { content: '→'; position: absolute; left: -26px; top: 50%; transform: translateY(-50%); font-size: 22px; color: ${brand}; }
-  .w-stop.replaced { background: ${tealSoft}; box-shadow: inset 0 0 0 1px color-mix(in srgb, ${teal} 40%, white); }
-  .w-stop-copy { display: grid; gap: 6px; min-width: 0; }
-  .w-stop-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .w-stop-order { font-size: 15px; font-weight: 600; color: ${color.navy}; }
-  .w-stop-badge { padding: 2px 7px; border-radius: 999px; background: ${surface}; border: 1px solid ${line}; font-size: 11px; line-height: 1.4; color: ${color.textMuted}; }
-  .w-stop-badge.replaced { background: ${teal}; border-color: ${teal}; color: ${surface}; font-weight: 700; }
-  .w-stop-copy strong { font-size: 16px; line-height: 1.4; color: ${color.navy}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .w-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-  .w-info { flex: 1 1 360px; margin: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 14px; border-radius: 10px; background: ${color.primarySoft}; font-size: 13px; line-height: 1.5; color: ${color.textSub}; }
-  .w-info svg { width: 18px; height: 18px; flex-shrink: 0; color: ${brand}; }
-  .w-actions > button { min-width: 180px; }
-  .w-actions > .w-replace-action { background: ${color.coral}; border-color: ${color.coral}; color: ${color.navy}; font-weight: 700; }
-  .w-actions > .w-replace-action:hover { background: color-mix(in srgb, ${color.coral} 88%, ${color.navy}); border-color: transparent; }
-  .w-actions > .w-replace-action:active { background: color-mix(in srgb, ${color.coral} 80%, ${color.navy}); }
   .w-footer { display: flex; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; font-size: 12px; line-height: 1.5; color: ${color.textMuted}; }
 
   @media (min-width: 1101px) and (max-width: 1280px) {
-    .w-hero, .w-compare { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1.1fr); gap: 12px; }
-    .w-hero { row-gap: 12px; }
-    .w-hero-copy h1 { font-size: 36px; letter-spacing: -1.1px; }
-    .w-hero-copy .w-subtitle { font-size: 20px; }
-    .w-pickers { gap: 10px; }
-    .w-pickers .field { gap: 6px; }
-    .w-pickers .field > span { font-size: 12px; }
+    .w-compare { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1.1fr); gap: 12px; }
     .w-forecast, .w-forecast.has-advice { grid-template-columns: 1fr; padding: 14px 16px; gap: 6px; }
     .w-forecast-left { gap: 6px; }
     .w-forecast-main strong { font-size: 20px; }
@@ -193,21 +208,9 @@ export const WeatherSection = styled.div`
     .w-chevron { width: 12px; }
     .w-swap { font-size: 12px; }
     .w-swap svg { width: 44px; height: 44px; padding: 12px; }
-    .w-preview { grid-template-columns: 220px minmax(0, 1fr); gap: 12px 16px; }
-    .w-preview-label { gap: 8px; padding-right: 14px; }
-    .w-preview-label h2 { font-size: 18px; }
-    .w-preview-icon { width: 36px; height: 36px; }
-    .w-timeline { gap: 22px; }
-    .w-stop { grid-template-columns: 60px minmax(0, 1fr); gap: 8px; padding: 6px; }
-    .w-stop + .w-stop::before { left: -19px; font-size: 18px; }
-    .w-stop-copy strong { font-size: 14px; }
-    .w-stop-order { font-size: 13px; }
-    .w-stop-badge { padding: 2px 5px; font-size: 10px; }
   }
   @media (max-width: 1100px) {
     .w-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-    .w-hero-copy, .w-pickers, .w-forecast { grid-column: 1; grid-row: auto; }
-    .w-pickers { max-width: none; }
     .w-forecast.has-advice { grid-template-columns: minmax(0, 1fr) minmax(0, .8fr); }
     .w-compare { grid-template-columns: minmax(0, 1fr); }
     .w-place.original { min-height: 320px; }
@@ -216,16 +219,10 @@ export const WeatherSection = styled.div`
     .w-swap { flex-direction: row; justify-content: center; gap: 12px; }
     .w-swap svg { transform: rotate(90deg); }
     .w-more-item { grid-template-columns: 112px minmax(0, 1fr) 16px; }
-    .w-preview { grid-template-columns: minmax(0, 1fr); }
-    .w-preview-label { border-right: 0; padding-right: 0; }
   }
   @media (max-width: 720px) {
     gap: 16px;
     .w-card { padding: 16px; }
-    .w-hero-copy h1 { font-size: 32px; line-height: 1.25; letter-spacing: -1px; }
-    .w-hero-copy .w-subtitle { font-size: 18px; }
-    .w-pickers { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-    .w-pickers .field > span { width: 82px; }
     .w-forecast, .w-forecast.has-advice { grid-template-columns: minmax(0, 1fr); }
     .w-forecast-head { gap: 6px; font-size: 13px; }
     .w-forecast-main strong { font-size: 22px; }
@@ -242,12 +239,20 @@ export const WeatherSection = styled.div`
     .w-more-list { grid-template-columns: minmax(0, 1fr); }
     .w-more-item { grid-template-columns: 100px minmax(0, 1fr) 16px; }
     .w-more-item .w-visual { min-height: 104px; }
-    .w-timeline { grid-auto-flow: row; gap: 28px; }
-    .w-stop { grid-template-columns: 80px minmax(0, 1fr); }
-    .w-stop + .w-stop::before { content: '↓'; left: 50%; top: -25px; transform: translateX(-50%); }
-    .w-actions { gap: 10px; }
-    .w-info { flex-basis: 100%; align-items: flex-start; }
-    .w-actions > button { flex: 1 1 auto; min-width: 0; }
     .w-footer { gap: 6px; }
   }
+
+  /* '변경할 장소' 패널 안의 원래 일정 · 바꿔볼 장소 · 이런 곳도 있어요: 좁은 패널에 맞춰 한 열로 쌓는다 */
+  .w-panel.swap .w-compare { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .w-panel.swap .w-place, .w-panel.swap .w-place.original, .w-panel.swap .w-place.chosen { grid-template-columns: minmax(0, 1fr); gap: 12px; min-height: 0; padding: 14px; }
+  .w-panel.swap .w-place-copy { gap: 8px; }
+  .w-panel.swap .w-place-copy h2 { font-size: 22px; }
+  .w-panel.swap .w-description { font-size: 14px; -webkit-line-clamp: 3; }
+  .w-panel.swap .w-visual, .w-panel.swap .w-visual.large, .w-panel.swap .w-place.original > .w-visual { min-height: 160px; }
+  .w-panel.swap .w-swap { flex-direction: row; justify-content: center; gap: 10px; padding: 0; }
+  .w-panel.swap .w-swap svg { width: 40px; height: 40px; padding: 10px; transform: rotate(90deg); }
+  .w-panel.swap .w-more-list { grid-template-columns: minmax(0, 1fr); }
+  .w-panel.swap .w-more-item { grid-template-columns: 96px minmax(0, 1fr) 16px; }
+  .w-panel.swap .w-more-item:not(:has(> .w-visual)) { grid-template-columns: minmax(0, 1fr) 16px; }
+  .w-panel.swap .w-more-item .w-visual { min-height: 96px; }
 `;

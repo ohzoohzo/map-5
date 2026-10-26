@@ -94,8 +94,8 @@ test('같은 장소의 사진과 출처가 탐색 → 후보함 → 일정 → �
   await page.getByRole('link', { name: 'AI 도슨트', exact: true }).click();
   await expect(page).toHaveURL(/\/docent$/);
   await expectPhoto(page.getByRole('region', { name: 'AI 도슨트', exact: true }), place, true);
-  await page.getByRole('link', { name: '원래 일정으로', exact: true }).click();
-  await expectNames(page, IDS.ITINERARY_LIST, [place.name]);
+  await page.getByRole('button', { name: '계획 단계로 돌아가기', exact: true }).click();
+  await expect(page).toHaveURL(/\/explore$/);
   expect(requests.get(place.id), '같은 여행의 장소 사진은 화면을 오가도 한 번만 조회한다').toBe(1);
 });
 
@@ -157,6 +157,25 @@ test('가장 넓은 화면의 지도 팝업 사진 높이는 72px이다', async 
   );
   expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(72);
   expect(await image.evaluate((element) => getComputedStyle(element).objectFit)).toBe('cover');
+});
+
+test('노트북 화면에서 일정 지도 팝업 사진을 줄여 팝업 전체가 지도 안에 보인다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 768 });
+  await installPhotos(page);
+  const catalog = await startTrip(page);
+  const place = catalog.places[0]!;
+  await page.getByRole('button', { name: `${place.name} 후보함에 저장`, exact: true }).click();
+  await page.getByRole('button', { name: '날짜별 일정 짜기' }).click();
+  await page.getByTestId(IDS.UNSCHEDULED_LIST).locator('.visit-name').click();
+
+  const mapFrame = page.locator('.planner-map .map-frame');
+  const popup = page.locator('.planner-map .map-popup').filter({ hasText: place.name });
+  const image = await expectPhoto(popup, place);
+  expect(await image.evaluate((element) => element.getBoundingClientRect().height)).toBe(56);
+  const frameBounds = await mapFrame.boundingBox();
+  const popupBounds = await popup.boundingBox();
+  expect(popupBounds!.y).toBeGreaterThanOrEqual(frameBounds!.y);
+  expect(popupBounds!.y + popupBounds!.height).toBeLessThanOrEqual(frameBounds!.y + frameBounds!.height);
 });
 
 test('사진 정보가 확인된 장소를 사진 없는 장소보다 목록 앞에 둔다', async ({ page }) => {
@@ -232,7 +251,8 @@ test('390px에서 변경금지 사진을 자르지 않고 보여주며 출처와
   const place = catalog.places[0]!;
   const card = placeCard(page, place);
   const image = await expectPhoto(card, place);
-  await expect(image).toHaveCSS('object-fit', 'contain');
+  // 어디 갈까? 카드는 사진이 영역을 빈틈없이 채운다. 도슨트 큰 사진은 자르지 않는다.
+  await expect(image).toHaveCSS('object-fit', 'cover');
   expect(await image.evaluate((node: HTMLImageElement) => node.naturalWidth / node.naturalHeight)).toBe(3);
   await noHorizontalOverflow(page);
 

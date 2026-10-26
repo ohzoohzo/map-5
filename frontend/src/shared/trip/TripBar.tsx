@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Option, SectionMessage, Select, TextButton, TextField, Typography } from '@montage-ui/core';
-import { IconBookmark, IconCalendar, IconLocation, IconPencil } from '@montage-ui/icon';
+import { IconArrowLeft, IconBookmark, IconCalendar, IconLocation, IconPencil } from '@montage-ui/icon';
 import { CloudRain, Route } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getCatalog } from '../../api/client';
@@ -37,14 +37,17 @@ export default function TripBar({ page, showStepLabels = false, navigationMode =
       <div className="trip-bar">
         <span className="trip-fact"><IconLocation />{trip.destination ? `${shortProvince(trip.destination)} · ${tripLengthLabel(trip.days.length)}` : t('destinationUndecided')}</span>
         <span className="trip-fact"><IconCalendar />{dates}</span>
-        {trip.destination !== '' && <TextButton size="small" color="assistive" leadingContent={<IconPencil />} onClick={() => setEditing(!editing)} aria-expanded={open}>{t('editConditions')}</TextButton>}
+        {/* 이동 전 확인 단계에서는 조건을 고치는 대신 계획 단계로 돌려보낸다 */}
+        {trip.destination !== '' && (navigationMode === 'beforeTravel'
+          ? <TextButton size="small" color="assistive" leadingContent={<IconArrowLeft />} onClick={() => navigate('/explore')}>{t('backToPlanning')}</TextButton>
+          : <TextButton size="small" color="assistive" leadingContent={<IconPencil />} onClick={() => setEditing(!editing)} aria-expanded={open}>{t('editConditions')}</TextButton>)}
         <span className="trip-counts">
           {navigationMode === 'beforeTravel' ? <>
-            <button type="button" className={page === 'transport' ? 'count-chip active' : 'count-chip'} onClick={() => navigate('/transport')} aria-current={page === 'transport' ? 'page' : undefined}>
-              <Route />{t('transportPage')}
-            </button>
             <button type="button" className={page === 'weather' ? 'count-chip active' : 'count-chip'} onClick={() => navigate('/weather')} aria-current={page === 'weather' ? 'page' : undefined}>
               <CloudRain />{t('weatherPage')}
+            </button>
+            <button type="button" className={page === 'transport' ? 'count-chip active' : 'count-chip'} onClick={() => navigate('/transport')} aria-current={page === 'transport' ? 'page' : undefined}>
+              <Route />{t('transportPage')}
             </button>
           </> : <>
             <button type="button" className={page === 'explore' ? 'count-chip active' : 'count-chip'} aria-label={showStepLabels ? t('candidateStep') : undefined} onClick={() => navigate('/explore')}>

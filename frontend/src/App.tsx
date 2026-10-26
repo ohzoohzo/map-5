@@ -1,5 +1,5 @@
 import { Global } from '@emotion/react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AppDefinition } from './shared/app';
 import { Link, usePathname } from './shared/router';
@@ -18,9 +18,9 @@ export default function App() {
   const navGroups = [
     { app: apps.find((app) => app.id === 'home'), titleKey: 'navHome', activePaths: ['/'] },
     { app: apps.find((app) => app.id === 'explore'), titleKey: 'navPlanning', activePaths: ['/explore', '/schedule'] },
-    { app: apps.find((app) => app.id === 'before-travel'), titleKey: 'navBeforeTravel', activePaths: ['/before-travel', '/transport', '/weather'] },
+    { app: apps.find((app) => app.id === 'weather'), titleKey: 'navBeforeTravel', activePaths: ['/weather', '/transport'], icon: ShieldCheck },
     { app: apps.find((app) => app.id === 'docent'), titleKey: 'navDocent', activePaths: ['/docent'] },
-  ].filter((item): item is { app: AppDefinition; titleKey: string; activePaths: string[] } => item.app !== undefined);
+  ].filter((item): item is { app: AppDefinition; titleKey: string; activePaths: string[]; icon?: LucideIcon } => item.app !== undefined);
 
   return (
     <Shell>
@@ -30,14 +30,15 @@ export default function App() {
         <div className="header-inner">
           <Link href="/" className="brand" aria-label={t('brand')}>
             <img className="brand-mark" src="/brand/pinday-logo.png" alt="" width={38} height={38} />
-            <span>{t('brand')}<span className="brand-dot">.</span></span>
+            <span aria-hidden="true">{t('brand')}<span className="brand-dot">.</span></span>
           </Link>
           <nav className="main-nav" aria-label={t('appTitle')}>
-            {navGroups.map(({ app, titleKey, activePaths }) => {
+            {navGroups.map(({ app, titleKey, activePaths, icon }) => {
               const active = activePaths.includes(pathname);
+              const Icon = icon ?? app.icon;
               return (
                 <Link key={app.id} href={app.path} className={active ? 'nav-item active' : 'nav-item'} aria-current={active ? 'page' : undefined}>
-                  <app.icon size={16} />{t(titleKey)}
+                  <Icon size={16} />{t(titleKey)}
                 </Link>
               );
             })}

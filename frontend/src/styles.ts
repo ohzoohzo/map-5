@@ -20,10 +20,10 @@ export const Shell = styled.div`
   .site-header { position: sticky; top: 0; z-index: 100; height: 78px; border-bottom: 1px solid #e6edf4; background: #fff; }
   .site-header .header-inner { max-width: 1600px; height: 100%; padding: 0 42px; margin: auto; display: flex; align-items: center; gap: 58px; }
   .site-header .brand { display: inline-flex; align-items: center; gap: 11px; color: #254e70; font-size: 23px; font-weight: 820; letter-spacing: -1.3px; }
-  .site-header .brand-mark { display: block; height: 38px; width: 38px; object-fit: contain; flex-shrink: 0; } .site-header .brand-dot { color: #eb9767; }
+  .site-header .brand-mark { display: block; height: 38px; width: 38px; object-fit: contain; flex-shrink: 0; } .site-header .brand > span { color: var(--atomic-blue-20, #002966); }
   .site-header .main-nav { align-self: stretch; display: flex; align-items: stretch; gap: 25px; overflow-x: auto; scrollbar-width: none; }
   .site-header .main-nav .nav-item { white-space: nowrap; }
-  .site-header .nav-item { display: flex; align-items: center; gap: 8px; padding: 0 2px; font-size: 13px; font-weight: 650; border-bottom: 2px solid transparent; color: #82909b; } .site-header .nav-item.active { color: #2a597c; border-bottom-color: #2a597c; }
+  .site-header .nav-item { display: flex; align-items: center; gap: 8px; padding: 0 2px; font-size: 13px; font-weight: 650; border-bottom: 2px solid transparent; color: #82909b; } .site-header .nav-item.active { color: var(--semantic-foreground-brand-primary, #0066ff); border-bottom-color: var(--semantic-foreground-brand-primary, #0066ff); }
   .site-header .header-note { margin-left: auto; display: flex; align-items: center; gap: 9px; color: #8d9aa6; font-size: 11px; }
   .site-header .brand { text-decoration: none; }
   main { min-width: 0; }

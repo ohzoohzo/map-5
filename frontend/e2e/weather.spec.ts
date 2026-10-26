@@ -86,7 +86,7 @@ async function expectPhoto(scope: Locator, target: Place) {
   await expect(image).toBeVisible();
   await expect(image).toHaveAttribute('src', photoUrl(target.id));
   await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
-  await expect(image).toHaveCSS('object-fit', 'contain');
+  await expect(image, '날씨 화면 사진은 영역을 빈틈없이 채운다').toHaveCSS('object-fit', 'cover');
   await expect(scope.locator('figcaption')).toHaveCount(0);
   await expect(scope.getByText(PHOTO_LICENSE, { exact: true })).toHaveCount(0);
   return image;
@@ -101,7 +101,12 @@ async function openWeather(page: Page, response: { status: number; body: unknown
     if (value) localStorage.setItem('pinday.trip.v1', JSON.stringify(value));
     else localStorage.removeItem('pinday.trip.v1');
   }, seeded);
-  const alternatives = page.waitForResponse((each) => new URL(each.url()).pathname === '/api/weather/alternatives');
+  // 여러 장소가 대안을 요청하므로 열려 있는 장소(DAY 2의 2번째)의 응답을 기다린다
+  const selected = seeded ? seeded.places[seeded.days[1]?.items[1]?.placeId ?? '']?.name : undefined;
+  const alternatives = page.waitForResponse((each) => {
+    const url = new URL(each.url());
+    return url.pathname === '/api/weather/alternatives' && url.searchParams.get('name') === selected;
+  });
   alternatives.catch(() => undefined); // 일정이 없는 경우엔 대안 요청이 없다
   await page.goto('/weather?day=2&item=1', { waitUntil: 'domcontentloaded' });
   return { alternatives, ...photoRequests };
@@ -114,8 +119,13 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
   const [first, second] = alternatives.alternatives;
 
   await expect(page.getByRole('region', { name: '오후 비 예보' })).toContainText('15 – 18시 · 강수확률 70%');
-  await expect(page.getByRole('combobox', { name: '날짜' })).toContainText('DAY 2 · 10.25 (일)');
-  await expect(page.getByRole('combobox', { name: '확인할 장소' })).toContainText(`2. ${beach.name}`);
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+  const plan = page.getByRole('region', { name: '변경 추천 일정' });
+  await expect(page.getByRole('group', { name: '여행 날짜' }).getByRole('button', { name: 'DAY 2 · 10.25 (일)' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(plan.locator('.w-plan-row[aria-pressed="true"]')).toContainText(`2${beach.name}`);
+  const swap = page.getByRole('region', { name: '변경할 장소', exact: true });
+  await expect(swap).toContainText(beach.name);
+  await expect(swap).toContainText(first!.place.name);
   const original = page.getByRole('article', { name: '원래 일정' });
   await expect(original.getByRole('heading')).toHaveText(beach.name);
   await expect(original).toContainText('야외일 수 있어요');
@@ -125,14 +135,10 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
 
   await page.getByRole('button', { name: `${second!.place.name}을(를) 바꿀 장소로 보기` }).click();
   await expect(chosen.getByRole('heading')).toHaveText(second!.place.name);
-  const preview = page.getByRole('region', { name: '교체 후 미리보기' });
-  const stops = preview.getByRole('listitem');
-  await expect(stops.locator('.w-stop-copy strong')).toHaveText([cafe.name, second!.place.name, night.name]);
-  await expect(stops.nth(0)).toContainText('1번째이전 일정 (그대로)');
-  await expect(stops.nth(1)).toContainText('2번째교체될 장소');
-  await expect(stops.nth(2)).toContainText('3번째이후 일정 (그대로)');
+  await expect(swap, '아래에서 고른 후보가 위 변경할 장소에도 보인다').toContainText(second!.place.name);
+  await expect(page.getByRole('region', { name: '교체 후 미리보기' }), '교체 후 미리보기는 두지 않는다').toHaveCount(0);
 
-  await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
+  await page.getByRole('button', { name: `${beach.name}을(를) ${second!.place.name}(으)로 교체` }).click();
   await expect(page.getByRole('status').filter({ hasText: '바꿨어요' })).toContainText(`DAY 2의 ${beach.name}을(를) ${second!.place.name}(으)로 바꿨어요.`);
   const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
   expect(saved.days[1]!.items).toEqual([
@@ -141,7 +147,12 @@ test('rain on a scheduled outdoor stop can be swapped for a nearby indoor place 
     { placeId: night.id, memo: '', visited: false },
   ]);
   expect(saved.places[second!.place.id]?.name).toBe(second!.place.name);
-  await expect(page.getByRole('combobox', { name: '확인할 장소' })).toContainText(`2. ${second!.place.name}`);
+  await expect(plan.locator('.w-plan-row[aria-pressed="true"]')).toContainText(`2${second!.place.name}`);
+  const tray = page.locator('.weather-tray');
+  await expect(tray.getByRole('heading')).toHaveText(/변경한 일정 1개$/);
+  await expect(tray).toContainText('DAY 1 (변경 없음) · DAY 2 (변경 있음)');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.weather-tray'), '바꾼 일정은 새로고침 뒤에도 센다').toContainText('DAY 2 (변경 있음)');
 });
 
 test('a day beyond the forecast window is shown as undecided instead of a guessed forecast', async ({ page }) => {
@@ -168,7 +179,7 @@ test('a day carried over without a date asks for travel dates instead of request
   page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/weather/forecast') forecastCalls += 1; });
   const undated: Trip = { ...trip, startDate: '', endDate: '', days: trip.days.map((day) => ({ ...day, date: '' })) };
   await openWeather(page, { status: 200, body: forecast('ok', []) }, undated);
-  await expect(page.getByRole('combobox', { name: '날짜' })).toContainText('DAY 2 · 장소 3곳');
+  await expect(page.getByRole('group', { name: '여행 날짜' }).getByRole('button', { name: 'DAY 2 · 장소 3곳' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('region', { name: '여행 날짜가 아직 없어요' })).toBeVisible();
   await expect(page.getByRole('article', { name: '바꿔볼 장소' })).toBeVisible();
   expect(forecastCalls).toBe(0);
@@ -194,15 +205,14 @@ test('the chosen alternative can be explained by the AI docent only when asked',
   await expect(page.getByRole('region', { name: `${name} 해설` })).toHaveCount(0);
 });
 
-test('another stop of the day can be picked from the place selector', async ({ page }) => {
+test('another stop of the day can be picked from the 변경 추천 일정 list', async ({ page }) => {
   await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
-  await page.getByRole('combobox', { name: '확인할 장소' }).click();
-  await page.getByRole('option', { name: `3. ${night.name}` }).click();
+  await page.getByRole('region', { name: '변경 추천 일정' }).locator('.w-plan-row').filter({ hasText: night.name }).click();
   await expect(page).toHaveURL(/\/weather\?day=2&item=2$/);
   await expect(page.getByRole('article', { name: '원래 일정' }).getByRole('heading')).toHaveText(night.name);
 });
 
-test('날씨 비교·대안·미리보기는 같은 TourAPI 사진 계약과 출처를 공유한다', async ({ page }) => {
+test('날씨 비교·대안은 같은 TourAPI 사진 계약과 출처를 공유한다', async ({ page }) => {
   const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
   const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
   const first = alternatives.alternatives[0]!.place;
@@ -210,14 +220,10 @@ test('날씨 비교·대안·미리보기는 같은 TourAPI 사진 계약과 출
   await expectPhoto(original, beach);
   const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
   await expectPhoto(chosen, first);
-  const preview = page.getByRole('region', { name: '교체 후 미리보기' });
-  for (const target of [cafe, first, night]) {
-    await expectPhoto(preview.getByRole('listitem').filter({ has: page.locator('.w-stop-copy strong', { hasText: target.name }) }), target);
-  }
-  for (const target of [beach, first, cafe, night]) {
+  for (const target of [beach, first]) {
     const requests = loaded.requests.get(target.id)!;
     // StrictMode가 마운트 중 취소한 요청은 재사용 가능한 성공 응답이 아니다.
-    expect(loaded.successfulResponses.get(target.id), '같은 장소의 성공 사진 응답은 비교 카드와 미리보기에서 한 번만 받는다').toBe(1);
+    expect(loaded.successfulResponses.get(target.id), '같은 장소의 성공 사진 응답은 한 번만 받는다').toBe(1);
     for (const request of requests) expect(Object.fromEntries(request.searchParams)).toEqual({
       place_id: target.id, name: target.name, latitude: String(target.latitude), longitude: String(target.longitude),
     });
@@ -232,8 +238,6 @@ test('390px 날씨 사진은 비율을 유지하고 이용조건은 푸터 출�
   const first = alternatives.alternatives[0]!.place;
   await expectPhoto(page.getByRole('article', { name: '원래 일정' }), beach);
   await expectPhoto(page.getByRole('article', { name: '바꿔볼 장소' }), first);
-  const stop = page.getByRole('region', { name: '교체 후 미리보기' }).getByRole('listitem').filter({ has: page.locator('.w-stop-copy strong', { hasText: first.name }) });
-  await expectPhoto(stop, first);
   await noHorizontalOverflow(page);
   const before = await page.evaluate(() => localStorage.getItem('pinday.trip.v1'));
   await page.getByRole('contentinfo').getByRole('link', { name: '데이터·사진 출처', exact: true }).click();
@@ -246,12 +250,8 @@ test('390px 날씨 사진은 비율을 유지하고 이용조건은 푸터 출�
   await noHorizontalOverflow(page);
 });
 
-for (const [state, message] of [
-  ['empty', '장소 사진을 찾지 못했어요'],
-  ['unavailable', '사진을 불러오지 못했어요'],
-  ['broken', '사진을 표시할 수 없어요'],
-] as const) {
-  test(`사진 ${state} 상태를 표시해도 다른 장소 사진과 일정 교체는 유지된다`, async ({ page }) => {
+for (const state of ['empty', 'unavailable', 'broken'] as const) {
+  test(`사진이 ${state}이면 사진 영역을 숨기고, 다른 장소 사진과 일정 교체는 유지된다`, async ({ page }) => {
     const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, {
       defaultState: 'ready', states: new Map([[beach.id, state]]),
     });
@@ -259,12 +259,12 @@ for (const [state, message] of [
     const first = alternatives.alternatives[0]!.place;
     const original = page.getByRole('article', { name: '원래 일정' });
     await expect(original.getByRole('heading')).toHaveText(beach.name);
-    await expect(original.getByRole('status', { name: `${beach.name} 사진`, exact: true })).toContainText(message);
+    await expect(original.locator('.w-visual'), '사진이 없으면 빈 자리나 안내 문구도 두지 않는다').toHaveCount(0);
     await expect(original.locator('img')).toHaveCount(0);
     await expectPhoto(page.getByRole('article', { name: '바꿔볼 장소' }), first);
     const before: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
     expect(before.days).toEqual(trip.days);
-    await page.getByRole('button', { name: '이 장소로 교체하기' }).click();
+    await page.getByRole('button', { name: `${beach.name}을(를) ${first.name}(으)로 교체` }).click();
     const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
     expect(saved.days[1]!.items).toEqual([
       { placeId: cafe.id, memo: '', visited: false },
@@ -275,7 +275,7 @@ for (const [state, message] of [
   });
 }
 
-test('the center "이 장소만 교체" button replaces the stop just like the bottom button', async ({ page }) => {
+test('the center "이 장소만 교체" button replaces the stop', async ({ page }) => {
   const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
   const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
   const first = alternatives.alternatives[0]!.place;
@@ -286,7 +286,7 @@ test('the center "이 장소만 교체" button replaces the stop just like the b
 });
 
 for (const width of [1586, 1440, 1150, 1101]) {
-  test(`${width}px에서 시안의 좌우 장소 비교와 가로 일정 미리보기를 유지한다`, async ({ page }, testInfo) => {
+  test(`${width}px에서 원래 일정·바꿔볼 장소·이런 곳도는 변경할 장소 패널 안에 쌓는다`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 });
     await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, trip, { defaultState: 'ready' });
     await expect(page.getByRole('article', { name: '바꿔볼 장소', exact: true })).toBeVisible();
@@ -297,26 +297,25 @@ for (const width of [1586, 1440, 1150, 1101]) {
       };
       const row = (selector: string) => [...document.querySelectorAll(selector)].map((e) => ({ x: e.getBoundingClientRect().x, y: e.getBoundingClientRect().y }));
       return {
-        hero: box('.w-hero'), preview: box('.w-preview'), original: box('.w-place:not(.chosen)'), chosen: box('.w-place.chosen'),
+        hero: box('.w-hero'), panel: box('.w-panel.swap'), original: box('.w-place:not(.chosen)'), chosen: box('.w-place.chosen'),
         originalCopy: box('.w-place:not(.chosen) .w-place-copy'), originalImage: box('.w-place:not(.chosen) .w-visual'),
         chosenCopy: box('.w-place.chosen .w-place-copy'), chosenImage: box('.w-place.chosen .w-visual'),
-        recommendations: row('.w-more-list > li').slice(0, 2), stops: row('.w-timeline > li'),
+        recommendations: row('.w-more-list > li').slice(0, 2),
       };
     });
     expect(geometry.hero.height, '선택 영역이 머리글 높이를 늘리지 않아야 한다').toBeLessThan(200);
     await expect(page.locator('.w-hero-copy .w-pickers')).toHaveCount(0);
-    expect(Math.abs(geometry.original.y - geometry.chosen.y)).toBeLessThanOrEqual(1);
-    expect(geometry.original.right).toBeLessThan(geometry.chosen.x);
-    expect(geometry.originalImage.x).toBeGreaterThan(geometry.originalCopy.x);
-    expect(geometry.chosenImage.x).toBeGreaterThan(geometry.chosenCopy.x);
+    const inside = (box: { x: number; right: number }) => box.x >= geometry.panel.x && box.right <= geometry.panel.right;
+    expect(inside(geometry.original) && inside(geometry.chosen), '두 장소 카드는 변경할 장소 패널 안에 있다').toBe(true);
+    expect(geometry.chosen.y, '바꿔볼 장소는 원래 일정 아래에 쌓인다').toBeGreaterThan(geometry.original.bottom);
+    expect(geometry.originalImage.y, '좁은 패널에서는 사진이 글 아래로 간다').toBeGreaterThan(geometry.originalCopy.y);
+    expect(geometry.chosenImage.y).toBeGreaterThan(geometry.chosenCopy.y);
     expect(geometry.recommendations).toHaveLength(2);
-    expect(Math.abs(geometry.recommendations[0]!.y - geometry.recommendations[1]!.y)).toBeLessThanOrEqual(1);
-    expect(geometry.recommendations[1]!.x).toBeGreaterThan(geometry.recommendations[0]!.x);
-    expect(geometry.stops).toHaveLength(3);
-    expect(Math.max(...geometry.stops.map((e) => e.y)) - Math.min(...geometry.stops.map((e) => e.y))).toBeLessThanOrEqual(1);
+    expect(geometry.recommendations[1]!.y, '이런 곳도 있어요도 한 열로 쌓인다').toBeGreaterThan(geometry.recommendations[0]!.y);
+    expect(Math.abs(geometry.recommendations[0]!.x - geometry.recommendations[1]!.x)).toBeLessThanOrEqual(1);
     if (width === 1586) {
-      expect(geometry.hero.width, '넓은 화면에서는 시안의 콘텐츠 폭을 사용한다').toBeGreaterThanOrEqual(1440);
-      expect(geometry.preview.bottom, '비교와 교체 동작을 첫 화면에서 확인할 수 있어야 한다').toBeLessThanOrEqual(1000);
+      // 1·2·4단계와 같은 폭: 최대 1440px 에서 좌우 여백 32px 을 뺀 1376px
+      expect(Math.round(geometry.hero.width), '넓은 화면에서도 다른 단계 화면과 같은 콘텐츠 폭을 쓴다').toBe(1376);
     }
     await noHorizontalOverflow(page);
     await page.screenshot({ path: testInfo.outputPath(`weather-aligned-${width}.png`), fullPage: true });
@@ -348,3 +347,248 @@ for (const width of [1101, 390]) {
     await noHorizontalOverflow(page);
   });
 }
+
+for (const width of [390, 1440]) {
+  test(`${width}px 플로팅 바는 비 소식이 있는 추천 변경 일정 수와 날짜를 보여주고 이전 단계로 돌아간다`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 844 });
+    // 해운대해수욕장(DAY 2)과 광안리해수욕장(DAY 1·DAY 2)에만 비가 온다 → 3개.
+    const rainyLongitudes = [beach.longitude, night.longitude].map(String);
+    await page.route('**/api/weather/forecast?**', (route) => {
+      const rainyPlace = rainyLongitudes.includes(new URL(route.request().url()).searchParams.get('longitude')!);
+      return route.fulfill({ json: forecast('ok', [slot('15:00', rainyPlace ? 70 : 20)]) });
+    });
+    await installPhotos(page, {});
+    const seeded: Trip = { ...trip, days: [{ date: '2026-10-24', items: [{ placeId: night.id, memo: '', visited: false }] }, trip.days[1]!] };
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.evaluate((value) => localStorage.setItem('pinday.trip.v1', JSON.stringify(value)), seeded);
+    await page.goto('/weather?day=2&item=1', { waitUntil: 'domcontentloaded' });
+
+    const tray = page.locator('.weather-tray');
+    await expect(tray.getByRole('heading', { name: '추천 변경 일정 3개 / 변경한 일정 0개' })).toBeVisible();
+    await expect(tray).toContainText('DAY 1 (변경 없음) · DAY 2 (변경 없음)');
+    const back = tray.getByRole('button', { name: '전 단계로 돌아가기', exact: true });
+    const transport = tray.getByRole('button', { name: '교통 확인하기', exact: true });
+    await expect(back).toBeInViewport();
+    await expect(transport).toBeInViewport();
+    const [backBox, transportBox] = [await back.boundingBox(), await transport.boundingBox()];
+    expect(backBox!.y).toBe(transportBox!.y);
+    expect(backBox!.height).toBe(transportBox!.height);
+    await noHorizontalOverflow(page);
+    // 다른 화면처럼 페이지 배경은 흰색이다.
+    expect(await page.locator('main > div').first().evaluate((element) => getComputedStyle(element, '::before').content)).toBe('none');
+    await tray.screenshot({ path: testInfo.outputPath(`weather-tray-${width}.png`) });
+
+    await transport.click();
+    await expect(page).toHaveURL(/\/transport$/);
+    await page.goBack();
+    await page.locator('.weather-tray').getByRole('button', { name: '전 단계로 돌아가기', exact: true }).click();
+    await expect(page, '전 단계인 2. 언제 갈까?로 돌아간다').toHaveURL(/\/schedule$/);
+  });
+}
+
+test('날씨 체크도 단계 바를 고정하고, 작은 변경할 장소 지도에 장소 이름 핀을 쓴다', async ({ page }, testInfo) => {
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const mapPanel = page.getByRole('region', { name: '변경할 장소 지도' }).first();
+  const frame = mapPanel.locator('.map-frame');
+  expect(await frame.evaluate((element) => element.getBoundingClientRect().height)).toBe(220);
+  await expect(frame).toHaveAttribute('data-pin-count', '2');
+  if (await frame.getAttribute('data-map-status') !== 'missing-key') {
+    await expect(frame).toHaveAttribute('data-map-status', 'ready', { timeout: 15_000 });
+    await expect(mapPanel.locator('.map-pin')).toHaveText([beach.name, alternatives.alternatives[0]!.place.name]);
+  }
+  await page.screenshot({ path: testInfo.outputPath('weather-map.png') });
+
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect.poll(() => page.locator('.trip-bar-wrap').evaluate((element) => Math.round(element.getBoundingClientRect().top))).toBe(78);
+});
+
+test('변경 추천은 비가 오는 야외 장소에만 붙고, 추천이 아닌 실내 장소도 직접 바꿀 수 있다', async ({ page }, testInfo) => {
+  await mockCafeSearch(page); // 카페는 근처 카페로 바꿔 보여주므로 카카오 검색을 고정한다
+  // 세 곳 모두 비 예보. 해리단길 카페는 이름으로 실내(카페)라 추천하지 않는다.
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const plan = page.getByRole('region', { name: '변경 추천 일정' });
+  const row = (name: string) => plan.locator('.w-plan-row').filter({ hasText: name });
+  await expect(row(beach.name)).toContainText('변경 추천');
+  await expect(row(night.name)).toContainText('변경 추천');
+  await expect(row(cafe.name)).not.toContainText('변경 추천');
+  await expect(plan).not.toContainText('비 예보');
+  await expect(page.locator('.weather-tray').getByRole('heading')).toHaveText(/^추천 변경 일정 2개/);
+  const swap = page.getByRole('region', { name: '변경할 장소', exact: true });
+  await expect(swap).toContainText('실내 장소로 바꾸는 걸 추천해요');
+  await page.screenshot({ path: testInfo.outputPath('weather-advice.png') });
+
+  await row(cafe.name).click();
+  await expect(page).toHaveURL(/\/weather\?day=2&item=0$/);
+  await expect(swap).toContainText('꼭 바꿀 필요는 없는 일정이에요');
+  const chosen = swap.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosen.getByRole('heading')).not.toHaveText('');
+  const name = await chosen.getByRole('heading').textContent();
+  await page.getByRole('button', { name: `${cafe.name}을(를) ${name}(으)로 교체` }).click();
+  await expect(row(name!)).toBeVisible();
+});
+
+test('식당·카페·쇼핑몰은 비가 와도 변경 추천하지 않고, 실내 태그는 회색·바꿔볼 장소는 DAY 색이다', async ({ page }) => {
+  // 카카오 검색에서 담은 장소: 분류(category)와 설명(category_name)으로 실내를 알아본다
+  const restaurant = { ...place('kakao:food', '해운대 돼지국밥', 35.1600, 129.1610), category: '음식점', description: '음식점 > 한식 > 국밥', source: '카카오 로컬' };
+  const mall = { ...place('kakao:mall', '센텀 쇼핑몰', 35.1690, 129.1300), category: '', description: '쇼핑,유통 > 쇼핑몰', source: '카카오 로컬' };
+  const seeded: Trip = {
+    ...trip,
+    places: { ...trip.places, [restaurant.id]: restaurant, [mall.id]: mall },
+    days: [trip.days[0]!, { ...trip.days[1]!, items: [{ placeId: restaurant.id, memo: '', visited: false }, { placeId: beach.id, memo: '', visited: false }, { placeId: mall.id, memo: '', visited: false }] }],
+  };
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, seeded);
+  const plan = page.getByRole('region', { name: '변경 추천 일정' });
+  const row = (name: string) => plan.locator('.w-plan-row').filter({ hasText: name });
+  await expect(row(beach.name)).toContainText('변경 추천');
+  await expect(row(restaurant.name)).not.toContainText('변경 추천');
+  await expect(row(mall.name)).not.toContainText('변경 추천');
+  await expect(page.locator('.weather-tray').getByRole('heading')).toHaveText(/^추천 변경 일정 1개/);
+
+  const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosen.locator('.w-tag.accent')).toHaveCSS('background-color', 'rgb(243, 122, 31)'); // DAY 2 주황
+  await expect(chosen.locator('.w-badge.indoor')).not.toHaveCSS('color', 'rgb(21, 87, 167)');
+
+  await row(restaurant.name).click();
+  await expect(page.getByRole('article', { name: '원래 일정' })).toContainText('실내');
+});
+
+test('온천건강랜드는 실내로 보고, 일정 목록을 누르면 변경할 장소로 이동하며, 교체하면 변경 이력이 남고 누르면 되돌린다', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const spa = { ...place('e2e:spa', '허심청', 35.2211, 129.0826), description: '편안하고 즐거운 온천욕과 휴식을 위한 도시형 온천건강랜드이다' };
+  const stream = { ...place('e2e:stream', '온천천시민공원', 35.2050, 129.0860), description: '도심을 흐르는 하천을 따라 조성된 공원' };
+  const seeded: Trip = {
+    ...trip,
+    places: { ...trip.places, [spa.id]: spa, [stream.id]: stream },
+    days: [trip.days[0]!, { ...trip.days[1]!, items: [{ placeId: spa.id, memo: '', visited: false }, { placeId: beach.id, memo: '', visited: false }, { placeId: stream.id, memo: '', visited: false }] }],
+  };
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) }, seeded);
+  const alternatives: WeatherAlternatives = await (await loaded.alternatives).json();
+  const plan = page.getByRole('region', { name: '변경 추천 일정' });
+  const row = (name: string) => plan.locator('.w-plan-row').filter({ hasText: name });
+  await expect(row(spa.name), '온천건강랜드는 비가 와도 추천하지 않는다').not.toContainText('변경 추천');
+  await expect(row(stream.name), "'온천천'은 하천 이름이라 야외로 본다").toContainText('변경 추천');
+
+  // 좁은 화면에서는 패널이 아래에 있으므로 목록을 누르면 변경할 장소 머리로 스크롤된다
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await row(beach.name).click();
+  const heading = page.getByRole('heading', { name: '변경할 장소', exact: true });
+  await expect.poll(async () => {
+    const box = await heading.boundingBox();
+    return box!.y > 150 && box!.y < 844 / 2;
+  }).toBe(true);
+
+  const first = alternatives.alternatives[0]!.place;
+  await page.getByRole('button', { name: `${beach.name}을(를) ${first.name}(으)로 교체` }).click();
+  const log = plan.locator('.w-change-log');
+  await expect(log).toHaveText(new RegExp(`^${beach.name} → ${first.name}(으로|로) 변경되돌리기$`));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(log, '새로고침 뒤에도 이력이 남는다').toContainText(`${beach.name} → ${first.name}`);
+  await page.screenshot({ path: testInfo.outputPath('weather-change-log.png') });
+
+  // 이력을 누르면 원래 장소로 되돌리고 이력·변경 개수도 지운다
+  await page.getByRole('button', { name: `${first.name}을(를) 원래 장소 ${beach.name}(으)로 되돌리기` }).click();
+  await expect(log).toHaveCount(0);
+  await expect(row(beach.name)).toBeVisible();
+  const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
+  expect(saved.days[1]!.items.map((item) => item.placeId)).toEqual([spa.id, beach.id, stream.id]);
+  await expect(page.locator('.weather-tray').getByRole('heading')).toHaveText(/변경한 일정 0개$/);
+  await expect(page.getByRole('article', { name: '원래 일정' }).getByRole('heading')).toHaveText(beach.name);
+});
+
+test('예보 출처 태그는 DAY 날짜 옆에, 바꿔볼 장소는 배경 없이 DAY 색 테두리·회색 태그이며, 교체하면 언제 갈까?에 동선 재확인 알림이 뜬다', async ({ page }, testInfo) => {
+  const loaded = await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  const first = ((await (await loaded.alternatives).json()) as WeatherAlternatives).alternatives[0]!.place;
+  const head = page.locator('.w-forecast-head');
+  const [date, badge] = await Promise.all([head.locator('span').first().boundingBox(), head.locator('.w-source-badge').boundingBox()]);
+  expect(badge!.x - (date!.x + date!.width), 'OpenWeather 예보 태그는 날짜 바로 옆').toBeLessThan(16);
+  const chosenCard = page.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosenCard, '배경색 없이').toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(chosenCard, 'DAY 2 주황 테두리만').toHaveCSS('border-top-color', 'rgb(243, 122, 31)');
+  const grayBg = await page.evaluate(() => { const probe = document.createElement('span'); probe.style.background = 'var(--semantic-background-neutral-secondary)'; document.body.append(probe); const value = getComputedStyle(probe).backgroundColor; probe.remove(); return value; });
+  await expect(chosenCard.locator('.w-badge.indoor'), '태그는 회색').toHaveCSS('background-color', grayBg);
+  await page.screenshot({ path: testInfo.outputPath('weather-forecast-head.png') });
+
+  await page.goto('/schedule', { waitUntil: 'domcontentloaded' });
+  const notice = page.getByRole('status').filter({ hasText: '동선을 다시 체크해보세요' });
+  await expect(notice, '바꾼 일정이 없으면 알림도 없다').toHaveCount(0);
+
+  await page.goto('/weather?day=2&item=1', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: `${beach.name}을(를) ${first.name}(으)로 교체` }).click();
+  await page.goto('/schedule', { waitUntil: 'domcontentloaded' });
+  await expect(notice, '바뀐 일정의 DAY와 순서까지 알려 준다').toContainText('비가 예상되어 일정이 변경됐으니 동선을 다시 체크해보세요. (DAY 2 2번)');
+  await expect(notice.getByRole('button', { name: '변경 내역 보기' }), '변경 내역 보기 버튼은 두지 않는다').toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('schedule-weather-notice.png') });
+
+  // '동선 체크 완료'는 바뀐 DAY(2, 주황) 색 바탕에 흰 글씨이고, 주의 아이콘은 첫 글자 줄 가운데에 맞춘다
+  const done = notice.getByRole('button', { name: '동선 체크 완료' });
+  await expect(done).toHaveCSS('background-color', 'rgb(243, 122, 31)');
+  await expect(done).toHaveCSS('color', 'rgb(255, 255, 255)');
+  const offset = await notice.evaluate((node) => {
+    const icon = node.querySelector('svg')!.getBoundingClientRect();
+    const leaf = [...node.querySelectorAll('*')].find((each) => each.children.length === 0 && (each.textContent ?? '').startsWith('비가'))!;
+    const range = document.createRange(); range.selectNodeContents(leaf);
+    const line = range.getClientRects()[0]!;
+    return (icon.top + icon.height / 2) - (line.top + line.height / 2);
+  });
+  expect(Math.abs(offset), '아이콘만 위로 솟지 않는다').toBeLessThanOrEqual(1.5);
+
+  // 동선을 확인하고 '동선 체크 완료'를 누르면 알림이 사라지고, 새로고침해도 다시 나오지 않는다
+  await done.click();
+  await expect(notice).toHaveCount(0);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: '나의 일정', exact: true })).toBeVisible();
+  await expect(notice).toHaveCount(0);
+
+  // 날씨 체크에서 다른 일정을 또 바꾸면 다시 알린다
+  await page.goto('/weather?day=2&item=2', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('button', { name: /\(으\)로 교체$/ }).click();
+  await page.goto('/schedule', { waitUntil: 'domcontentloaded' });
+  await expect(notice).toContainText('(DAY 2 2번, 3번)');
+});
+
+const nearbyCafe = { ...place('kakao:near', '해운대 근처 카페', 35.1640, 129.1600), category: '카페', description: '음식점 > 카페', source: '카카오 로컬' };
+const farCafe = { ...place('kakao:far', '기장 먼 카페', 35.2440, 129.2220), category: '카페', description: '음식점 > 카페', source: '카카오 로컬' };
+async function mockCafeSearch(page: Page) {
+  const searches: URLSearchParams[] = [];
+  await page.route('**/api/travel/search?**', (route) => {
+    searches.push(new URL(route.request().url()).searchParams);
+    return route.fulfill({ json: { places: [farCafe, nearbyCafe], total: 2, source: '카카오 로컬', source_url: 'https://developers.kakao.com', date_min: null, date_max: null } });
+  });
+  return searches;
+}
+
+test('후보함에 담은 카페가 없으면 원래 카페 근처 카페를 가까운 순으로 보여주고, 실내 관광지 대안은 찾지 않는다', async ({ page }) => {
+  const searches = await mockCafeSearch(page);
+  const alternativeNames: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === '/api/weather/alternatives') alternativeNames.push(url.searchParams.get('name') ?? '');
+  });
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) });
+  await page.goto('/weather?day=2&item=0', { waitUntil: 'domcontentloaded' });
+  const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosen.getByRole('heading')).toHaveText(nearbyCafe.name);
+  await expect(chosen).toContainText('근처 카페 · 운영정보 확인 필요');
+  expect(searches.at(-1)?.get('category')).toBe('CE7');
+  expect(searches.at(-1)?.get('query')).toBe('부산광역시 해운대구 카페');
+  expect(alternativeNames, '카페는 실내 관광지(박물관 등) 대안을 찾지 않는다').not.toContain(cafe.name);
+  await expect(page.getByRole('region', { name: '이런 곳도 있어요' }), '3km 밖의 카페는 근처 카페가 있으면 뺀다').toHaveCount(0);
+});
+
+test('후보함에 담은 카페가 있으면 그 카페로 바꿔 보여주고 근처 검색은 하지 않는다', async ({ page }, testInfo) => {
+  const searches = await mockCafeSearch(page);
+  const savedCafe = { ...place('kakao:saved', '전포 카페거리 카페', 35.1555, 129.0640), category: '카페', description: '음식점 > 카페', source: '카카오 로컬' };
+  await openWeather(page, { status: 200, body: forecast('ok', [slot('15:00', 70)]) },
+    { ...trip, places: { ...trip.places, [savedCafe.id]: savedCafe }, candidateIds: [...trip.candidateIds, savedCafe.id] });
+  await page.goto('/weather?day=2&item=0', { waitUntil: 'domcontentloaded' });
+  const chosen = page.getByRole('article', { name: '바꿔볼 장소' });
+  await expect(chosen.getByRole('heading')).toHaveText(savedCafe.name);
+  await expect(chosen).toContainText('후보함에 담은 카페');
+  expect(searches, '후보함에 담은 카페가 있으면 근처 검색을 하지 않는다').toHaveLength(0);
+  await page.screenshot({ path: testInfo.outputPath('weather-same-kind.png') });
+
+  await page.getByRole('button', { name: `${cafe.name}을(를) ${savedCafe.name}(으)로 교체` }).click();
+  const saved: Trip = await page.evaluate(() => JSON.parse(localStorage.getItem('pinday.trip.v1')!));
+  expect(saved.days[1]!.items[0]!.placeId).toBe(savedCafe.id);
+});

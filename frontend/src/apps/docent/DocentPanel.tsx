@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, Bookmark, BookmarkCheck, FileText, Landmark, Map, MapPin, Mountain, Newspaper, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Bookmark, BookmarkCheck, ChevronDown, ChevronLeft, ChevronRight, FileText, Landmark, Map, MapPin, Mountain, Newspaper, RefreshCw, Sparkles } from 'lucide-react';
 import { ApiError, request, type Place } from '../../api/client';
 import { getDocentNewsUrl, getDocentStoryUrl } from '../../api/generated/docent/docent';
-import type { DocentNews, DocentStory } from '../../api/generated/model';
+import type { DocentNews, DocentSection, DocentStory } from '../../api/generated/model';
 import { tripActions, useTrip } from '../../shared/trip/tripStore';
 import EmptyStateArt from '../../shared/ui/EmptyStateArt';
 import PhotoSlideshow from './PhotoSlideshow';
@@ -13,6 +13,60 @@ import { Panel } from './styles';
 type Tab = 'story' | 'news';
 
 const SECTION_ICONS = { history: Landmark, feature: Mountain, tip: MapPin } as const;
+const SLIDE_MS = 6000;
+
+/**
+ * 역사와 문화 · 동네의 특징 · 방문 전 알아두기를 한 번에 하나씩 보여 준다.
+ * 6초마다 넘어가고, 마우스를 올리거나 키보드로 들어오면 멈춘다. 움직임 줄이기 설정이면 자동으로 넘기지 않는다.
+ */
+function SectionCarousel({ sections }: { sections: DocentSection[] }) {
+  const { t } = useTranslation('docent');
+  const [index, setIndex] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const count = sections.length;
+  const current = sections[Math.min(index, count - 1)];
+  const paused = hovered || focused;
+
+  useEffect(() => {
+    if (paused || count < 2 || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setTimeout(() => setIndex((value) => (value + 1) % count), SLIDE_MS);
+    return () => window.clearTimeout(timer);
+  }, [index, paused, count]);
+
+  if (!current) return null;
+  const Icon = SECTION_ICONS[current.key];
+  const go = (next: number) => setIndex((next + count) % count);
+  return (
+    <section className="section-carousel" aria-roledescription="carousel" aria-label={t('sectionsLabel')}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+      {/* 자동으로 넘어갈 때는 읽어 주지 않고, 사용자가 멈춰 둔 상태에서 넘길 때만 읽어 준다 */}
+      <div className="section" role="group" aria-roledescription="slide" aria-live={paused ? 'polite' : 'off'}
+        aria-label={t('sectionSlide', { current: index + 1, total: count, title: current.title })}>
+        <div className="section-head">
+          <strong><Icon size={16} />{current.title}</strong>
+          <span className="section-count">{index + 1} / {count}</span>
+        </div>
+        <p className="section-body">{current.body}</p>
+        {current.reference_indexes.length > 0 && (
+          <p className="ref-chips">{current.reference_indexes.map((reference) => <span key={reference}>[{reference}]</span>)}</p>
+        )}
+      </div>
+      {count > 1 && (
+        <div className="carousel-controls">
+          <button type="button" className="carousel-arrow" aria-label={t('prevSection')} onClick={() => go(index - 1)}><ChevronLeft size={18} /></button>
+          <div className="carousel-dots">
+            {sections.map((section, each) => (
+              <button key={section.key} type="button" className="carousel-dot" aria-label={section.title} aria-current={each === index ? 'true' : undefined} onClick={() => go(each)} />
+            ))}
+          </div>
+          <button type="button" className="carousel-arrow" aria-label={t('nextSection')} onClick={() => go(index + 1)}><ChevronRight size={18} /></button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // 생성된 fetch 는 오류 응답을 예외로 던지지 않아서, URL 만 쓰고 요청은 공용 request() 로 보낸다
 function useStory(place: Place | null) {
@@ -84,20 +138,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
 
           {data?.ready ? (
             <>
-              <div className="sections">
-                {data.sections.map((section) => {
-                  const Icon = SECTION_ICONS[section.key];
-                  return (
-                    <div className="section" key={section.key}>
-                      <strong><Icon size={16} />{section.title}</strong>
-                      <p className="section-body">{section.body}</p>
-                      {section.reference_indexes.length > 0 && (
-                        <p className="ref-chips">{section.reference_indexes.map((index) => <span key={index}>[{index}]</span>)}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <SectionCarousel key={place.id} sections={data.sections} />
               <p className="ai-note"><Sparkles size={12} /> {t('aiNote', { model: data.model, time: data.generated_at?.slice(0, 16).replace('T', ' ') })}</p>
             </>
           ) : data ? (
@@ -109,8 +150,8 @@ export default function DocentPanel({ place }: { place: Place | null }) {
           ) : null}
 
           {data && data.references.length > 0 && (
-            <div className="refs">
-              <h3>{t('references')}</h3>
+            <details className="refs">
+              <summary><span>{t('referencesToggle', { count: data.references.length })}</span><ChevronDown size={16} aria-hidden="true" /></summary>
               <p>{t('referencesHint')}</p>
               {data.references.map((reference) => (
                 <a className="ref-row" key={reference.index} href={reference.url} target="_blank" rel="noreferrer">
@@ -121,7 +162,7 @@ export default function DocentPanel({ place }: { place: Place | null }) {
                   </small>
                 </a>
               ))}
-            </div>
+            </details>
           )}
 
           <div className="actions">
